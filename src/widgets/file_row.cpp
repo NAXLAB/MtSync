@@ -1,0 +1,36 @@
+/*
+ * Saddle — GTK4 frontend to rclone
+ * Copyright (C) 2026  Saddle contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "widgets/file_row.hpp"
+
+namespace saddle {
+
+FileObject::FileObject() : Glib::ObjectBase("SaddleFileObject") {}
+
+Glib::RefPtr<FileObject> FileObject::create(const rclone::FileEntry& entry) {
+    auto obj = Glib::make_refptr_for_instance(new FileObject());
+    obj->property_name.set_value(entry.name);
+    obj->property_path.set_value(entry.path);
+    obj->property_size.set_value(entry.size);
+    obj->property_mod_time.set_value(entry.mod_time);
+    obj->property_mime_type.set_value(entry.mime_type);
+    obj->property_is_dir.set_value(entry.is_dir);
+    return obj;
+}
+
+} // namespace saddle
