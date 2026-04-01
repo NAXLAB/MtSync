@@ -19,6 +19,7 @@
 #pragma once
 
 #include "rclone/rclone_manager.hpp"
+#include "widgets/adw_wrapper.hpp"
 #include "widgets/file_row.hpp"
 #include <gtkmm.h>
 #include <string>
@@ -33,39 +34,51 @@ public:
 private:
     rclone::RcloneManager& m_manager;
 
-    // Current state
+    // Layout
+    AdwNavigationSplitView* m_split_view = nullptr;
+
+    // Sidebar
+    Glib::RefPtr<Gio::ListStore<RemoteObject>> m_remote_store;
+    Glib::RefPtr<Gtk::SingleSelection> m_remote_selection;
+
+    // Content header
+    Gtk::Box* m_breadcrumb_box = nullptr;
+    Gtk::Button m_back_btn;
+    Gtk::Button m_up_btn;
+    Gtk::Button m_refresh_btn;
+
+    // Content stack + state pages
+    Gtk::Stack* m_content_stack = nullptr;
+    Gtk::Widget* m_no_remote_status = nullptr;
+    Gtk::Widget* m_empty_status = nullptr;
+
+    // File list model
+    Glib::RefPtr<Gio::ListStore<FileObject>> m_list_store;
+    Glib::RefPtr<Gtk::SortListModel> m_sort_model;
+    Glib::RefPtr<Gtk::SingleSelection> m_file_selection;
+    Gtk::ColumnView* m_column_view = nullptr;
+
+    // Navigation state
     std::string m_current_remote;
     std::string m_current_path;
     std::vector<std::string> m_path_history;
-
-    // Widgets
-    Gtk::DropDown m_remote_dropdown;
-    Gtk::Entry m_path_entry;
-    Gtk::Button m_back_btn{"Go Back"};
-    Gtk::Button m_up_btn{"Go Up"};
-    Gtk::Button m_refresh_btn;
-    Gtk::ScrolledWindow m_scroll;
-    Gtk::ColumnView* m_column_view = nullptr;
-    Gtk::Label m_status_label;
-    Gtk::Spinner m_spinner;
-
-    // Data model
-    Glib::RefPtr<Gio::ListStore<FileObject>> m_list_store;
-    Glib::RefPtr<Gtk::SingleSelection> m_selection;
-    Glib::RefPtr<Gtk::StringList> m_remote_model;
-
-    // Remote list cache
     std::vector<rclone::RemoteInfo> m_remotes;
+    uint64_t m_load_generation = 0;
 
-    void setup_ui();
+    void setup_sidebar();
+    void setup_content();
+    void build_column_view();
     void load_remotes();
+    void on_remote_selection_changed();
     void navigate(const std::string& path);
-    void on_remote_changed();
+    void rebuild_breadcrumbs();
     void on_item_activated(guint position);
     void go_back();
     void go_up();
-    void update_status(const std::string& text);
-    std::string format_size(int64_t bytes);
+    void show_content_state(const std::string& name);
+
+    static std::string mime_to_icon(const std::string& mime, bool is_dir);
+    static std::string format_size(int64_t bytes);
 };
 
 } // namespace saddle

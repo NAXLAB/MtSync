@@ -23,6 +23,18 @@
 
 namespace saddle {
 
+// GObject wrapper around RemoteInfo for use with Gio::ListStore in the sidebar
+class RemoteObject : public Glib::Object {
+public:
+    static Glib::RefPtr<RemoteObject> create(const rclone::RemoteInfo& info);
+
+    Glib::Property<Glib::ustring> property_name{*this, "name"};
+    Glib::Property<Glib::ustring> property_type{*this, "type"};
+
+protected:
+    RemoteObject();
+};
+
 // GObject wrapper around FileEntry for use with Gio::ListStore
 class FileObject : public Glib::Object {
 public:

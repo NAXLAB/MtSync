@@ -44,6 +44,8 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
 
     auto* switcher = adw::view_switcher(m_view_stack);
     auto* header = adw::header_bar();
+    adw::header_bar_set_show_start_title_buttons(header, false);
+    adw::header_bar_set_show_end_title_buttons(header, false);
     adw::header_bar_set_title_widget(header, switcher);
 
     // Toast overlay wraps the view stack

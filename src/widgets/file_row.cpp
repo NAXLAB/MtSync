@@ -20,6 +20,15 @@
 
 namespace saddle {
 
+RemoteObject::RemoteObject() : Glib::ObjectBase("SaddleRemoteObject") {}
+
+Glib::RefPtr<RemoteObject> RemoteObject::create(const rclone::RemoteInfo& info) {
+    auto obj = Glib::make_refptr_for_instance(new RemoteObject());
+    obj->property_name.set_value(info.name);
+    obj->property_type.set_value(info.type);
+    return obj;
+}
+
 FileObject::FileObject() : Glib::ObjectBase("SaddleFileObject") {}
 
 Glib::RefPtr<FileObject> FileObject::create(const rclone::FileEntry& entry) {
