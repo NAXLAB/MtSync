@@ -17,6 +17,7 @@
  */
 
 #include "views/job_edit_dialog.hpp"
+#include "rclone/cron_utils.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
 #include <random>
@@ -86,6 +87,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     auto* vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 18);
     adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), GTK_WIDGET(vbox->gobj()));
 
+    // ── Job Configuration group ──────────────────────────────────────────
     auto* group = adw::preferences_group();
     adw::preferences_group_set_title(group, "Job Configuration");
     vbox->append(*group);
@@ -134,17 +136,59 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         adw::entry_row_set_text(m_bandwidth_entry, m_editing->bandwidth.c_str());
     adw::preferences_group_add(group, m_bandwidth_entry);
 
-    // Schedule (ISO 8601)
-    m_schedule_entry = adw::entry_row();
-    adw::preferences_row_set_title(m_schedule_entry,
-        "Schedule (ISO 8601, e.g. 2026-04-05T14:00:00 — leave empty to run now)");
-    if (m_editing && !m_editing->scheduled_at.empty())
-        adw::entry_row_set_text(m_schedule_entry, m_editing->scheduled_at.c_str());
-    adw::preferences_group_add(group, m_schedule_entry);
+    // Enable Schedule switch (in same group, after bandwidth)
+    m_schedule_switch = adw::switch_row();
+    adw::preferences_row_set_title(m_schedule_switch, "Enable Schedule");
+    bool sched_on = m_editing && m_editing->schedule_enabled;
+    adw::switch_row_set_active(m_schedule_switch, sched_on);
+    adw::preferences_group_add(group, m_schedule_switch);
 
-    // Action button — label changes based on whether schedule is filled
-    bool has_schedule = m_editing && !m_editing->scheduled_at.empty();
-    m_action_btn = Gtk::make_managed<Gtk::Button>(has_schedule ? "Schedule" : "Run Now");
+    // ── Cron fields group ─────────────────────────────────────────────────
+    m_cron_fields_group = adw::preferences_group();
+    adw::preferences_group_set_title(m_cron_fields_group, "Schedule (cron)");
+    m_cron_fields_group->set_sensitive(sched_on);
+    vbox->append(*m_cron_fields_group);
+
+    auto make_cron_row = [&](const char* title, const char* placeholder,
+                              const std::string& initial_val) -> Gtk::Widget* {
+        auto* row = adw::entry_row();
+        adw::preferences_row_set_title(row, title);
+        adw::entry_row_set_text(row, initial_val.c_str());
+        // Store placeholder via GObject property name on the editable
+        gtk_text_set_placeholder_text(
+            GTK_TEXT(gtk_editable_get_delegate(GTK_EDITABLE(row->gobj()))),
+            placeholder);
+        adw::preferences_group_add(m_cron_fields_group, row);
+        return row;
+    };
+
+    auto cron_val = [&](const std::string& field) -> const std::string& {
+        return m_editing ? field : field; // default already "*" from Job defaults
+    };
+    (void)cron_val;
+
+    m_cron_minute_entry  = make_cron_row("Minute",  "0-59 or *",
+        m_editing ? m_editing->cron_minute  : "*");
+    m_cron_hour_entry    = make_cron_row("Hour",    "0-23 or *",
+        m_editing ? m_editing->cron_hour    : "*");
+    m_cron_day_entry     = make_cron_row("Day",     "1-31 or *",
+        m_editing ? m_editing->cron_day     : "*");
+    m_cron_month_entry   = make_cron_row("Month",   "1-12 or *",
+        m_editing ? m_editing->cron_month   : "*");
+    m_cron_weekday_entry = make_cron_row("Weekday", "0-6 (0=Sun) or *",
+        m_editing ? m_editing->cron_weekday : "*");
+
+    // Summary label below cron group
+    m_schedule_summary = Gtk::make_managed<Gtk::Label>();
+    m_schedule_summary->add_css_class("dim-label");
+    m_schedule_summary->set_margin_top(4);
+    m_schedule_summary->set_margin_start(12);
+    m_schedule_summary->set_xalign(0.0f);
+    m_schedule_summary->set_sensitive(sched_on);
+    vbox->append(*m_schedule_summary);
+
+    // ── Buttons ───────────────────────────────────────────────────────────
+    m_action_btn = Gtk::make_managed<Gtk::Button>(sched_on ? "Schedule" : "Run Now");
     m_action_btn->add_css_class("suggested-action");
     m_action_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_commit));
 
@@ -153,30 +197,70 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 12);
     btn_box->set_halign(Gtk::Align::CENTER);
+    btn_box->set_margin_top(6);
     btn_box->append(*m_action_btn);
     btn_box->append(*cancel_btn);
     vbox->append(*btn_box);
 
-    // Update button label when schedule entry content changes
-    g_signal_connect(m_schedule_entry->gobj(), "changed",
-        G_CALLBACK(+[](GtkEditable*, gpointer data) {
+    // ── Reactive wiring ───────────────────────────────────────────────────
+
+    // Toggle cron group sensitivity + button label when switch changes
+    g_signal_connect(m_schedule_switch->gobj(), "notify::active",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
-            const char* text = adw::entry_row_get_text(self->m_schedule_entry);
-            self->m_action_btn->set_label((text && *text) ? "Schedule" : "Run Now");
+            bool on = adw::switch_row_get_active(self->m_schedule_switch);
+            self->m_cron_fields_group->set_sensitive(on);
+            self->m_schedule_summary->set_sensitive(on);
+            self->m_action_btn->set_label(on ? "Schedule" : "Run Now");
+            self->update_summary();
         }), this);
+
+    // Update summary when any cron field changes
+    auto changed_cb = G_CALLBACK(+[](GtkEditable*, gpointer data) {
+        static_cast<JobEditDialog*>(data)->update_summary();
+    });
+    g_signal_connect(m_cron_minute_entry->gobj(),  "changed", changed_cb, this);
+    g_signal_connect(m_cron_hour_entry->gobj(),    "changed", changed_cb, this);
+    g_signal_connect(m_cron_day_entry->gobj(),     "changed", changed_cb, this);
+    g_signal_connect(m_cron_month_entry->gobj(),   "changed", changed_cb, this);
+    g_signal_connect(m_cron_weekday_entry->gobj(), "changed", changed_cb, this);
+
+    // Initial summary
+    update_summary();
+}
+
+void JobEditDialog::update_summary() {
+    if (!m_schedule_summary) return;
+    if (!adw::switch_row_get_active(m_schedule_switch)) {
+        m_schedule_summary->set_text("");
+        return;
+    }
+    // Build a temporary Job with the current field values to generate description
+    rclone::Job tmp;
+    tmp.cron_minute  = adw::entry_row_get_text(m_cron_minute_entry);
+    tmp.cron_hour    = adw::entry_row_get_text(m_cron_hour_entry);
+    tmp.cron_day     = adw::entry_row_get_text(m_cron_day_entry);
+    tmp.cron_month   = adw::entry_row_get_text(m_cron_month_entry);
+    tmp.cron_weekday = adw::entry_row_get_text(m_cron_weekday_entry);
+    m_schedule_summary->set_text("↻  " + cron::describe(tmp));
 }
 
 void JobEditDialog::on_commit() {
     rclone::Job job;
-    job.id           = m_editing ? m_editing->id : generate_uuid();
-    job.type         = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
-    job.source       = adw::entry_row_get_text(m_source_entry);
-    job.destination  = adw::entry_row_get_text(m_dest_entry);
-    job.dry_run      = adw::switch_row_get_active(m_dry_run_switch);
-    job.bandwidth    = adw::entry_row_get_text(m_bandwidth_entry);
-    job.scheduled_at = adw::entry_row_get_text(m_schedule_entry);
-    job.last_run     = m_editing ? m_editing->last_run    : "";
-    job.last_status  = m_editing ? m_editing->last_status : "";
+    job.id               = m_editing ? m_editing->id : generate_uuid();
+    job.type             = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
+    job.source           = adw::entry_row_get_text(m_source_entry);
+    job.destination      = adw::entry_row_get_text(m_dest_entry);
+    job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
+    job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
+    job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
+    job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
+    job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
+    job.cron_day         = adw::entry_row_get_text(m_cron_day_entry);
+    job.cron_month       = adw::entry_row_get_text(m_cron_month_entry);
+    job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
+    job.last_run         = m_editing ? m_editing->last_run    : "";
+    job.last_status      = m_editing ? m_editing->last_status : "";
 
     if (job.source.empty() || job.destination.empty()) return;
 

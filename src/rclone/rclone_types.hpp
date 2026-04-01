@@ -104,18 +104,25 @@ NLOHMANN_JSON_SERIALIZE_ENUM(JobType, {
 
 struct Job {
     std::string id;
-    JobType     type         = JobType::Sync;
+    JobType     type             = JobType::Sync;
     std::string source;
     std::string destination;
-    bool        dry_run      = false;
+    bool        dry_run          = false;
     std::string bandwidth;
-    std::string scheduled_at; // ISO 8601, empty = run immediately
+    bool        schedule_enabled = false;
+    std::string cron_minute      = "*";
+    std::string cron_hour        = "*";
+    std::string cron_day         = "*";
+    std::string cron_month       = "*";
+    std::string cron_weekday     = "*";
     std::string last_run;
     std::string last_status;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Job, id, type, source, destination,
-    dry_run, bandwidth, scheduled_at, last_run, last_status)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
+    id, type, source, destination, dry_run, bandwidth,
+    schedule_enabled, cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
+    last_run, last_status)
 
 // Async callback type used throughout
 template <typename T>

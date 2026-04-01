@@ -18,6 +18,7 @@
 
 #include "views/job_view.hpp"
 #include "views/job_edit_dialog.hpp"
+#include "rclone/cron_utils.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <nlohmann/json.hpp>
 #include <filesystem>
@@ -153,9 +154,9 @@ void JobView::rebuild_ui() {
 
         std::string subtitle = type_badge(job.type);
         if (job.dry_run) subtitle += " [dry-run]";
-        if (!job.scheduled_at.empty() && job.last_run.empty())
-            subtitle += " | Scheduled: " + job.scheduled_at;
-        else if (!job.last_run.empty())
+        if (job.schedule_enabled)
+            subtitle += " | " + cron::describe(job);
+        if (!job.last_run.empty())
             subtitle += " | Last: " + job.last_run;
         if (!job.last_status.empty())
             subtitle += " (" + job.last_status + ")";
@@ -210,9 +211,9 @@ void JobView::rebuild_ui() {
         m_ui_rows.push_back(std::move(ui));
     }
 
-    // Re-arm scheduled timers for jobs that haven't run yet
+    // Re-arm scheduled timers
     for (size_t i = 0; i < m_jobs.size(); ++i) {
-        if (!m_jobs[i].scheduled_at.empty() && m_jobs[i].last_run.empty())
+        if (m_jobs[i].schedule_enabled)
             schedule_job(i);
     }
 }
@@ -247,32 +248,38 @@ void JobView::add_job(rclone::Job job) {
 
     size_t index = m_jobs.size() - 1;
     // For immediate jobs, run now; scheduled jobs were already armed by rebuild_ui
-    if (job.scheduled_at.empty())
+    if (!job.schedule_enabled)
         on_run_job(index);
 }
 
 void JobView::schedule_job(size_t index) {
     if (index >= m_jobs.size() || index >= m_ui_rows.size()) return;
     auto& job = m_jobs[index];
-    if (job.scheduled_at.empty()) return;
+    if (!job.schedule_enabled) return;
 
-    GDateTime* sched = g_date_time_new_from_iso8601(job.scheduled_at.c_str(), nullptr);
-    if (!sched) {
-        on_run_job(index);
-        return;
-    }
-
-    GDateTime* now    = g_date_time_new_now_local();
-    gint64     diff_us = g_date_time_difference(sched, now); // µs; positive = future
-    g_date_time_unref(sched);
+    GDateTime* now  = g_date_time_new_now_local();
+    GDateTime* next = cron::next_occurrence(job, now);
     g_date_time_unref(now);
 
+    if (!next) return; // invalid/unmatchable expression
+
+    GDateTime* now2   = g_date_time_new_now_local();
+    gint64     diff_us = g_date_time_difference(next, now2);
+    g_date_time_unref(now2);
+
+    // Format next occurrence for the status label
+    gchar* iso = g_date_time_format_iso8601(next);
+    std::string next_str = iso ? iso : "";
+    g_free(iso);
+    g_date_time_unref(next);
+
     if (diff_us <= 0) {
+        // Already past — run immediately
         on_run_job(index);
         return;
     }
 
-    // Cap at 24 days to stay within guint range; app restart re-arms longer delays
+    // Cap at ~24 days to stay within guint range; re-arms via poll_progress after each run
     constexpr gint64 MAX_DELAY_MS = 24LL * 24 * 3600 * 1000;
     auto delay_ms = static_cast<unsigned int>(std::min(diff_us / 1000, MAX_DELAY_MS));
 
@@ -283,7 +290,7 @@ void JobView::schedule_job(size_t index) {
         }, delay_ms);
 
     m_ui_rows[index].status_label->set_visible(true);
-    m_ui_rows[index].status_label->set_text("Scheduled");
+    m_ui_rows[index].status_label->set_text("Next: " + next_str.substr(0, 16));
 }
 
 void JobView::on_run_job(size_t index) {
@@ -426,6 +433,9 @@ void JobView::poll_progress(size_t index) {
                     }
                 }
                 save_jobs();
+                // Re-arm for next cron occurrence
+                if (index < m_jobs.size() && m_jobs[index].schedule_enabled)
+                    schedule_job(index);
             }
         });
 

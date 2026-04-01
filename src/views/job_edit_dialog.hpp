@@ -46,17 +46,25 @@ private:
     DoneCallback           m_on_done;
     std::optional<rclone::Job> m_editing;
 
-    Gtk::Widget* m_type_combo      = nullptr;
-    Gtk::Widget* m_source_entry    = nullptr;
-    Gtk::Widget* m_dest_entry      = nullptr;
-    Gtk::Widget* m_dry_run_switch  = nullptr;
-    Gtk::Widget* m_bandwidth_entry = nullptr;
-    Gtk::Widget* m_schedule_entry  = nullptr;
-    Gtk::Button* m_action_btn      = nullptr;
+    Gtk::Widget* m_type_combo         = nullptr;
+    Gtk::Widget* m_source_entry       = nullptr;
+    Gtk::Widget* m_dest_entry         = nullptr;
+    Gtk::Widget* m_dry_run_switch     = nullptr;
+    Gtk::Widget* m_bandwidth_entry    = nullptr;
+    Gtk::Widget* m_schedule_switch    = nullptr;
+    Gtk::Widget* m_cron_fields_group  = nullptr;
+    Gtk::Widget* m_cron_minute_entry  = nullptr;
+    Gtk::Widget* m_cron_hour_entry    = nullptr;
+    Gtk::Widget* m_cron_day_entry     = nullptr;
+    Gtk::Widget* m_cron_month_entry   = nullptr;
+    Gtk::Widget* m_cron_weekday_entry = nullptr;
+    Gtk::Label*  m_schedule_summary   = nullptr;
+    Gtk::Button* m_action_btn         = nullptr;
 
     void setup_ui(rclone::JobType initial_type,
                   const std::string& initial_src,
                   const std::string& initial_dst);
+    void update_summary();
     void on_commit();
     static std::string generate_uuid();
 };

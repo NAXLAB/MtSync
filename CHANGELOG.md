@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.5 — Cron Scheduling
+
+- Recurring cron-style scheduling in `JobEditDialog`: enable switch + five individual fields (Minute, Hour, Day, Month, Weekday) with live human-readable summary
+- Action button reads "Run Now" when scheduling is disabled, "Schedule" when enabled
+- Jobs re-arm automatically after each run for the next cron occurrence
+- `cron_utils.hpp`: header-only cron engine — field parser, next-occurrence calculator, human-readable description
+
 ## 0.0.4 — Dual-Pane File Manager & Jobs System
 
 The file browser has been redesigned as a dual-pane manager (rcloneview-style), and the Sync tab has been generalised into a Jobs system supporting Sync, Copy, and Move operations with optional scheduling.
@@ -15,9 +22,7 @@ The file browser has been redesigned as a dual-pane manager (rcloneview-style), 
 - Automatic migration from `sync_pairs.json` on first launch (existing sync pairs become [SYNC] jobs)
 - Browser Copy/Move buttons open a job-configuration dialog instead of running immediately
 - `JobEditDialog` pre-fills source/destination from the active and other pane
-- Schedule field (ISO 8601) — leave empty to run now, fill to schedule for a future time
-- Action button label changes between "Run Now" and "Schedule" based on whether a time is entered
-- Job rows show type badge [SYNC]/[COPY]/[MOVE], scheduled time, and last run status
+- Job rows show type badge [SYNC]/[COPY]/[MOVE] and last run status
 - Delete button shows an AdwAlertDialog confirmation before deleting files
 - `RcloneRc` gains `copy_async` and `move_async` methods (rclone RC `sync/copy`, `sync/move` endpoints)
 
