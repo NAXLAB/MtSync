@@ -309,10 +309,17 @@ void BrowserView::build_column_view() {
 }
 
 void BrowserView::load_remotes() {
+    m_remote_store->remove_all();
+
+    // Local filesystem is always the first entry
+    rclone::RemoteInfo local_info;
+    local_info.name = "Local";
+    local_info.type = "local";
+    m_remote_store->append(RemoteObject::create(local_info));
+
     m_manager.cli().list_remotes([this](auto result) {
         if (!result.has_value()) return;
         m_remotes = std::move(result.value());
-        m_remote_store->remove_all();
         for (auto& r : m_remotes)
             m_remote_store->append(RemoteObject::create(r));
     });
@@ -322,16 +329,18 @@ void BrowserView::on_remote_selection_changed() {
     auto idx = m_remote_selection->get_selected();
     if (idx == GTK_INVALID_LIST_POSITION) {
         m_current_remote.clear();
+        m_is_local = false;
         show_content_state("no-remote");
         return;
     }
     auto obj = std::dynamic_pointer_cast<RemoteObject>(m_remote_store->get_item(idx));
     if (!obj) return;
     m_current_remote = obj->property_name.get_value();
-    m_current_path   = "";
+    m_is_local       = (obj->property_type.get_value() == "local");
+    m_current_path   = m_is_local ? Glib::get_home_dir() : "";
     m_path_history.clear();
     adw::navigation_split_view_set_show_content(m_split_view, true);
-    navigate("");
+    navigate(m_current_path);
 }
 
 void BrowserView::navigate(const std::string& path) {
@@ -342,7 +351,8 @@ void BrowserView::navigate(const std::string& path) {
     show_content_state("loading");
     rebuild_breadcrumbs();
 
-    m_manager.cli().lsjson(m_current_remote + ":" + path, [this, gen](auto result) {
+    std::string rclone_path = m_is_local ? path : (m_current_remote + ":" + path);
+    m_manager.cli().lsjson(rclone_path, [this, gen](auto result) {
         if (gen != m_load_generation) return;
         if (!result.has_value()) {
             show_content_state("empty");
@@ -359,22 +369,31 @@ void BrowserView::rebuild_breadcrumbs() {
     while (auto* child = m_breadcrumb_box->get_first_child())
         m_breadcrumb_box->remove(*child);
 
-    auto* root_btn = Gtk::make_managed<Gtk::Button>(
-        m_current_remote.empty() ? Glib::ustring("Remote")
-                                 : Glib::ustring(m_current_remote));
+    // Root button: "Local" → "/" for local, remote name → "" for remotes
+    Glib::ustring root_label = m_is_local ? "Local"
+        : (m_current_remote.empty() ? Glib::ustring("Remote") : Glib::ustring(m_current_remote));
+    std::string root_path = m_is_local ? "/" : "";
+
+    auto* root_btn = Gtk::make_managed<Gtk::Button>(root_label);
     root_btn->add_css_class("flat");
-    root_btn->signal_clicked().connect([this]() {
+    root_btn->signal_clicked().connect([this, root_path]() {
         m_path_history.push_back(m_current_path);
-        navigate("");
+        navigate(root_path);
     });
     m_breadcrumb_box->append(*root_btn);
 
-    if (m_current_path.empty()) return;
+    // For local, strip the leading '/' before splitting into segments
+    std::string path_to_split = m_current_path;
+    if (m_is_local && !path_to_split.empty() && path_to_split[0] == '/')
+        path_to_split = path_to_split.substr(1);
 
-    // Split path into segments
+    bool at_root = m_is_local ? (m_current_path == "/" || m_current_path.empty())
+                              : m_current_path.empty();
+    if (at_root) return;
+
     std::vector<std::string> segments;
     std::string seg;
-    for (char c : m_current_path) {
+    for (char c : path_to_split) {
         if (c == '/') {
             if (!seg.empty()) { segments.push_back(seg); seg.clear(); }
         } else {
@@ -383,14 +402,15 @@ void BrowserView::rebuild_breadcrumbs() {
     }
     if (!seg.empty()) segments.push_back(seg);
 
-    std::string accumulated;
+    // For local, accumulated paths are absolute (/home, /home/user, …)
+    std::string accumulated = m_is_local ? "" : "";
     for (size_t i = 0; i < segments.size(); ++i) {
         auto* sep = Gtk::make_managed<Gtk::Label>("›");
         sep->add_css_class("dim-label");
         m_breadcrumb_box->append(*sep);
 
-        if (!accumulated.empty()) accumulated += '/';
-        accumulated += segments[i];
+        accumulated = m_is_local ? (accumulated + "/" + segments[i])
+                                 : (accumulated.empty() ? segments[i] : accumulated + "/" + segments[i]);
 
         auto* btn = Gtk::make_managed<Gtk::Button>(Glib::ustring(segments[i]));
         btn->add_css_class("flat");
@@ -411,9 +431,17 @@ void BrowserView::on_item_activated(guint position) {
     auto obj = std::dynamic_pointer_cast<FileObject>(m_sort_model->get_object(position));
     if (!obj || !obj->property_is_dir.get_value()) return;
     m_path_history.push_back(m_current_path);
-    std::string new_path = m_current_path.empty()
-        ? std::string(obj->property_path.get_value())
-        : m_current_path + "/" + std::string(obj->property_name.get_value());
+    std::string new_path;
+    if (m_is_local) {
+        // Avoid double slash when at filesystem root "/"
+        new_path = (m_current_path == "/")
+            ? "/" + std::string(obj->property_name.get_value())
+            : m_current_path + "/" + std::string(obj->property_name.get_value());
+    } else {
+        new_path = m_current_path.empty()
+            ? std::string(obj->property_path.get_value())
+            : m_current_path + "/" + std::string(obj->property_name.get_value());
+    }
     navigate(new_path);
 }
 
@@ -425,17 +453,27 @@ void BrowserView::go_back() {
 }
 
 void BrowserView::go_up() {
-    if (m_current_path.empty()) return;
-    m_path_history.push_back(m_current_path);
-    auto pos = m_current_path.rfind('/');
-    navigate(pos == std::string::npos ? "" : m_current_path.substr(0, pos));
+    if (m_is_local) {
+        if (m_current_path == "/" || m_current_path.empty()) return;
+        m_path_history.push_back(m_current_path);
+        auto pos    = m_current_path.rfind('/');
+        std::string parent = (pos == 0) ? "/" : m_current_path.substr(0, pos);
+        navigate(parent);
+    } else {
+        if (m_current_path.empty()) return;
+        m_path_history.push_back(m_current_path);
+        auto pos = m_current_path.rfind('/');
+        navigate(pos == std::string::npos ? "" : m_current_path.substr(0, pos));
+    }
 }
 
 void BrowserView::show_content_state(const std::string& name) {
     m_content_stack->set_visible_child(name);
-    bool active = (name == "files" || name == "empty");
+    bool active  = (name == "files" || name == "empty");
+    bool at_root = m_is_local ? (m_current_path == "/" || m_current_path.empty())
+                              : m_current_path.empty();
     m_back_btn.set_sensitive(!m_path_history.empty());
-    m_up_btn.set_sensitive(!m_current_path.empty() && active);
+    m_up_btn.set_sensitive(!at_root && active);
     m_refresh_btn.set_sensitive(!m_current_remote.empty() && name != "no-remote");
 }
 

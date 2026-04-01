@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.0.3 — Local Filesystem Browser
+
+- Local filesystem always available as the first sidebar entry, starting at the user's home directory
+- Breadcrumbs, Up, and Back navigation all handle absolute paths and filesystem root correctly
+
 ## 0.0.2 — File Browser Overhaul
 
-The file browser has been redesigned from a flat single-pane layout to a two-pane GNOME Files-style interface, with a collapsible remote sidebar, breadcrumb navigation, sortable columns, MIME-type-aware icons, and proper empty/loading states.
+The file browser has been redesigned from a flat single-pane layout to a GNOME Files-style interface with a collapsible sidebar, breadcrumb navigation, sortable columns, MIME-type-aware icons, and proper empty/loading states.
 
 - Redesigned file browser with sidebar + content pane layout (`AdwNavigationSplitView`)
 - Sidebar lists remotes with type-appropriate icons

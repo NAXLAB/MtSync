@@ -61,6 +61,7 @@ private:
     // Navigation state
     std::string m_current_remote;
     std::string m_current_path;
+    bool m_is_local = false;
     std::vector<std::string> m_path_history;
     std::vector<rclone::RemoteInfo> m_remotes;
     uint64_t m_load_generation = 0;
