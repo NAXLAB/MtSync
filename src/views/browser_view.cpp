@@ -54,43 +54,26 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // ── Transfer action bar ──────────────────────────────────────────────
     auto* action_bar = Gtk::make_managed<Gtk::ActionBar>();
 
-    // Copy buttons grouped
-    auto* copy_group = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
-    copy_group->add_css_class("linked");
-
-    auto* copy_back_btn = Gtk::make_managed<Gtk::Button>("← Copy");
-    copy_back_btn->set_tooltip_text("Copy selection from other pane to active pane");
-    copy_back_btn->signal_clicked().connect([this]() {
+    // Copy button
+    auto* copy_btn = Gtk::make_managed<Gtk::Button>("Copy");
+    copy_btn->set_tooltip_text("Copy from source to destination");
+    copy_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Copy);
     });
 
-    auto* copy_fwd_btn = Gtk::make_managed<Gtk::Button>("Copy →");
-    copy_fwd_btn->set_tooltip_text("Copy selection from active pane to other pane");
-    copy_fwd_btn->signal_clicked().connect([this]() {
-        show_job_dialog(rclone::JobType::Copy);
-    });
-
-    copy_group->append(*copy_back_btn);
-    copy_group->append(*copy_fwd_btn);
-
-    // Move buttons grouped
-    auto* move_group = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
-    move_group->add_css_class("linked");
-
-    auto* move_back_btn = Gtk::make_managed<Gtk::Button>("← Move");
-    move_back_btn->set_tooltip_text("Move selection from other pane to active pane");
-    move_back_btn->signal_clicked().connect([this]() {
+    // Move button
+    auto* move_btn = Gtk::make_managed<Gtk::Button>("Move");
+    move_btn->set_tooltip_text("Move from source to destination");
+    move_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Move);
     });
 
-    auto* move_fwd_btn = Gtk::make_managed<Gtk::Button>("Move →");
-    move_fwd_btn->set_tooltip_text("Move selection from active pane to other pane");
-    move_fwd_btn->signal_clicked().connect([this]() {
-        show_job_dialog(rclone::JobType::Move);
+    // Swap button - reverses source/destination
+    auto* swap_btn = Gtk::make_managed<Gtk::Button>("Swap ↔");
+    swap_btn->set_tooltip_text("Swap source and destination");
+    swap_btn->signal_clicked().connect([this]() {
+        swap_source_destination();
     });
-
-    move_group->append(*move_back_btn);
-    move_group->append(*move_fwd_btn);
 
     // Delete button
     auto* delete_btn = Gtk::make_managed<Gtk::Button>("Delete");
@@ -134,8 +117,9 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
         create_btn->activate();
     });
 
-    action_bar->pack_start(*copy_group);
-    action_bar->pack_start(*move_group);
+    action_bar->pack_start(*copy_btn);
+    action_bar->pack_start(*move_btn);
+    action_bar->pack_start(*swap_btn);
     action_bar->pack_end(*mkdir_btn);
     action_bar->pack_end(*delete_btn);
 
@@ -144,6 +128,9 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // Active-pane tracking — left pane starts active
     m_active_pane = m_left_pane;
     m_left_pane->set_active(true);
+
+    // Initialize source/destination roles
+    update_pane_roles();
 
     m_left_pane->signal_focused.connect([this]() { set_active_pane(m_left_pane); });
     m_right_pane->signal_focused.connect([this]() { set_active_pane(m_right_pane); });
@@ -156,14 +143,28 @@ void BrowserView::set_active_pane(BrowserPane* pane) {
     if (m_active_pane) m_active_pane->set_active(true);
 }
 
-BrowserPane* BrowserView::other_pane(BrowserPane* pane) const {
-    return (pane == m_left_pane) ? m_right_pane : m_left_pane;
+void BrowserView::swap_source_destination() {
+    m_source_on_left = !m_source_on_left;
+    update_pane_roles();
+}
+
+void BrowserView::update_pane_roles() {
+    if (m_source_on_left) {
+        m_left_pane->set_role(BrowserPane::Role::Source);
+        m_right_pane->set_role(BrowserPane::Role::Destination);
+    } else {
+        m_left_pane->set_role(BrowserPane::Role::Destination);
+        m_right_pane->set_role(BrowserPane::Role::Source);
+    }
 }
 
 void BrowserView::show_job_dialog(rclone::JobType type) {
-    if (!m_active_pane) return;
-    auto src = m_active_pane->get_current_rclone_path();
-    auto dst = other_pane(m_active_pane)->get_current_rclone_path();
+    auto src = m_source_on_left 
+        ? m_left_pane->get_current_rclone_path() 
+        : m_right_pane->get_current_rclone_path();
+    auto dst = m_source_on_left 
+        ? m_right_pane->get_current_rclone_path() 
+        : m_left_pane->get_current_rclone_path();
 
     m_job_dialog = std::make_unique<JobEditDialog>(m_manager, type, src, dst,
         [this](rclone::Job job) { signal_job_created.emit(job); });

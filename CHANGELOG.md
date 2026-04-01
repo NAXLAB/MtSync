@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.6 — Simplified Transfer Actions
+
+- Single Copy and Move buttons in dual-pane browser (instead of four directional buttons)
+- Swap button to reverse source/destination between panes
+- Role labels displayed in each pane header ("← Source" / "Destination →")
+
 ## 0.0.5 — Cron Scheduling
 
 - Recurring cron-style scheduling in `JobEditDialog`: enable switch + five individual fields (Minute, Hour, Day, Month, Weekday) with live human-readable summary

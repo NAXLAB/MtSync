@@ -141,6 +141,12 @@ void BrowserPane::setup_header() {
     });
     nav_bar->append(m_refresh_btn);
 
+    m_role_label = Gtk::make_managed<Gtk::Label>();
+    m_role_label->set_valign(Gtk::Align::CENTER);
+    m_role_label->set_margin_start(8);
+    m_role_label->set_width_chars(14);
+    nav_bar->append(*m_role_label);
+
     m_dropdown_conn = m_remote_dropdown->property_selected().signal_changed().connect(
         sigc::mem_fun(*this, &BrowserPane::on_remote_selection_changed));
 
@@ -467,6 +473,29 @@ void BrowserPane::set_active(bool active) {
         add_css_class("browser-pane-active");
     else
         remove_css_class("browser-pane-active");
+}
+
+void BrowserPane::set_role(Role r) {
+    m_role = r;
+    if (m_role_label) {
+        switch (r) {
+            case Role::Source:
+                m_role_label->set_text("← Source");
+                m_role_label->add_css_class("accent-color");
+                m_role_label->remove_css_class("dim-label");
+                break;
+            case Role::Destination:
+                m_role_label->set_text("Destination →");
+                m_role_label->add_css_class("dim-label");
+                m_role_label->remove_css_class("accent-color");
+                break;
+            case Role::None:
+                m_role_label->set_text("");
+                m_role_label->remove_css_class("accent-color");
+                m_role_label->remove_css_class("dim-label");
+                break;
+        }
+    }
 }
 
 // static
