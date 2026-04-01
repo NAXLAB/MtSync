@@ -21,7 +21,7 @@
 #include "rclone/rclone_manager.hpp"
 #include "views/backends_view.hpp"
 #include "views/browser_view.hpp"
-#include "views/sync_view.hpp"
+#include "views/job_view.hpp"
 #include <adwaita.h>
 #include <gtkmm.h>
 
@@ -38,7 +38,7 @@ private:
     Gtk::Widget* m_toast_overlay = nullptr;
 
     BackendsView m_backends_view;
-    SyncView m_sync_view;
+    JobView m_job_view;
     BrowserView m_browser_view;
 };
 

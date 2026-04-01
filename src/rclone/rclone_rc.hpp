@@ -40,6 +40,12 @@ public:
     void sync_async(const std::string& src_fs, const std::string& dst_fs,
                     const nlohmann::json& opts,
                     AsyncCallback<int64_t> callback);
+    void copy_async(const std::string& src_fs, const std::string& dst_fs,
+                    const nlohmann::json& opts,
+                    AsyncCallback<int64_t> callback);
+    void move_async(const std::string& src_fs, const std::string& dst_fs,
+                    const nlohmann::json& opts,
+                    AsyncCallback<int64_t> callback);
 
     void get_stats(AsyncCallback<SyncStats> callback);
     void job_status(int64_t jobid, AsyncCallback<JobStatus> callback);

@@ -180,6 +180,54 @@ void RcloneRc::sync_async(const std::string& src_fs, const std::string& dst_fs,
     });
 }
 
+void RcloneRc::copy_async(const std::string& src_fs, const std::string& dst_fs,
+                            const json& opts,
+                            AsyncCallback<int64_t> callback) {
+    json body = {
+        {"srcFs", src_fs},
+        {"dstFs", dst_fs},
+        {"_async", true}
+    };
+    body.update(opts);
+
+    rc_post("sync/copy", body, [callback = std::move(callback)](auto result) {
+        if (!result.has_value()) {
+            callback(std::unexpected(result.error()));
+            return;
+        }
+        auto& j = result.value();
+        if (j.contains("jobid")) {
+            callback(j["jobid"].template get<int64_t>());
+        } else {
+            callback(std::unexpected("No jobid in response"));
+        }
+    });
+}
+
+void RcloneRc::move_async(const std::string& src_fs, const std::string& dst_fs,
+                            const json& opts,
+                            AsyncCallback<int64_t> callback) {
+    json body = {
+        {"srcFs", src_fs},
+        {"dstFs", dst_fs},
+        {"_async", true}
+    };
+    body.update(opts);
+
+    rc_post("sync/move", body, [callback = std::move(callback)](auto result) {
+        if (!result.has_value()) {
+            callback(std::unexpected(result.error()));
+            return;
+        }
+        auto& j = result.value();
+        if (j.contains("jobid")) {
+            callback(j["jobid"].template get<int64_t>());
+        } else {
+            callback(std::unexpected("No jobid in response"));
+        }
+    });
+}
+
 void RcloneRc::get_stats(AsyncCallback<SyncStats> callback) {
     rc_post("core/stats", json::object(), [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {

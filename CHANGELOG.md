@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.0.4 — Dual-Pane File Manager & Jobs System
+
+The file browser has been redesigned as a dual-pane manager (rcloneview-style), and the Sync tab has been generalised into a Jobs system supporting Sync, Copy, and Move operations with optional scheduling.
+
+- Two independent browser panes in a resizable split view (`Gtk::Paned`)
+- Each pane has its own remote dropdown, breadcrumb navigation, and file list
+- Multi-selection support in both panes
+- Active pane tracked automatically (accent stripe indicator)
+- New Folder popover with Enter-key support
+- New rclone CLI operations: `copy`, `move`, `delete` (with `--include` file filters), `mkdir`
+- Sync tab renamed to Jobs; supports three job types: Sync, Copy, Move
+- `Job` data model replaces `SyncPair`; stored in `~/.config/saddle/jobs.json`
+- Automatic migration from `sync_pairs.json` on first launch (existing sync pairs become [SYNC] jobs)
+- Browser Copy/Move buttons open a job-configuration dialog instead of running immediately
+- `JobEditDialog` pre-fills source/destination from the active and other pane
+- Schedule field (ISO 8601) — leave empty to run now, fill to schedule for a future time
+- Action button label changes between "Run Now" and "Schedule" based on whether a time is entered
+- Job rows show type badge [SYNC]/[COPY]/[MOVE], scheduled time, and last run status
+- Delete button shows an AdwAlertDialog confirmation before deleting files
+- `RcloneRc` gains `copy_async` and `move_async` methods (rclone RC `sync/copy`, `sync/move` endpoints)
+
 ## 0.0.3 — Local Filesystem Browser
 
 - Local filesystem always available as the first sidebar entry, starting at the user's home directory

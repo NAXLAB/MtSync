@@ -248,4 +248,71 @@ void RcloneCli::lsjson(const std::string& remote_path,
     });
 }
 
+void RcloneCli::copy_files(const std::string& src_dir,
+                            const std::string& dst_dir,
+                            const std::vector<std::string>& includes,
+                            AsyncCallback<std::monostate> callback) {
+    std::vector<std::string> args = {"copy", src_dir, dst_dir};
+    for (auto& inc : includes) {
+        args.push_back("--include");
+        args.push_back(inc);
+    }
+    run_command(std::move(args), [callback = std::move(callback)](
+        const std::string&, const std::string& err, int code) {
+        if (code != 0)
+            callback(std::unexpected("copy failed: " + err));
+        else
+            callback(std::monostate{});
+    });
+}
+
+void RcloneCli::move_files(const std::string& src_dir,
+                            const std::string& dst_dir,
+                            const std::vector<std::string>& includes,
+                            AsyncCallback<std::monostate> callback) {
+    std::vector<std::string> args = {"move", src_dir, dst_dir};
+    for (auto& inc : includes) {
+        args.push_back("--include");
+        args.push_back(inc);
+    }
+    run_command(std::move(args), [callback = std::move(callback)](
+        const std::string&, const std::string& err, int code) {
+        if (code != 0)
+            callback(std::unexpected("move failed: " + err));
+        else
+            callback(std::monostate{});
+    });
+}
+
+void RcloneCli::delete_files(const std::string& dir,
+                               const std::vector<std::string>& includes,
+                               AsyncCallback<std::monostate> callback) {
+    if (includes.empty()) {
+        callback(std::unexpected("No files specified for deletion"));
+        return;
+    }
+    std::vector<std::string> args = {"delete", dir};
+    for (auto& inc : includes) {
+        args.push_back("--include");
+        args.push_back(inc);
+    }
+    run_command(std::move(args), [callback = std::move(callback)](
+        const std::string&, const std::string& err, int code) {
+        if (code != 0)
+            callback(std::unexpected("delete failed: " + err));
+        else
+            callback(std::monostate{});
+    });
+}
+
+void RcloneCli::mkdir(const std::string& path, AsyncCallback<std::monostate> callback) {
+    run_command({"mkdir", path}, [callback = std::move(callback)](
+        const std::string&, const std::string& err, int code) {
+        if (code != 0)
+            callback(std::unexpected("mkdir failed: " + err));
+        else
+            callback(std::monostate{});
+    });
+}
+
 } // namespace saddle::rclone

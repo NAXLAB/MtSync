@@ -94,18 +94,28 @@ struct JobStatus {
     double duration = 0.0;
 };
 
-struct SyncPair {
+enum class JobType { Sync, Copy, Move };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(JobType, {
+    {JobType::Sync, "sync"},
+    {JobType::Copy, "copy"},
+    {JobType::Move, "move"},
+})
+
+struct Job {
     std::string id;
+    JobType     type         = JobType::Sync;
     std::string source;
     std::string destination;
-    bool dry_run = false;
+    bool        dry_run      = false;
     std::string bandwidth;
+    std::string scheduled_at; // ISO 8601, empty = run immediately
     std::string last_run;
     std::string last_status;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SyncPair, id, source, destination,
-    dry_run, bandwidth, last_run, last_status)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Job, id, type, source, destination,
+    dry_run, bandwidth, scheduled_at, last_run, last_status)
 
 // Async callback type used throughout
 template <typename T>

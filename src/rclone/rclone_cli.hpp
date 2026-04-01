@@ -50,6 +50,23 @@ public:
     void lsjson(const std::string& remote_path,
                 AsyncCallback<std::vector<FileEntry>> callback);
 
+    // File operations
+    void copy_files(const std::string& src_dir,
+                    const std::string& dst_dir,
+                    const std::vector<std::string>& includes,
+                    AsyncCallback<std::monostate> callback);
+
+    void move_files(const std::string& src_dir,
+                    const std::string& dst_dir,
+                    const std::vector<std::string>& includes,
+                    AsyncCallback<std::monostate> callback);
+
+    void delete_files(const std::string& dir,
+                      const std::vector<std::string>& includes,
+                      AsyncCallback<std::monostate> callback);
+
+    void mkdir(const std::string& path, AsyncCallback<std::monostate> callback);
+
 private:
     std::string m_rclone_path;
 

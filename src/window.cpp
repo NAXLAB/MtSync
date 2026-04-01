@@ -23,7 +23,7 @@ namespace saddle {
 
 SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
     : m_backends_view(manager)
-    , m_sync_view(manager)
+    , m_job_view(manager)
     , m_browser_view(manager) {
     set_title("Saddle");
     set_default_size(900, 600);
@@ -35,7 +35,7 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
     adw_view_stack_page_set_icon_name(page1, "folder-symbolic");
 
     auto* page2 = adw::view_stack_add_titled(
-        m_view_stack, &m_sync_view, "sync", "Sync");
+        m_view_stack, &m_job_view, "jobs", "Jobs");
     adw_view_stack_page_set_icon_name(page2, "emblem-synchronizing-symbolic");
 
     auto* page3 = adw::view_stack_add_titled(
@@ -57,6 +57,9 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
     adw::toolbar_view_set_content(toolbar, m_toast_overlay);
 
     set_child(*toolbar);
+
+    m_browser_view.signal_job_created.connect(
+        sigc::mem_fun(m_job_view, &JobView::add_job));
 }
 
 void SaddleWindow::show_toast(const char* message) {

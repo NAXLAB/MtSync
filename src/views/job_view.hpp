@@ -19,6 +19,7 @@
 #pragma once
 
 #include "rclone/rclone_manager.hpp"
+#include "rclone/rclone_types.hpp"
 #include <adwaita.h>
 #include <gtkmm.h>
 #include <memory>
@@ -26,47 +27,50 @@
 
 namespace saddle {
 
-class SyncEditDialog;
+class JobEditDialog;
 
-class SyncView : public Gtk::Box {
+class JobView : public Gtk::Box {
 public:
-    explicit SyncView(rclone::RcloneManager& manager);
-    ~SyncView() override;
+    explicit JobView(rclone::RcloneManager& manager);
+    ~JobView() override;
+
+    void add_job(rclone::Job job);
 
 private:
     rclone::RcloneManager& m_manager;
 
     Gtk::ScrolledWindow m_scroll;
-    Gtk::Widget* m_prefs_group = nullptr;
+    Gtk::Widget*        m_prefs_group    = nullptr;
 
-    // Sync pair state
-    std::vector<rclone::SyncPair> m_pairs;
-    std::string m_config_path;
+    std::vector<rclone::Job> m_jobs;
+    std::string              m_config_path;
+    std::string              m_old_config_path;
 
-    // Per-pair UI state for running syncs
-    struct SyncPairUI {
-        Gtk::Widget* row = nullptr;
-        std::unique_ptr<Gtk::Button> run_btn;
-        std::unique_ptr<Gtk::Button> stop_btn;
-        std::unique_ptr<Gtk::Button> edit_btn;
-        std::unique_ptr<Gtk::Button> del_btn;
+    struct JobUI {
+        Gtk::Widget*                      row          = nullptr;
+        std::unique_ptr<Gtk::Button>      run_btn;
+        std::unique_ptr<Gtk::Button>      stop_btn;
+        std::unique_ptr<Gtk::Button>      edit_btn;
+        std::unique_ptr<Gtk::Button>      del_btn;
         std::unique_ptr<Gtk::ProgressBar> progress;
-        std::unique_ptr<Gtk::Label> status_label;
-        int64_t jobid = -1;
-        sigc::connection poll_timer;
+        std::unique_ptr<Gtk::Label>       status_label;
+        int64_t                           jobid        = -1;
+        sigc::connection                  poll_timer;
+        sigc::connection                  sched_timer;
     };
-    std::vector<SyncPairUI> m_ui_rows;
+    std::vector<JobUI> m_ui_rows;
 
-    std::unique_ptr<SyncEditDialog> m_edit_dialog;
+    std::unique_ptr<JobEditDialog> m_edit_dialog;
 
-    void load_pairs();
-    void save_pairs();
+    void load_jobs();
+    void save_jobs();
     void rebuild_ui();
     void show_add_dialog();
     void show_edit_dialog(size_t index);
-    void on_run_sync(size_t index);
-    void on_stop_sync(size_t index);
-    void on_delete_pair(size_t index);
+    void on_run_job(size_t index);
+    void on_stop_job(size_t index);
+    void on_delete_job(size_t index);
+    void schedule_job(size_t index);
     void poll_progress(size_t index);
     std::string format_speed(double bytes_per_sec);
 };
