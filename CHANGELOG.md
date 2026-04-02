@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 — Settings Tab
+
+- New **Settings** tab to the right of Backends
+- **General** group: Start daemon on login (writes/removes `~/.config/autostart/saddle-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing application
+- **Transfers** group: Default bandwidth limit, Verify checksums, Parallel transfers count
+- **rclone** group: Override rclone binary path (leave empty for PATH lookup; restart required)
+- Settings persist to `~/.config/saddle/settings.json`
+- "Close to tray" takes effect immediately without restart
+
 ## 0.1.3 — Mount Job Type
 
 - **Mount** button added to the browser action bar (after Sync)

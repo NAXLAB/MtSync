@@ -28,6 +28,7 @@ namespace saddle {
 SaddleApplication::SaddleApplication()
     : Gtk::Application("com.saddle.Saddle") {
     adw::init();
+    m_settings = load_settings();
 }
 
 Glib::RefPtr<SaddleApplication> SaddleApplication::create() {
@@ -71,10 +72,12 @@ void SaddleApplication::ensure_daemon_running() {
 }
 
 void SaddleApplication::on_activate() {
+    bool first_create = !m_window;
     if (!m_window) {
         ensure_daemon_running();
 
-        m_window = Gtk::make_managed<SaddleWindow>(m_rclone_manager, m_daemon_proxy.get());
+        m_window = Gtk::make_managed<SaddleWindow>(m_rclone_manager, m_daemon_proxy.get(),
+                                                    m_settings);
         add_window(*m_window);
 
         if (m_daemon_proxy) {
@@ -85,7 +88,8 @@ void SaddleApplication::on_activate() {
                 });
         }
     }
-    m_window->present();
+    if (!first_create || !m_settings.start_minimized)
+        m_window->present();
 }
 
 } // namespace saddle

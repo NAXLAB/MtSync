@@ -21,10 +21,14 @@
 
 namespace saddle {
 
-SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
-    : m_backends_view(manager)
+SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy,
+                           Settings& settings)
+    : m_settings(settings)
+    , m_daemon_proxy(daemon_proxy)
+    , m_remotes_view(manager)
     , m_job_view(manager, daemon_proxy)
-    , m_browser_view(manager) {
+    , m_browser_view(manager)
+    , m_settings_view(m_settings) {
     set_title("Saddle");
     set_default_size(900, 900);
 
@@ -39,8 +43,12 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     adw_view_stack_page_set_icon_name(page2, "emblem-synchronizing-symbolic");
 
     auto* page3 = adw::view_stack_add_titled(
-        m_view_stack, &m_backends_view, "backends", "Backends");
+        m_view_stack, &m_remotes_view, "backends", "Remotes");
     adw_view_stack_page_set_icon_name(page3, "preferences-system-symbolic");
+
+    auto* page4 = adw::view_stack_add_titled(
+        m_view_stack, &m_settings_view, "settings", "Settings");
+    adw_view_stack_page_set_icon_name(page4, "preferences-other-symbolic");
 
     auto* switcher = adw::view_switcher(m_view_stack);
     auto* header = adw::header_bar();
@@ -60,6 +68,12 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
 
     m_browser_view.signal_job_created.connect(
         sigc::mem_fun(m_job_view, &JobView::add_job));
+
+    signal_close_request().connect([this]() -> bool {
+        if (m_settings.shutdown_daemon_on_close && m_daemon_proxy)
+            m_daemon_proxy->quit();
+        return false;
+    }, false);
 }
 
 void SaddleWindow::show_toast(const char* message) {

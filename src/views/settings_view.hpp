@@ -18,35 +18,32 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
-#include "daemon_proxy.hpp"
 #include "settings.hpp"
 #include <gtkmm.h>
-#include <memory>
 
 namespace saddle {
 
-class SaddleWindow;
-
-class SaddleApplication : public Gtk::Application {
+class SettingsView : public Gtk::Box {
 public:
-    static Glib::RefPtr<SaddleApplication> create();
-
-    rclone::RcloneManager& rclone_manager() { return m_rclone_manager; }
-    DaemonProxy& daemon_proxy() { return *m_daemon_proxy; }
-    bool is_daemon_connected() const { return m_daemon_proxy && m_daemon_proxy->is_connected(); }
-
-protected:
-    SaddleApplication();
-    void on_activate() override;
+    explicit SettingsView(Settings& settings);
 
 private:
-    void ensure_daemon_running();
+    Settings&    m_settings;
 
-    SaddleWindow* m_window = nullptr;
-    rclone::RcloneManager m_rclone_manager;
-    std::unique_ptr<DaemonProxy> m_daemon_proxy;
-    Settings m_settings;
+    // General
+    Gtk::Widget* m_autostart_row   = nullptr;
+    Gtk::Widget* m_minimized_row   = nullptr;
+    Gtk::Widget* m_tray_row        = nullptr;
+    // Transfers
+    Gtk::Widget* m_bandwidth_row   = nullptr;
+    Gtk::Widget* m_checksums_row   = nullptr;
+    Gtk::Widget* m_transfers_row   = nullptr;
+    // rclone
+    Gtk::Widget* m_rclone_path_row = nullptr;
+
+    void setup_ui();
+    void save();
+    static void write_autostart(bool enable);
 };
 
 } // namespace saddle

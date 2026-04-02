@@ -49,6 +49,7 @@ public:
     void run_job(size_t index, std::function<void(std::expected<void, std::string>)> callback);
     void stop_job(size_t index, std::function<void(std::expected<void, std::string>)> callback);
     void get_remotes(RemoteCallback callback);
+    void quit();
 
     sigc::signal<void(const nlohmann::json&)>& signal_message() { return m_signal_message; }
 

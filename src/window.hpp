@@ -20,9 +20,11 @@
 
 #include "rclone/rclone_manager.hpp"
 #include "daemon_proxy.hpp"
+#include "settings.hpp"
 #include "views/backends_view.hpp"
 #include "views/browser_view.hpp"
 #include "views/job_view.hpp"
+#include "views/settings_view.hpp"
 #include <adwaita.h>
 #include <gtkmm.h>
 
@@ -30,17 +32,22 @@ namespace saddle {
 
 class SaddleWindow : public Gtk::ApplicationWindow {
 public:
-    explicit SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy);
+    explicit SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy,
+                          Settings& settings);
 
     void show_toast(const char* message);
 
 private:
-    AdwViewStack* m_view_stack = nullptr;
-    Gtk::Widget* m_toast_overlay = nullptr;
+    Settings&     m_settings;
+    DaemonProxy*  m_daemon_proxy  = nullptr;
 
-    BackendsView m_backends_view;
-    JobView m_job_view;
-    BrowserView m_browser_view;
+    AdwViewStack* m_view_stack    = nullptr;
+    Gtk::Widget*  m_toast_overlay = nullptr;
+
+    BackendsView  m_remotes_view;
+    JobView       m_job_view;
+    BrowserView   m_browser_view;
+    SettingsView  m_settings_view;
 };
 
 } // namespace saddle

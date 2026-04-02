@@ -214,4 +214,8 @@ void DaemonProxy::get_remotes(RemoteCallback callback) {
     });
 }
 
+void DaemonProxy::quit() {
+    send_request(ipc::RequestType::Quit, {});
+}
+
 } // namespace saddle

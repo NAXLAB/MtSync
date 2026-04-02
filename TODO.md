@@ -1,6 +1,7 @@
 # TODO
 
 - [x] Sync
+- [ ] Bisync
 - [ ] Mount
 - [x] Daemon
 - [ ] Internal rclone
