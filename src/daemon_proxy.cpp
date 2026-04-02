@@ -17,6 +17,9 @@
  */
 
 #include "daemon_proxy.hpp"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace saddle {
 
@@ -50,25 +53,32 @@ void DaemonProxy::disconnect() {
     m_pending_callbacks.clear();
 }
 
-int DaemonProxy::allocate_request_id() {
-    return m_next_request_id++;
-}
-
-void DaemonProxy::send_request(const std::string& type, const nlohmann::json& payload) {
+void DaemonProxy::send_request(ipc::RequestType type, const json& payload,
+                                std::function<void(const json&)> on_response) {
     if (!m_client || !m_client->is_connected()) {
         return;
     }
 
-    nlohmann::json msg = {
+    int req_id = m_next_request_id++;
+
+    json msg = {
         {"type", type},
+        {"request_id", req_id},
         {"payload", payload}
     };
+
+    if (on_response) {
+        m_pending_callbacks[req_id] = std::move(on_response);
+    }
+
     m_client->send_message(msg);
 }
 
-void DaemonProxy::on_message(const nlohmann::json& msg) {
+void DaemonProxy::on_message(const json& msg) {
+    // Always broadcast for signal-based listeners (e.g. JobView)
     m_signal_message.emit(msg);
 
+    // If the response carries a request_id, invoke the matching pending callback
     auto it = msg.find("request_id");
     if (it != msg.end() && it.value().is_number()) {
         int req_id = it.value().get<int>();
@@ -86,13 +96,19 @@ void DaemonProxy::get_jobs(JobCallback callback) {
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "get_jobs"},
-        {"payload", {}}
-    };
-    m_client->send_message(msg);
-
-    callback(std::vector<rclone::Job>{});
+    send_request(ipc::RequestType::GetJobs, {}, [callback = std::move(callback)](const json& msg) {
+        auto payload = msg.value("payload", json{});
+        if (payload.contains("error")) {
+            callback(std::unexpected(payload["error"].get<std::string>()));
+            return;
+        }
+        std::vector<rclone::Job> jobs;
+        if (payload.contains("jobs")) {
+            for (auto& j : payload["jobs"])
+                jobs.push_back(j.get<rclone::Job>());
+        }
+        callback(std::move(jobs));
+    });
 }
 
 void DaemonProxy::add_job(const rclone::Job& job, IndexCallback callback) {
@@ -101,13 +117,14 @@ void DaemonProxy::add_job(const rclone::Job& job, IndexCallback callback) {
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "add_job"},
-        {"payload", job}
-    };
-    m_client->send_message(msg);
-
-    callback(0);
+    send_request(ipc::RequestType::AddJob, job, [callback = std::move(callback)](const json& msg) {
+        auto payload = msg.value("payload", json{});
+        if (payload.contains("error")) {
+            callback(std::unexpected(payload["error"].get<std::string>()));
+            return;
+        }
+        callback(payload.value("index", size_t{0}));
+    });
 }
 
 void DaemonProxy::update_job(size_t index, const rclone::Job& job, std::function<void(std::expected<void, std::string>)> callback) {
@@ -116,16 +133,15 @@ void DaemonProxy::update_job(size_t index, const rclone::Job& job, std::function
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "update_job"},
-        {"payload", {
-            {"index", index},
-            {"job", job}
-        }}
-    };
-    m_client->send_message(msg);
-
-    callback({});
+    json payload = {{"index", index}, {"job", job}};
+    send_request(ipc::RequestType::UpdateJob, payload, [callback = std::move(callback)](const json& msg) {
+        auto p = msg.value("payload", json{});
+        if (p.contains("error")) {
+            callback(std::unexpected(p["error"].get<std::string>()));
+            return;
+        }
+        callback({});
+    });
 }
 
 void DaemonProxy::delete_job(size_t index, std::function<void(std::expected<void, std::string>)> callback) {
@@ -134,13 +150,14 @@ void DaemonProxy::delete_job(size_t index, std::function<void(std::expected<void
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "delete_job"},
-        {"payload", {{"index", index}}}
-    };
-    m_client->send_message(msg);
-
-    callback({});
+    send_request(ipc::RequestType::DeleteJob, {{"index", index}}, [callback = std::move(callback)](const json& msg) {
+        auto p = msg.value("payload", json{});
+        if (p.contains("error")) {
+            callback(std::unexpected(p["error"].get<std::string>()));
+            return;
+        }
+        callback({});
+    });
 }
 
 void DaemonProxy::run_job(size_t index, std::function<void(std::expected<void, std::string>)> callback) {
@@ -149,13 +166,14 @@ void DaemonProxy::run_job(size_t index, std::function<void(std::expected<void, s
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "run_job"},
-        {"payload", {{"index", index}}}
-    };
-    m_client->send_message(msg);
-
-    callback({});
+    send_request(ipc::RequestType::RunJob, {{"index", index}}, [callback = std::move(callback)](const json& msg) {
+        auto p = msg.value("payload", json{});
+        if (p.contains("error")) {
+            callback(std::unexpected(p["error"].get<std::string>()));
+            return;
+        }
+        callback({});
+    });
 }
 
 void DaemonProxy::stop_job(size_t index, std::function<void(std::expected<void, std::string>)> callback) {
@@ -164,13 +182,14 @@ void DaemonProxy::stop_job(size_t index, std::function<void(std::expected<void, 
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "stop_job"},
-        {"payload", {{"index", index}}}
-    };
-    m_client->send_message(msg);
-
-    callback({});
+    send_request(ipc::RequestType::StopJob, {{"index", index}}, [callback = std::move(callback)](const json& msg) {
+        auto p = msg.value("payload", json{});
+        if (p.contains("error")) {
+            callback(std::unexpected(p["error"].get<std::string>()));
+            return;
+        }
+        callback({});
+    });
 }
 
 void DaemonProxy::get_remotes(RemoteCallback callback) {
@@ -179,13 +198,20 @@ void DaemonProxy::get_remotes(RemoteCallback callback) {
         return;
     }
 
-    nlohmann::json msg = {
-        {"type", "get_remotes"},
-        {"payload", {}}
-    };
-    m_client->send_message(msg);
-
-    callback(std::vector<rclone::RemoteInfo>{});
+    send_request(ipc::RequestType::GetRemotes, {}, [callback = std::move(callback)](const json& msg) {
+        auto payload = msg.value("payload", json{});
+        if (payload.contains("error")) {
+            callback(std::unexpected(payload["error"].get<std::string>()));
+            return;
+        }
+        std::vector<rclone::RemoteInfo> remotes;
+        if (payload.contains("remotes")) {
+            for (auto& r : payload["remotes"]) {
+                remotes.push_back({r.value("name", ""), r.value("type", "")});
+            }
+        }
+        callback(std::move(remotes));
+    });
 }
 
 } // namespace saddle

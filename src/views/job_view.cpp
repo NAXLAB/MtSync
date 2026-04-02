@@ -102,7 +102,9 @@ void JobView::load_jobs() {
                 for (auto& p : j["jobs"])
                     m_jobs.push_back(p.get<rclone::Job>());
             }
-        } catch (...) {}
+        } catch (const std::exception& e) {
+            g_warning("Failed to load jobs: %s", e.what());
+        }
         return;
     }
 
@@ -126,7 +128,9 @@ void JobView::load_jobs() {
                 }
                 save_jobs();
             }
-        } catch (...) {}
+        } catch (const std::exception& e) {
+            g_warning("Failed to migrate sync_pairs: %s", e.what());
+        }
     }
 }
 
@@ -285,8 +289,8 @@ void JobView::schedule_job(size_t index) {
         return;
     }
 
-    // Cap at ~24 days to stay within guint range; re-arms via poll_progress after each run
-    constexpr gint64 MAX_DELAY_MS = 24LL * 24 * 3600 * 1000;
+    // Cap at 24 hours to stay within guint range; re-arms via poll_progress after each run
+    constexpr gint64 MAX_DELAY_MS = 24LL * 3600 * 1000;
     auto delay_ms = static_cast<unsigned int>(std::min(diff_us / 1000, MAX_DELAY_MS));
 
     m_ui_rows[index].sched_timer = Glib::signal_timeout().connect(

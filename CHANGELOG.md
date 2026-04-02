@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.10 — Code Quality & IPC Fixes
+
+- DaemonProxy methods now properly correlate request/response via `request_id` instead of returning stub data
+- Daemon forwards `request_id` from incoming requests to outgoing responses
+- DaemonProxy uses `ipc::RequestType` enum instead of raw strings
+- Removed dead code (`allocate_request_id`, unused `m_pending_callbacks` population)
+- Fixed scheduling timer overflow: `MAX_DELAY_MS` was 576 days (`24*24*3600*1000`), corrected to 24 hours
+- Window allocation uses `Gtk::make_managed` instead of raw `new`
+- Hardcoded `/usr/bin/rclone` replaced with PATH lookup via `Glib::find_program_in_path`
+- Silent `catch (...) {}` blocks replaced with `catch (const std::exception&)` + `g_warning()`
+- IPC socket directory is now created if missing before client connection
+- Added missing `<nlohmann/json.hpp>` include in `daemon_proxy.cpp`
+
 ## 0.0.9 — GUI ↔ Daemon Integration
 
 - GUI automatically starts daemon if not running

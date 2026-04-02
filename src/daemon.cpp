@@ -26,11 +26,16 @@ using json = nlohmann::json;
 
 namespace {
 
-json make_response(saddle::ipc::ResponseType type, const json& payload) {
-    return {
+json make_response(saddle::ipc::ResponseType type, const json& payload,
+                   const json& request = json{}) {
+    json resp = {
         {"type", type},
         {"payload", payload}
     };
+    if (request.contains("request_id")) {
+        resp["request_id"] = request["request_id"];
+    }
+    return resp;
 }
 
 } // namespace
@@ -58,18 +63,18 @@ SaddleDaemon::SaddleDaemon() {
         auto type_str = msg.value("type", "");
         auto payload = msg.value("payload", json{});
 
-            try {
+        try {
             if (type_str == "get_jobs") {
                 json response_payload = {{"jobs", m_jobs}};
-                m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobsList, response_payload));
-                
+                m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobsList, response_payload, msg));
+
             } else if (type_str == "add_job") {
                 m_jobs.push_back(payload.get<rclone::Job>());
                 save_jobs();
                 schedule_all_jobs();
                 json response_payload = {{"index", m_jobs.size() - 1}};
-                m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobAdded, response_payload));
-                
+                m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobAdded, response_payload, msg));
+
             } else if (type_str == "update_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
@@ -77,40 +82,40 @@ SaddleDaemon::SaddleDaemon() {
                     save_jobs();
                     schedule_all_jobs();
                     json response_payload = {{"index", index}};
-                    m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobUpdated, response_payload));
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobUpdated, response_payload, msg));
                 }
-                
+
             } else if (type_str == "delete_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
                     m_jobs.erase(m_jobs.begin() + index);
                     save_jobs();
                     json response_payload = {{"index", index}};
-                    m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobDeleted, response_payload));
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobDeleted, response_payload, msg));
                 }
-                
+
             } else if (type_str == "run_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
                     on_run_job(index);
                     json response_payload = {{"index", index}};
-                    m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobStarted, response_payload));
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload, msg));
                 }
-                
+
             } else if (type_str == "stop_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
-                    m_manager.rc().job_stop(m_job_ids[index], [this, index](auto) {
+                    m_manager.rc().job_stop(m_job_ids[index], [this, index, msg](auto) {
                         if (index < m_poll_timers.size()) {
                             m_poll_timers[index].disconnect();
                         }
                         json response_payload = {{"index", index}};
-                        m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::JobStopped, response_payload));
+                        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStopped, response_payload, msg));
                     });
                 }
-                
+
             } else if (type_str == "get_remotes") {
-                m_manager.cli().list_remotes([this](std::expected<std::vector<rclone::RemoteInfo>, std::string> result) {
+                m_manager.cli().list_remotes([this, msg](std::expected<std::vector<rclone::RemoteInfo>, std::string> result) {
                     json response_payload;
                     if (result.has_value()) {
                         response_payload = {{"remotes", json::array()}};
@@ -123,19 +128,19 @@ SaddleDaemon::SaddleDaemon() {
                     } else {
                         response_payload = {{"error", result.error()}};
                     }
-                    m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::RemotesList, response_payload));
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::RemotesList, response_payload, msg));
                 });
-                
+
             } else if (type_str == "quit") {
                 stop();
-                
+
             } else {
                 json response_payload = {{"error", "Unknown request type: " + type_str}};
-                m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::Error, response_payload));
+                m_ipc_server->send_to_all(make_response(ipc::ResponseType::Error, response_payload, msg));
             }
         } catch (const std::exception& e) {
             json response_payload = {{"error", std::string(e.what())}};
-            m_ipc_server->send_to_all(make_response(saddle::ipc::ResponseType::Error, response_payload));
+            m_ipc_server->send_to_all(make_response(ipc::ResponseType::Error, response_payload, msg));
         }
     });
 
@@ -230,7 +235,7 @@ void SaddleDaemon::schedule_job(size_t index) {
         return;
     }
 
-    constexpr gint64 MAX_DELAY_MS = 24LL * 24 * 3600 * 1000;
+    constexpr gint64 MAX_DELAY_MS = 24LL * 3600 * 1000;
     auto delay_ms = static_cast<unsigned int>(std::min(diff_us / 1000, MAX_DELAY_MS));
 
     if (index >= m_sched_timers.size()) {

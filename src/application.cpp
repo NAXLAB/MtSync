@@ -73,7 +73,7 @@ void SaddleApplication::on_activate() {
     if (!m_window) {
         ensure_daemon_running();
 
-        m_window = new SaddleWindow(m_rclone_manager, m_daemon_proxy.get());
+        m_window = Gtk::make_managed<SaddleWindow>(m_rclone_manager, m_daemon_proxy.get());
         add_window(*m_window);
     }
     m_window->present();

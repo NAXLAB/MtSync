@@ -19,6 +19,7 @@
 #include "client.hpp"
 #include <giomm.h>
 #include <glibmm.h>
+#include <filesystem>
 #include <format>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -30,7 +31,9 @@ namespace saddle::ipc {
 
 std::string get_socket_path() {
     auto* user_cache = g_get_user_cache_dir();
-    return std::format("{}/saddle/socket", user_cache);
+    auto dir = std::filesystem::path(user_cache) / "saddle";
+    std::filesystem::create_directories(dir);
+    return (dir / "socket").string();
 }
 
 IpcClient::IpcClient() = default;

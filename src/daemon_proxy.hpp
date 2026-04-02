@@ -19,6 +19,7 @@
 #pragma once
 
 #include "ipc/client.hpp"
+#include "ipc/protocol.hpp"
 #include "rclone/rclone_types.hpp"
 #include <sigc++/sigc++.h>
 #include <vector>
@@ -53,8 +54,8 @@ public:
 
 private:
     void on_message(const nlohmann::json& msg);
-    int allocate_request_id();
-    void send_request(const std::string& type, const nlohmann::json& payload);
+    void send_request(ipc::RequestType type, const nlohmann::json& payload,
+                      std::function<void(const nlohmann::json&)> on_response = nullptr);
 
     std::unique_ptr<ipc::IpcClient> m_client;
     int m_next_request_id = 1;

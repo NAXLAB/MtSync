@@ -24,8 +24,10 @@ namespace saddle::rclone {
 
 using json = nlohmann::json;
 
-RcloneCli::RcloneCli(std::string rclone_path)
-    : m_rclone_path(std::move(rclone_path)) {}
+RcloneCli::RcloneCli(std::string rclone_path) {
+    auto resolved = Glib::find_program_in_path(rclone_path);
+    m_rclone_path = resolved.empty() ? std::move(rclone_path) : std::move(resolved);
+}
 
 void RcloneCli::run_command(std::vector<std::string> args, CompletionHandler on_complete) {
     std::vector<std::string> full_args;

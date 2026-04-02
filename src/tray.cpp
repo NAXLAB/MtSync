@@ -20,9 +20,9 @@
 
 namespace {
 
-const gchar SADDLE_SERVICE[] = "com.saddle.Saddle";
-const gchar SADDLE_PATH[] = "/com/saddle/Saddle";
-const gchar SADDLE_IFACE[] = "com.saddle.Saddle";
+const gchar SADDLE_SERVICE[] = "com.saddle.Daemon";
+const gchar SADDLE_PATH[] = "/com/saddle/Daemon";
+const gchar SADDLE_IFACE[] = "com.saddle.Daemon";
 
 std::string g_tooltip = "Saddle";
 int g_running_jobs = 0;
@@ -62,7 +62,7 @@ static const GDBusInterfaceVTable vtable = {
 static GDBusInterfaceInfo* create_interface_info() {
     const gchar* xml = 
         "<node>"
-        "  <interface name='com.saddle.Saddle'>"
+        "  <interface name='com.saddle.Daemon'>"
         "    <method name='ShowWindow'/>"
         "    <method name='Quit'/>"
         "    <property name='Tooltip' type='s' access='read'/>"
@@ -83,7 +83,7 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
     GError* error = nullptr;
     auto* node_info = g_dbus_node_info_new_for_xml(
         "<node>"
-        "  <interface name='com.saddle.Saddle'>"
+        "  <interface name='com.saddle.Daemon'>"
         "    <method name='ShowWindow'/>"
         "    <method name='Quit'/>"
         "  </interface>"

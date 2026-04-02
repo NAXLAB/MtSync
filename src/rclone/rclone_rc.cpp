@@ -17,6 +17,7 @@
  */
 
 #include "rclone_rc.hpp"
+#include <glibmm.h>
 #include <format>
 
 namespace saddle::rclone {
@@ -100,8 +101,13 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
 
     // Spawn rclone rcd
     GError* error = nullptr;
+    auto rclone_path = Glib::find_program_in_path("rclone");
+    if (rclone_path.empty()) {
+        callback(std::unexpected("rclone not found in PATH"));
+        return;
+    }
     gchar* argv[] = {
-        const_cast<gchar*>("/usr/bin/rclone"),
+        const_cast<gchar*>(rclone_path.c_str()),
         const_cast<gchar*>("rcd"),
         const_cast<gchar*>("--rc-no-auth"),
         const_cast<gchar*>("--rc-addr"),

@@ -27,7 +27,7 @@ namespace saddle::rclone {
 
 class RcloneCli {
 public:
-    explicit RcloneCli(std::string rclone_path = "/usr/bin/rclone");
+    explicit RcloneCli(std::string rclone_path = "rclone");
 
     // Config operations (async, results dispatched on GTK main thread)
     void list_remotes(AsyncCallback<std::vector<RemoteInfo>> callback);
