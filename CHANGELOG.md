@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — Show Hidden Files
+
+- Each browser pane now has a "Show hidden files" checkbox in the bottom-right corner, off by default
+- Files and directories with names starting with `.` are hidden unless the checkbox is ticked
+- Each pane's setting is independent
+
 ## 0.1.0 — System Tray Icon & Bug Fixes
 
 - Fixed: tray **Open** no longer silently drops the message when the GUI is closed — daemon now spawns a fresh GUI process if no clients are connected

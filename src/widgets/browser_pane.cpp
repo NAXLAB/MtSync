@@ -88,6 +88,25 @@ BrowserPane::BrowserPane(rclone::RcloneManager& manager)
     m_content_stack->add(*file_scroll, "files");
 
     append(*m_content_stack);
+
+    auto* footer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+    footer->set_margin_start(6);
+    footer->set_margin_end(6);
+    footer->set_margin_top(2);
+    footer->set_margin_bottom(2);
+    auto* spacer = Gtk::make_managed<Gtk::Box>();
+    spacer->set_hexpand(true);
+    footer->append(*spacer);
+    m_show_hidden_check = Gtk::make_managed<Gtk::CheckButton>("Show hidden files");
+    m_show_hidden_check->set_active(false);
+    m_show_hidden_check->signal_toggled().connect([this]() {
+        m_show_hidden = m_show_hidden_check->get_active();
+        if (!m_current_remote.empty())
+            navigate(m_current_path);
+    });
+    footer->append(*m_show_hidden_check);
+    append(*footer);
+
     show_content_state("no-remote");
 
     signal_map().connect([this]() {
@@ -329,8 +348,11 @@ void BrowserPane::navigate(const std::string& path) {
             return;
         }
         m_list_store->remove_all();
-        for (auto& e : result.value())
+        for (auto& e : result.value()) {
+            if (!m_show_hidden && !e.name.empty() && e.name[0] == '.')
+                continue;
             m_list_store->append(FileObject::create(e));
+        }
         show_content_state(result.value().empty() ? "empty" : "files");
     });
 }

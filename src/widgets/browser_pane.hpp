@@ -81,6 +81,9 @@ private:
     Glib::RefPtr<Gtk::MultiSelection>        m_file_selection;
     Gtk::ColumnView*                         m_column_view = nullptr;
 
+    bool              m_show_hidden       = false;
+    Gtk::CheckButton* m_show_hidden_check = nullptr;
+
     // Navigation state
     std::string                    m_current_remote;
     std::string                    m_current_path;
