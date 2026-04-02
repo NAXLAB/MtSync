@@ -1,12 +1,23 @@
 # Saddle
 
-A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote file systems, and manage sync operations with live progress — all from a native GNOME desktop application.
+A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote
+file systems, and manage sync/copy/move jobs with live progress — all from a native GNOME desktop
+application backed by a persistent daemon.
 
 ## Features
 
-- **Backend configuration** — Create, edit, and delete rclone remotes via dynamically generated forms (derived from rclone's own provider option metadata)
-- **File browser** — Browse remote file systems with a column view, directory navigation, and back history
-- **Sync management** — Define source/destination sync pairs, run them with a live progress bar (bytes, speed, ETA), and stop jobs in-flight
+- **Backend configuration** — Create, edit, and delete rclone remotes via dynamically generated
+  forms derived from rclone's own provider option metadata
+- **Dual-pane file browser** — Two independent browser panes with column view, breadcrumb
+  navigation, back history, MIME-type icons, sortable columns, and a status bar showing file/folder
+  counts and total size; hidden files toggled per-pane
+- **Jobs system** — Define Sync, Copy, and Move jobs; run them on demand or on a cron schedule;
+  live progress with per-job status; jobs persist across GUI restarts
+- **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
+  reconnects automatically on next launch
+- **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
+  GUI if it is not running
+- **Desktop notifications** — Notified on job completion via `notify-send` or `kdialog`
 
 ## Dependencies
 
@@ -30,10 +41,11 @@ cmake --build build
 ## Running
 
 ```bash
-./build/saddle
+./build/saddle          # launch GUI (starts daemon automatically)
+./build/saddle --daemon # run as background daemon only
 ```
 
-Saddle expects `rclone` to be available on `PATH`. Sync operations launch an rclone RC daemon automatically.
+Saddle expects `rclone` to be available on `PATH`.
 
 ## Architecture
 
@@ -42,24 +54,37 @@ SaddleApplication (Gtk::Application)
  └── SaddleWindow (Gtk::ApplicationWindow)
       ├── AdwHeaderBar + AdwViewSwitcher
       └── AdwViewStack
-           ├── BackendsView   — remote list with drill-down edit form
-           ├── SyncView       — sync pair list with progress
-           └── BrowserView    — column-based file browser
+           ├── BackendsView  — remote list with drill-down edit form
+           ├── JobView       — job list with progress, run/stop controls
+           └── BrowserView   — dual-pane file browser (two BrowserPane widgets)
+
+SaddleDaemon (background process, saddle --daemon)
+ ├── IpcServer             — Unix socket at ~/.cache/saddle/socket
+ ├── TrayIcon              — StatusNotifierItem + dbusmenu via D-Bus
+ └── RcloneManager
+      ├── RcloneCli         — Gio::Subprocess for one-shot commands
+      └── RcloneRc          — libsoup HTTP to rclone RC daemon
 ```
 
-**RcloneManager** provides two interfaces to rclone:
-- **RcloneCli** — `Gio::Subprocess` for one-shot commands (config dump, providers, lsjson, config create/update/delete)
-- **RcloneRc** — libsoup HTTP to the rclone RC daemon for long-running sync operations with progress polling
+**GUI ↔ Daemon communication:** The GUI connects to the daemon via a Unix socket IPC. The GUI
+starts the daemon automatically if it is not already running. Jobs continue executing in the daemon
+when the GUI window is closed.
+
+**D-Bus services:** `com.saddle.Daemon` (daemon) exposes `ShowWindow` and `Quit` methods.
+
+libadwaita is used via its C API bridged to gtkmm with `Glib::wrap()`, as no C++ bindings
+(libadwaitamm) are available.
 
 All async I/O dispatches on the GLib main loop — no manual threading.
 
-libadwaita is used via its C API bridged to gtkmm with `Glib::wrap()`, as no C++ bindings (libadwaitamm) are available.
-
 ## Configuration
 
-- rclone config: `~/.config/rclone/rclone.conf`
-- Sync pairs: `~/.config/saddle/sync_pairs.json`
+| Path | Purpose |
+|------|---------|
+| `~/.config/rclone/rclone.conf` | rclone backend configuration |
+| `~/.config/saddle/jobs.json` | Saddle job definitions |
+| `~/.cache/saddle/socket` | IPC socket (daemon ↔ GUI) |
 
 ## License
 
-This project is licensed under the GNU General Public License v2.0. See [LICENSE](LICENSE) for details.
+GNU General Public License v2.0. See [LICENSE](LICENSE) for details.

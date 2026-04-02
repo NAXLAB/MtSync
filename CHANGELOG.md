@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — File Browser Status Bar
+
+- Footer bar in each browser pane now shows file/folder counts and total file size on the left (e.g. "12 files, 3 folders, Total: 45.2 MB")
+- Counts reflect the current hidden-files filter state
+- Status clears while navigating and on empty directories
+
 ## 0.1.1 — Show Hidden Files
 
 - Each browser pane now has a "Show hidden files" checkbox in the bottom-right corner, off by default

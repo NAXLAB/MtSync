@@ -83,6 +83,7 @@ private:
 
     bool              m_show_hidden       = false;
     Gtk::CheckButton* m_show_hidden_check = nullptr;
+    Gtk::Label*       m_status_label      = nullptr;
 
     // Navigation state
     std::string                    m_current_remote;

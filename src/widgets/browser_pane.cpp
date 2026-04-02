@@ -94,6 +94,12 @@ BrowserPane::BrowserPane(rclone::RcloneManager& manager)
     footer->set_margin_end(6);
     footer->set_margin_top(2);
     footer->set_margin_bottom(2);
+    m_status_label = Gtk::make_managed<Gtk::Label>();
+    m_status_label->set_xalign(0.0f);
+    m_status_label->add_css_class("dim-label");
+    m_status_label->set_margin_start(4);
+    footer->append(*m_status_label);
+
     auto* spacer = Gtk::make_managed<Gtk::Box>();
     spacer->set_hexpand(true);
     footer->append(*spacer);
@@ -337,6 +343,7 @@ void BrowserPane::navigate(const std::string& path) {
     m_current_path = path;
     uint64_t gen   = ++m_load_generation;
 
+    if (m_status_label) m_status_label->set_text("");
     show_content_state("loading");
     rebuild_breadcrumbs();
 
@@ -344,14 +351,27 @@ void BrowserPane::navigate(const std::string& path) {
     m_manager.cli().lsjson(rclone_path, [this, gen](auto result) {
         if (gen != m_load_generation) return;
         if (!result.has_value()) {
+            if (m_status_label) m_status_label->set_text("");
             show_content_state("empty");
             return;
         }
         m_list_store->remove_all();
+        int file_count = 0, folder_count = 0;
+        int64_t total_size = 0;
         for (auto& e : result.value()) {
             if (!m_show_hidden && !e.name.empty() && e.name[0] == '.')
                 continue;
             m_list_store->append(FileObject::create(e));
+            if (e.is_dir) { ++folder_count; }
+            else          { ++file_count; total_size += e.size; }
+        }
+        if (m_status_label) {
+            auto size_str = format_size(total_size);
+            m_status_label->set_text(std::format(
+                "{} file{}, {} folder{}, Total: {}",
+                file_count,   file_count   == 1 ? "" : "s",
+                folder_count, folder_count == 1 ? "" : "s",
+                size_str));
         }
         show_content_state(result.value().empty() ? "empty" : "files");
     });

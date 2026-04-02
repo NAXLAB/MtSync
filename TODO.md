@@ -1,11 +1,11 @@
 # TODO
 
-- [ ] Sync
+- [x] Sync
 - [ ] Mount
-- [ ] Daemon
+- [x] Daemon
 - [ ] Internal rclone
-- [ ] App indicator icon
+- [x] App indicator icon
 - [ ] About tab/screen
 - [ ] Preferences tab/screen
-- [ ] Better file manager design/component
-- [ ] Dual pane mode
+- [x] Better file manager design/component
+- [x] Dual pane mode
