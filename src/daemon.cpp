@@ -21,6 +21,7 @@
 #include "ipc/protocol.hpp"
 #include <format>
 #include <iostream>
+#include <glibmm.h>
 
 using json = nlohmann::json;
 
@@ -52,7 +53,18 @@ SaddleDaemon::SaddleDaemon() {
     m_tray = std::make_unique<TrayIcon>();
     m_tray->set_tooltip("Saddle - rclone GUI");
     m_tray->signal_show_window().connect([this]() {
-        m_ipc_server->send_to_all(make_response(ipc::ResponseType::ShowWindow, {}));
+        if (m_ipc_server->client_count() > 0) {
+            m_ipc_server->send_to_all(make_response(ipc::ResponseType::ShowWindow, {}));
+        } else {
+            // No GUI connected — launch one
+            auto exe = Glib::find_program_in_path("saddle");
+            if (exe.empty()) exe = "/proc/self/exe";
+            try {
+                Glib::spawn_async({}, {exe});
+            } catch (const Glib::Error& e) {
+                g_warning("Failed to launch GUI: %s", e.what());
+            }
+        }
     });
     m_tray->signal_quit().connect([this]() {
         stop();

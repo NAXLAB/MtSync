@@ -35,6 +35,7 @@ public:
 
     void send_to_all(const nlohmann::json& msg);
     void send_to(int client_fd, const nlohmann::json& msg);
+    size_t client_count() const { return m_clients.size(); }
 
     sigc::signal<void()>& signal_client_connected() { return m_signal_client_connected; }
     sigc::signal<void()>& signal_client_disconnected() { return m_signal_client_disconnected; }

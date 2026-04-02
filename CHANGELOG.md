@@ -1,11 +1,15 @@
 # Changelog
 
+## 0.1.0 — System Tray Icon & Bug Fixes
+
+- Fixed: tray **Open** no longer silently drops the message when the GUI is closed — daemon now spawns a fresh GUI process if no clients are connected
+
 ## 0.0.11 — System Tray Icon
 
 - System tray icon implemented via StatusNotifierItem (SNI/`org.kde.StatusNotifierItem`) protocol — no additional dependencies, pure GIO D-Bus
 - Icon uses `network-server-symbolic` (GNOME monochrome network drive icon)
 - Right-click context menu via `com.canonical.dbusmenu` with **Open** and **Quit** items
-- Open broadcasts `show_window` over the IPC socket; connected GUI clients call `present()` on the window
+- Open broadcasts `show_window` over the IPC socket; connected GUI clients call `present()` on the window (if no GUI is running, one is spawned)
 - Quit stops the daemon and rclone RC daemon
 - SNI registration deferred to `on_name_acquired` to ensure the bus name is owned before the watcher contacts us
 - `set_attention()` now emits `NewStatus` signal to toggle `NeedsAttention` state
