@@ -45,6 +45,7 @@ enum class ResponseType {
     JobCompleted,
     RemotesList,
     Error,
+    ShowWindow,
 };
 
 struct Message {
@@ -74,6 +75,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ResponseType, {
     {ResponseType::JobCompleted, "job_completed"},
     {ResponseType::RemotesList, "remotes_list"},
     {ResponseType::Error, "error"},
+    {ResponseType::ShowWindow, "show_window"},
 })
 
 std::string get_socket_path();

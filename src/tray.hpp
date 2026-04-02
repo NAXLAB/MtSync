@@ -39,12 +39,14 @@ public:
 
 private:
     guint m_owner_id = 0;
-    
+
     sigc::signal<void()> m_signal_show_window;
     sigc::signal<void()> m_signal_quit;
 
 public:
     GDBusConnection* m_connection = nullptr;
+    guint m_sni_reg_id = 0;
+    guint m_menu_reg_id = 0;
 };
 
 } // namespace saddle

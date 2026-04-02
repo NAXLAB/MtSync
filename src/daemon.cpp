@@ -51,8 +51,8 @@ SaddleDaemon::SaddleDaemon() {
 
     m_tray = std::make_unique<TrayIcon>();
     m_tray->set_tooltip("Saddle - rclone GUI");
-    m_tray->signal_show_window().connect([]() {
-        // Will be handled by GUI client
+    m_tray->signal_show_window().connect([this]() {
+        m_ipc_server->send_to_all(make_response(ipc::ResponseType::ShowWindow, {}));
     });
     m_tray->signal_quit().connect([this]() {
         stop();

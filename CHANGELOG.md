@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.11 — System Tray Icon
+
+- System tray icon implemented via StatusNotifierItem (SNI/`org.kde.StatusNotifierItem`) protocol — no additional dependencies, pure GIO D-Bus
+- Icon uses `network-server-symbolic` (GNOME monochrome network drive icon)
+- Right-click context menu via `com.canonical.dbusmenu` with **Open** and **Quit** items
+- Open broadcasts `show_window` over the IPC socket; connected GUI clients call `present()` on the window
+- Quit stops the daemon and rclone RC daemon
+- SNI registration deferred to `on_name_acquired` to ensure the bus name is owned before the watcher contacts us
+- `set_attention()` now emits `NewStatus` signal to toggle `NeedsAttention` state
+
 ## 0.0.10 — Code Quality & IPC Fixes
 
 - DaemonProxy methods now properly correlate request/response via `request_id` instead of returning stub data

@@ -21,6 +21,7 @@
 #include "widgets/adw_wrapper.hpp"
 #include <glib.h>
 #include <glibmm.h>
+#include <nlohmann/json.hpp>
 
 namespace saddle {
 
@@ -75,6 +76,14 @@ void SaddleApplication::on_activate() {
 
         m_window = Gtk::make_managed<SaddleWindow>(m_rclone_manager, m_daemon_proxy.get());
         add_window(*m_window);
+
+        if (m_daemon_proxy) {
+            m_daemon_proxy->signal_message().connect(
+                [this](const nlohmann::json& msg) {
+                    if (msg.value("type", "") == "show_window" && m_window)
+                        m_window->present();
+                });
+        }
     }
     m_window->present();
 }
