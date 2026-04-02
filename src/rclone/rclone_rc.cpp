@@ -162,6 +162,24 @@ void RcloneRc::stop_daemon() {
     }
 }
 
+void RcloneRc::mount_async(const std::string& src, const std::string& mountpoint,
+                            AsyncCallback<std::monostate> callback) {
+    rc_post("mount/mount", {{"fs", src}, {"mountPoint", mountpoint}},
+        [callback = std::move(callback)](auto result) {
+            if (result.has_value()) callback(std::monostate{});
+            else                    callback(std::unexpected(result.error()));
+        });
+}
+
+void RcloneRc::unmount_async(const std::string& mountpoint,
+                              AsyncCallback<std::monostate> callback) {
+    rc_post("mount/unmount", {{"mountPoint", mountpoint}},
+        [callback = std::move(callback)](auto result) {
+            if (result.has_value()) callback(std::monostate{});
+            else                    callback(std::unexpected(result.error()));
+        });
+}
+
 void RcloneRc::sync_async(const std::string& src_fs, const std::string& dst_fs,
                             const json& opts,
                             AsyncCallback<int64_t> callback) {

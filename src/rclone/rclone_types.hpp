@@ -94,12 +94,13 @@ struct JobStatus {
     double duration = 0.0;
 };
 
-enum class JobType { Sync, Copy, Move };
+enum class JobType { Sync, Copy, Move, Mount };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(JobType, {
-    {JobType::Sync, "sync"},
-    {JobType::Copy, "copy"},
-    {JobType::Move, "move"},
+    {JobType::Sync,  "sync"},
+    {JobType::Copy,  "copy"},
+    {JobType::Move,  "move"},
+    {JobType::Mount, "mount"},
 })
 
 struct Job {
@@ -109,7 +110,8 @@ struct Job {
     std::string destination;
     bool        dry_run          = false;
     std::string bandwidth;
-    bool        schedule_enabled = false;
+    bool        schedule_enabled  = false;
+    bool        mount_at_startup  = false;
     std::string cron_minute      = "*";
     std::string cron_hour        = "*";
     std::string cron_day         = "*";
@@ -122,7 +124,8 @@ struct Job {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bandwidth,
-    schedule_enabled, cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
+    schedule_enabled, mount_at_startup,
+    cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
     last_run, last_status, includes)
 
 // Async callback type used throughout

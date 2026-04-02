@@ -34,9 +34,10 @@ namespace {
 
 const char* type_badge(rclone::JobType t) {
     switch (t) {
-        case rclone::JobType::Sync: return "[SYNC]";
-        case rclone::JobType::Copy: return "[COPY]";
-        case rclone::JobType::Move: return "[MOVE]";
+        case rclone::JobType::Sync:  return "[SYNC]";
+        case rclone::JobType::Copy:  return "[COPY]";
+        case rclone::JobType::Move:  return "[MOVE]";
+        case rclone::JobType::Mount: return "[MOUNT]";
     }
     return "[?]";
 }
@@ -366,12 +367,40 @@ void JobView::on_run_job(size_t index) {
             case rclone::JobType::Move:
                 m_manager.rc().move_async(src, dst, opts, done_cb);
                 break;
+            case rclone::JobType::Mount:
+                m_manager.rc().mount_async(src, dst,
+                    [this, index](auto result) {
+                        if (index >= m_ui_rows.size()) return;
+                        if (!result.has_value()) {
+                            m_ui_rows[index].status_label->set_text("Error: " + result.error());
+                            m_ui_rows[index].run_btn->set_visible(true);
+                            m_ui_rows[index].stop_btn->set_visible(false);
+                            m_ui_rows[index].progress->set_visible(false);
+                            return;
+                        }
+                        m_ui_rows[index].status_label->set_text("Mounted");
+                        m_ui_rows[index].progress->set_visible(false);
+                    });
+                break;
         }
     });
 }
 
 void JobView::on_stop_job(size_t index) {
     if (index >= m_ui_rows.size()) return;
+
+    if (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount) {
+        m_manager.rc().unmount_async(m_jobs[index].destination,
+            [this, index](auto) {
+                if (index >= m_ui_rows.size()) return;
+                m_ui_rows[index].status_label->set_text("Unmounted");
+                m_ui_rows[index].run_btn->set_visible(true);
+                m_ui_rows[index].stop_btn->set_visible(false);
+                m_ui_rows[index].progress->set_visible(false);
+            });
+        return;
+    }
+
     auto& ui = m_ui_rows[index];
     if (ui.jobid < 0) return;
 

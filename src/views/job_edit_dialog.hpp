@@ -53,6 +53,7 @@ private:
     Gtk::Widget* m_dest_entry         = nullptr;
     Gtk::Widget* m_dry_run_switch     = nullptr;
     Gtk::Widget* m_bandwidth_entry    = nullptr;
+    Gtk::Widget* m_mount_startup_switch = nullptr;
     Gtk::Widget* m_schedule_switch    = nullptr;
     Gtk::Widget* m_cron_fields_group  = nullptr;
     Gtk::Widget* m_cron_minute_entry  = nullptr;

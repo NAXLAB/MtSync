@@ -78,6 +78,14 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
         show_job_dialog(rclone::JobType::Sync);
     });
 
+    // Mount button
+    auto* mount_btn = Gtk::make_managed<Gtk::Button>("Mount");
+    mount_btn->set_icon_name("drive-harddisk-symbolic");
+    mount_btn->set_tooltip_text("Mount source at destination");
+    mount_btn->signal_clicked().connect([this]() {
+        show_job_dialog(rclone::JobType::Mount);
+    });
+
     // Swap button - reverses source/destination
     auto* swap_btn = Gtk::make_managed<Gtk::Button>("Swap ↔");
     swap_btn->set_tooltip_text("Swap source and destination");
@@ -85,11 +93,12 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
         swap_source_destination();
     });
 
-    // Left box for Copy/Move/Sync buttons
+    // Left box for Copy/Move/Sync/Mount buttons
     auto* left_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
     left_box->append(*copy_btn);
     left_box->append(*move_btn);
     left_box->append(*sync_btn);
+    left_box->append(*mount_btn);
 
     // Center box for Swap button
     auto* swap_center = Gtk::make_managed<Gtk::CenterBox>();

@@ -28,9 +28,10 @@ namespace {
 
 constexpr guint job_type_to_index(rclone::JobType t) {
     switch (t) {
-        case rclone::JobType::Sync: return 0;
-        case rclone::JobType::Copy: return 1;
-        case rclone::JobType::Move: return 2;
+        case rclone::JobType::Sync:  return 0;
+        case rclone::JobType::Copy:  return 1;
+        case rclone::JobType::Move:  return 2;
+        case rclone::JobType::Mount: return 3;
     }
     return 0;
 }
@@ -40,6 +41,7 @@ constexpr rclone::JobType index_to_job_type(guint i) {
         case 0:  return rclone::JobType::Sync;
         case 1:  return rclone::JobType::Copy;
         case 2:  return rclone::JobType::Move;
+        case 3:  return rclone::JobType::Mount;
         default: return rclone::JobType::Sync;
     }
 }
@@ -98,6 +100,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     gtk_string_list_append(type_list, "Sync");
     gtk_string_list_append(type_list, "Copy");
     gtk_string_list_append(type_list, "Move");
+    gtk_string_list_append(type_list, "Mount");
     m_type_combo = adw::combo_row();
     adw::preferences_row_set_title(m_type_combo, "Type");
     adw::combo_row_set_string_list_model(m_type_combo, type_list);
@@ -136,6 +139,13 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     if (m_editing && !m_editing->bandwidth.empty())
         adw::entry_row_set_text(m_bandwidth_entry, m_editing->bandwidth.c_str());
     adw::preferences_group_add(group, m_bandwidth_entry);
+
+    // Mount at Start-up (only visible when type is Mount)
+    m_mount_startup_switch = adw::switch_row();
+    adw::preferences_row_set_title(m_mount_startup_switch, "Mount at Start-up");
+    m_mount_startup_switch->set_visible(initial_type == rclone::JobType::Mount);
+    if (m_editing) adw::switch_row_set_active(m_mount_startup_switch, m_editing->mount_at_startup);
+    adw::preferences_group_add(group, m_mount_startup_switch);
 
     // Enable Schedule switch (in same group, after bandwidth)
     m_schedule_switch = adw::switch_row();
@@ -205,6 +215,14 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     // ── Reactive wiring ───────────────────────────────────────────────────
 
+    // Show/hide "Mount at Start-up" switch when type changes
+    g_signal_connect(m_type_combo->gobj(), "notify::selected",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<JobEditDialog*>(data);
+            bool is_mount = adw::combo_row_get_selected(self->m_type_combo) == 3;
+            self->m_mount_startup_switch->set_visible(is_mount);
+        }), this);
+
     // Toggle cron group sensitivity + button label when switch changes
     g_signal_connect(m_schedule_switch->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
@@ -260,6 +278,8 @@ void JobEditDialog::on_commit() {
     job.cron_day         = adw::entry_row_get_text(m_cron_day_entry);
     job.cron_month       = adw::entry_row_get_text(m_cron_month_entry);
     job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
+    job.mount_at_startup = m_mount_startup_switch->get_visible()
+                        && adw::switch_row_get_active(m_mount_startup_switch);
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
     job.includes         = m_includes;

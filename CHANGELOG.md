@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — Mount Job Type
+
+- **Mount** button added to the browser action bar (after Sync)
+- Mount is a first-class job type: persists in `jobs.json`, supports cron scheduling
+- "Mount at Start-up" option in the job dialog — daemon automatically mounts on startup when enabled
+- Mount jobs use the rclone RC `mount/mount` endpoint; stop button calls `mount/unmount`
+- Job list shows `[MOUNT]` type badge
+- Running a mount job shows "Mounted" status; stopping shows "Unmounted"
+
 ## 0.1.2 — File Browser Status Bar
 
 - Footer bar in each browser pane now shows file/folder counts and total file size on the left (e.g. "12 files, 3 folders, Total: 45.2 MB")

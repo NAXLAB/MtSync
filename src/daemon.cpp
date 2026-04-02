@@ -157,6 +157,12 @@ SaddleDaemon::SaddleDaemon() {
     });
 
     schedule_all_jobs();
+
+    // Auto-mount jobs flagged with mount_at_startup
+    for (size_t i = 0; i < m_jobs.size(); ++i) {
+        if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].mount_at_startup)
+            on_run_job(i);
+    }
 }
 
 SaddleDaemon::~SaddleDaemon() {
@@ -265,6 +271,21 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
 
+    if (job.type == rclone::JobType::Mount) {
+        m_manager.rc().ensure_daemon([this, index, job](auto result) {
+            if (!result.has_value()) {
+                g_warning("Mount %zu: daemon failed: %s", index, result.error().c_str());
+                return;
+            }
+            m_manager.rc().mount_async(job.source, job.destination,
+                [index](auto result) {
+                    if (!result.has_value())
+                        g_warning("Mount %zu failed: %s", index, result.error().c_str());
+                });
+        });
+        return;
+    }
+
     // Ensure daemon is running
     m_manager.rc().ensure_daemon([this, index, job](auto result) {
         if (!result.has_value()) {
@@ -323,6 +344,8 @@ void SaddleDaemon::on_run_job(size_t index) {
             case rclone::JobType::Move:
                 m_manager.rc().move_async(job.source, job.destination, opts, done_cb);
                 break;
+            case rclone::JobType::Mount:
+                break; // handled by early-return above
         }
     });
 }
