@@ -18,29 +18,22 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
-#include "daemon_proxy.hpp"
-#include "views/backends_view.hpp"
-#include "views/browser_view.hpp"
-#include "views/job_view.hpp"
-#include <adwaita.h>
-#include <gtkmm.h>
+#include <string>
+#include <vector>
 
 namespace saddle {
 
-class SaddleWindow : public Gtk::ApplicationWindow {
+class Notification {
 public:
-    explicit SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy);
+    Notification() = default;
+    ~Notification();
 
-    void show_toast(const char* message);
+    void show(const std::string& title, const std::string& body);
 
 private:
-    AdwViewStack* m_view_stack = nullptr;
-    Gtk::Widget* m_toast_overlay = nullptr;
-
-    BackendsView m_backends_view;
-    JobView m_job_view;
-    BrowserView m_browser_view;
+    std::vector<std::string> m_args;
 };
+
+void send_notification(const std::string& title, const std::string& body);
 
 } // namespace saddle

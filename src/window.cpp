@@ -21,9 +21,9 @@
 
 namespace saddle {
 
-SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
+SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
     : m_backends_view(manager)
-    , m_job_view(manager)
+    , m_job_view(manager, daemon_proxy)
     , m_browser_view(manager) {
     set_title("Saddle");
     set_default_size(900, 900);

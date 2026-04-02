@@ -60,18 +60,30 @@ Saddle/
 ## 3. Architecture
 
 ```
-SaddleApplication (Gtk::Application + adw_init())
- └── SaddleWindow (Gtk::ApplicationWindow)
-      ├── AdwHeaderBar + AdwViewSwitcher (top-level nav: Backends | Sync | Browse)
-      └── AdwViewStack
-           ├── BackendsView → AdwNavigationView → BackendEditView (push/pop)
-           ├── SyncView
-           └── BrowserView
+Single executable (saddle) with two modes:
 
-RcloneManager (owned by SaddleApplication, passed by reference to views)
- ├── RcloneCli — Gio::Subprocess for one-shot commands (config dump, providers, lsjson, config create/update/delete)
- └── RcloneRc  — libsoup HTTP to rclone rcd daemon for long-running ops (sync with progress, job control)
+1. GUI Mode (default):
+   saddle main() → SaddleApplication → SaddleWindow
+   └── RcloneManager (CLI + RC interfaces)
+
+2. Daemon Mode (--daemon flag):
+   saddle --daemon → SaddleDaemon
+   ├── RcloneManager (CLI + RC interfaces)
+   ├── TrayIcon (simple mode - GTK4 tray stub)
+   ├── IpcServer (Unix socket at ~/.cache/saddle/socket)
+   └── JobScheduler (cron-based scheduling)
+
+IpcServer handles:
+- Client connections from GUI instances
+- Message dispatch to daemon components
 ```
+
+**IPC Protocol** (`src/ipc/protocol.hpp`):
+- Unix socket communication
+- JSON messages with type + payload
+- Request/Response pattern
+
+**Note**: System tray integration is stubbed for GTK4 compatibility. Full tray support planned.
 
 **Navigation**: `AdwViewStack` + `AdwViewSwitcher` for 3 top-level views (GNOME HIG pattern). `AdwNavigationView` only inside BackendsView for list → edit push/pop.
 

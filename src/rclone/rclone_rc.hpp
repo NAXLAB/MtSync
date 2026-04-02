@@ -28,7 +28,7 @@ namespace saddle::rclone {
 
 class RcloneRc {
 public:
-    RcloneRc(std::string addr = "localhost", int port = 5572);
+    RcloneRc(std::string addr = "localhost", int port = 5571);
     ~RcloneRc();
 
     // Daemon lifecycle

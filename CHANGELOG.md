@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.9 — GUI ↔ Daemon Integration
+
+- GUI automatically starts daemon if not running
+- JobView connects to daemon via IPC for real-time updates
+- Jobs continue running in daemon when GUI is closed
+- Daemon broadcasts job status changes to all connected GUI clients
+- Fixed IPC server/client communication (messages now properly sent/received)
+- Desktop notifications on job completion (when notify-send or kdialog is available)
+- D-Bus service (com.saddle.Saddle) for external communication
+- Daemon exposes ShowWindow and Quit methods via D-Bus
+
+## 0.0.8 — Background Daemon Mode
+
+- `saddle --daemon` runs a background daemon process
+- Daemon manages job scheduling and rclone RC daemon lifecycle
+- Jobs continue running even when GUI is closed
+- IPC server (Unix socket at `~/.cache/saddle/socket`) for GUI ↔ Daemon communication
+- Note: System tray icon is stubbed (GTK4 lacks native tray support; full tray integration planned)
+
 ## 0.0.7 — Selected Files in Copy/Move/Sync
 
 - Sync button added to the browser action bar alongside Copy and Move

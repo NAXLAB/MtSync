@@ -18,29 +18,35 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
-#include "daemon_proxy.hpp"
-#include "views/backends_view.hpp"
-#include "views/browser_view.hpp"
-#include "views/job_view.hpp"
-#include <adwaita.h>
-#include <gtkmm.h>
+#include <glibmm.h>
+#include <giomm.h>
+#include <sigc++/sigc++.h>
+#include <nlohmann/json.hpp>
 
-namespace saddle {
+namespace saddle::ipc {
 
-class SaddleWindow : public Gtk::ApplicationWindow {
+std::string get_socket_path();
+
+class IpcClient : public sigc::trackable {
 public:
-    explicit SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy);
+    IpcClient();
+    ~IpcClient();
 
-    void show_toast(const char* message);
+    bool connect();
+    void disconnect();
+    bool is_connected() const { return m_fd >= 0; }
+
+    void send_message(const nlohmann::json& msg);
+    sigc::signal<void(const nlohmann::json&)>& signal_received() { return m_signal_received; }
 
 private:
-    AdwViewStack* m_view_stack = nullptr;
-    Gtk::Widget* m_toast_overlay = nullptr;
+    bool on_io_watch(Glib::IOCondition condition);
+    void read_message();
 
-    BackendsView m_backends_view;
-    JobView m_job_view;
-    BrowserView m_browser_view;
+    int m_fd = -1;
+    guint m_watch_id = 0;
+    std::string m_buffer;
+    sigc::signal<void(const nlohmann::json&)> m_signal_received;
 };
 
-} // namespace saddle
+} // namespace saddle::ipc

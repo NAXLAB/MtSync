@@ -43,9 +43,10 @@ const char* type_badge(rclone::JobType t) {
 
 } // namespace
 
-JobView::JobView(rclone::RcloneManager& manager)
+JobView::JobView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
-    , m_manager(manager) {
+    , m_manager(manager)
+    , m_daemon_proxy(daemon_proxy) {
 
     auto config_dir = fs::path(g_get_user_config_dir()) / "saddle";
     fs::create_directories(config_dir);
@@ -74,6 +75,11 @@ JobView::JobView(rclone::RcloneManager& manager)
     adw::preferences_group_set_header_suffix(m_prefs_group, add_btn);
 
     adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), m_prefs_group->gobj());
+
+    if (m_daemon_proxy) {
+        m_daemon_proxy->signal_message().connect(
+            sigc::mem_fun(*this, &JobView::on_daemon_message));
+    }
 
     signal_map().connect([this]() { load_jobs(); rebuild_ui(); });
 }
@@ -459,6 +465,79 @@ std::string JobView::format_speed(double bytes_per_sec) {
     if (bytes_per_sec < 1024 * 1024 * 1024)
         return std::format("{:.1f} MB/s", bytes_per_sec / (1024 * 1024));
     return std::format("{:.1f} GB/s", bytes_per_sec / (1024.0 * 1024 * 1024));
+}
+
+void JobView::on_daemon_message(const nlohmann::json& msg) {
+    auto type = msg.value("type", "");
+    auto payload = msg.value("payload", json{});
+
+    if (type == "jobs_list") {
+        m_jobs.clear();
+        if (payload.contains("jobs")) {
+            for (auto& j : payload["jobs"]) {
+                m_jobs.push_back(j.get<rclone::Job>());
+            }
+        }
+        rebuild_ui();
+    } else if (type == "job_added") {
+        load_jobs();
+        rebuild_ui();
+    } else if (type == "job_updated") {
+        load_jobs();
+        rebuild_ui();
+    } else if (type == "job_deleted") {
+        load_jobs();
+        rebuild_ui();
+    } else if (type == "job_started" || type == "job_progress") {
+        auto index = payload.value("index", 0);
+        if (index < m_ui_rows.size()) {
+            m_ui_rows[index].run_btn->set_visible(false);
+            m_ui_rows[index].stop_btn->set_visible(true);
+            m_ui_rows[index].progress->set_visible(true);
+            m_ui_rows[index].status_label->set_visible(true);
+            m_ui_rows[index].status_label->set_text("Running...");
+        }
+    } else if (type == "job_completed") {
+        auto index = payload.value("index", 0);
+        if (index < m_ui_rows.size()) {
+            auto& ui = m_ui_rows[index];
+            ui.poll_timer.disconnect();
+            ui.run_btn->set_visible(true);
+            ui.stop_btn->set_visible(false);
+            ui.progress->set_visible(false);
+
+            auto now = Glib::DateTime::create_now_local().format_iso8601();
+            auto success = payload.value("success", false);
+
+            if (success) {
+                ui.status_label->set_text("Complete");
+                if (index < m_jobs.size()) {
+                    m_jobs[index].last_status = "success";
+                    m_jobs[index].last_run = now;
+                }
+            } else {
+                ui.status_label->set_text("Failed");
+                if (index < m_jobs.size()) {
+                    m_jobs[index].last_status = "error";
+                    m_jobs[index].last_run = now;
+                }
+            }
+            save_jobs();
+            if (index < m_jobs.size() && m_jobs[index].schedule_enabled) {
+                schedule_job(index);
+            }
+        }
+    } else if (type == "job_stopped") {
+        auto index = payload.value("index", 0);
+        if (index < m_ui_rows.size()) {
+            auto& ui = m_ui_rows[index];
+            ui.poll_timer.disconnect();
+            ui.status_label->set_text("Stopped");
+            ui.run_btn->set_visible(true);
+            ui.stop_btn->set_visible(false);
+            ui.progress->set_visible(false);
+        }
+    }
 }
 
 } // namespace saddle

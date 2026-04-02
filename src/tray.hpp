@@ -18,29 +18,33 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
-#include "daemon_proxy.hpp"
-#include "views/backends_view.hpp"
-#include "views/browser_view.hpp"
-#include "views/job_view.hpp"
-#include <adwaita.h>
-#include <gtkmm.h>
+#include <glib.h>
+#include <gio/gio.h>
+#include <sigc++/sigc++.h>
+#include <string>
 
 namespace saddle {
 
-class SaddleWindow : public Gtk::ApplicationWindow {
+class TrayIcon {
 public:
-    explicit SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy);
+    TrayIcon();
+    ~TrayIcon();
 
-    void show_toast(const char* message);
+    void set_tooltip(const std::string& text);
+    void set_running_jobs(int count);
+    void set_attention(bool attention);
+
+    sigc::signal<void()>& signal_show_window() { return m_signal_show_window; }
+    sigc::signal<void()>& signal_quit() { return m_signal_quit; }
 
 private:
-    AdwViewStack* m_view_stack = nullptr;
-    Gtk::Widget* m_toast_overlay = nullptr;
+    guint m_owner_id = 0;
+    
+    sigc::signal<void()> m_signal_show_window;
+    sigc::signal<void()> m_signal_quit;
 
-    BackendsView m_backends_view;
-    JobView m_job_view;
-    BrowserView m_browser_view;
+public:
+    GDBusConnection* m_connection = nullptr;
 };
 
 } // namespace saddle

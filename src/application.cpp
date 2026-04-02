@@ -19,6 +19,8 @@
 #include "application.hpp"
 #include "window.hpp"
 #include "widgets/adw_wrapper.hpp"
+#include <glib.h>
+#include <glibmm.h>
 
 namespace saddle {
 
@@ -31,9 +33,47 @@ Glib::RefPtr<SaddleApplication> SaddleApplication::create() {
     return Glib::make_refptr_for_instance(new SaddleApplication());
 }
 
+void SaddleApplication::ensure_daemon_running() {
+    m_daemon_proxy = std::make_unique<DaemonProxy>();
+
+    if (!m_daemon_proxy->connect()) {
+        g_message("Daemon not running, starting it...");
+        
+        auto exe_path = Glib::find_program_in_path("saddle");
+        if (exe_path.empty()) {
+            exe_path = "/proc/self/exe";
+        }
+
+        try {
+            Glib::spawn_async(
+                {},
+                {exe_path, "--daemon"}
+            );
+            g_message("Started daemon process");
+        } catch (const Glib::Error& e) {
+            g_warning("Failed to spawn daemon: %s", e.what());
+        }
+
+        for (int i = 0; i < 10; ++i) {
+            g_usleep(100000);
+            if (m_daemon_proxy->connect()) {
+                g_message("Connected to daemon");
+                return;
+            }
+        }
+
+        g_warning("Could not connect to daemon after spawning");
+        m_daemon_proxy.reset();
+    } else {
+        g_message("Connected to existing daemon");
+    }
+}
+
 void SaddleApplication::on_activate() {
     if (!m_window) {
-        m_window = new SaddleWindow(m_rclone_manager);
+        ensure_daemon_running();
+
+        m_window = new SaddleWindow(m_rclone_manager, m_daemon_proxy.get());
         add_window(*m_window);
     }
     m_window->present();

@@ -105,7 +105,7 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         const_cast<gchar*>("rcd"),
         const_cast<gchar*>("--rc-no-auth"),
         const_cast<gchar*>("--rc-addr"),
-        const_cast<gchar*>("localhost:5572"),
+        const_cast<gchar*>("localhost:5571"),
         nullptr
     };
 
