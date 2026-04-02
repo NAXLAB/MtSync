@@ -26,7 +26,7 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager)
     , m_job_view(manager)
     , m_browser_view(manager) {
     set_title("Saddle");
-    set_default_size(900, 600);
+    set_default_size(900, 900);
 
     m_view_stack = adw::view_stack_new();
 

@@ -305,13 +305,14 @@ void JobView::on_run_job(size_t index) {
     ui.status_label->set_text("Starting...");
 
     // Capture job data by value so the async callback is safe if m_jobs is modified
-    auto src     = m_jobs[index].source;
-    auto dst     = m_jobs[index].destination;
-    auto dry_run = m_jobs[index].dry_run;
-    auto bw      = m_jobs[index].bandwidth;
-    auto type    = m_jobs[index].type;
+    auto src      = m_jobs[index].source;
+    auto dst      = m_jobs[index].destination;
+    auto dry_run  = m_jobs[index].dry_run;
+    auto bw       = m_jobs[index].bandwidth;
+    auto type     = m_jobs[index].type;
+    auto includes = m_jobs[index].includes;
 
-    m_manager.rc().ensure_daemon([this, index, src, dst, dry_run, bw, type](auto result) {
+    m_manager.rc().ensure_daemon([this, index, src, dst, dry_run, bw, type, includes](auto result) {
         if (!result.has_value()) {
             if (index < m_ui_rows.size()) {
                 m_ui_rows[index].status_label->set_text("Error: " + result.error());
@@ -324,6 +325,13 @@ void JobView::on_run_job(size_t index) {
         nlohmann::json opts;
         if (dry_run) opts["_config"] = {{"DryRun", true}};
         if (!bw.empty()) opts["_config"]["BwLimit"] = bw;
+        if (!includes.empty()) {
+            json filter = json::array();
+            for (auto& inc : includes) {
+                filter.push_back({{"IncludeRule", {{"Pattern", inc}}}});
+            }
+            opts["_config"]["Filter"] = filter;
+        }
 
         auto done_cb = [this, index](auto result) {
             if (index >= m_ui_rows.size()) return;

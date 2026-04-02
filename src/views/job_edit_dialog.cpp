@@ -59,8 +59,9 @@ JobEditDialog::JobEditDialog(rclone::RcloneManager& manager, const rclone::Job& 
 
 JobEditDialog::JobEditDialog(rclone::RcloneManager& manager, rclone::JobType type,
                                const std::string& src, const std::string& dst,
+                               const std::vector<std::string>& includes,
                                DoneCallback on_done)
-    : m_manager(manager), m_on_done(std::move(on_done)) {
+    : m_manager(manager), m_on_done(std::move(on_done)), m_includes(includes) {
     setup_ui(type, src, dst);
 }
 
@@ -261,6 +262,7 @@ void JobEditDialog::on_commit() {
     job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
+    job.includes         = m_includes;
 
     if (job.source.empty() || job.destination.empty()) return;
 

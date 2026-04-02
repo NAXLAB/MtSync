@@ -117,12 +117,13 @@ struct Job {
     std::string cron_weekday     = "*";
     std::string last_run;
     std::string last_status;
+    std::vector<std::string> includes;  // Files to include; empty = entire directory
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bandwidth,
     schedule_enabled, cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
-    last_run, last_status)
+    last_run, last_status, includes)
 
 // Async callback type used throughout
 template <typename T>

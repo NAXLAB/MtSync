@@ -83,6 +83,12 @@ inline void toolbar_view_add_top_bar(Gtk::Widget* toolbar, Gtk::Widget* bar) {
         bar->gobj());
 }
 
+inline void toolbar_view_add_bottom_bar(Gtk::Widget* toolbar, Gtk::Widget* bar) {
+    adw_toolbar_view_add_bottom_bar(
+        ADW_TOOLBAR_VIEW(toolbar->gobj()),
+        bar->gobj());
+}
+
 inline void toolbar_view_set_content(Gtk::Widget* toolbar, Gtk::Widget* content) {
     adw_toolbar_view_set_content(
         ADW_TOOLBAR_VIEW(toolbar->gobj()),

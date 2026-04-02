@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.7 — Selected Files in Copy/Move/Sync
+
+- Sync button added to the browser action bar alongside Copy and Move
+- Copy, Move, and Sync buttons now display icons
+- Copy and Move dialogs now include selected files as `--include` filter patterns
+- If no files are selected, the entire current directory is used (existing behavior)
+
 ## 0.0.6 — Simplified Transfer Actions
 
 - Single Copy and Move buttons in dual-pane browser (instead of four directional buttons)

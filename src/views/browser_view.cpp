@@ -56,6 +56,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
 
     // Copy button
     auto* copy_btn = Gtk::make_managed<Gtk::Button>("Copy");
+    copy_btn->set_icon_name("edit-copy-symbolic");
     copy_btn->set_tooltip_text("Copy from source to destination");
     copy_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Copy);
@@ -63,9 +64,18 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
 
     // Move button
     auto* move_btn = Gtk::make_managed<Gtk::Button>("Move");
+    move_btn->set_icon_name("document-send-symbolic");
     move_btn->set_tooltip_text("Move from source to destination");
     move_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Move);
+    });
+
+    // Sync button
+    auto* sync_btn = Gtk::make_managed<Gtk::Button>("Sync");
+    sync_btn->set_icon_name("emblem-synchronizing-symbolic");
+    sync_btn->set_tooltip_text("Sync source to destination");
+    sync_btn->signal_clicked().connect([this]() {
+        show_job_dialog(rclone::JobType::Sync);
     });
 
     // Swap button - reverses source/destination
@@ -74,6 +84,16 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     swap_btn->signal_clicked().connect([this]() {
         swap_source_destination();
     });
+
+    // Left box for Copy/Move/Sync buttons
+    auto* left_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+    left_box->append(*copy_btn);
+    left_box->append(*move_btn);
+    left_box->append(*sync_btn);
+
+    // Center box for Swap button
+    auto* swap_center = Gtk::make_managed<Gtk::CenterBox>();
+    swap_center->set_center_widget(*swap_btn);
 
     // Delete button
     auto* delete_btn = Gtk::make_managed<Gtk::Button>("Delete");
@@ -117,9 +137,8 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
         create_btn->activate();
     });
 
-    action_bar->pack_start(*copy_btn);
-    action_bar->pack_start(*move_btn);
-    action_bar->pack_start(*swap_btn);
+    action_bar->pack_start(*left_box);
+    action_bar->set_center_widget(*swap_center);
     action_bar->pack_end(*mkdir_btn);
     action_bar->pack_end(*delete_btn);
 
@@ -159,14 +178,22 @@ void BrowserView::update_pane_roles() {
 }
 
 void BrowserView::show_job_dialog(rclone::JobType type) {
-    auto src = m_source_on_left 
-        ? m_left_pane->get_current_rclone_path() 
-        : m_right_pane->get_current_rclone_path();
-    auto dst = m_source_on_left 
-        ? m_right_pane->get_current_rclone_path() 
-        : m_left_pane->get_current_rclone_path();
+    auto* src_pane = m_source_on_left ? m_left_pane : m_right_pane;
+    auto* dst_pane = m_source_on_left ? m_right_pane : m_left_pane;
 
-    m_job_dialog = std::make_unique<JobEditDialog>(m_manager, type, src, dst,
+    auto src = src_pane->get_current_rclone_path();
+    auto dst = dst_pane->get_current_rclone_path();
+
+    std::vector<std::string> includes;
+    auto selected = src_pane->get_selected_files();
+    if (!selected.empty()) {
+        for (auto& f : selected) {
+            auto name = std::string(f->property_name.get_value());
+            includes.push_back(f->property_is_dir.get_value() ? (name + "/**") : name);
+        }
+    }
+
+    m_job_dialog = std::make_unique<JobEditDialog>(m_manager, type, src, dst, includes,
         [this](rclone::Job job) { signal_job_created.emit(job); });
     if (auto* win = dynamic_cast<Gtk::Window*>(get_root()))
         m_job_dialog->set_transient_for(*win);

@@ -36,15 +36,17 @@ public:
     // Edit existing job
     JobEditDialog(rclone::RcloneManager& manager, const rclone::Job& job,
                   DoneCallback on_done);
-    // Pre-fill from browser (type, src, dst already known)
+    // Pre-fill from browser (type, src, dst, includes already known)
     JobEditDialog(rclone::RcloneManager& manager, rclone::JobType type,
                   const std::string& src, const std::string& dst,
+                  const std::vector<std::string>& includes,
                   DoneCallback on_done);
 
 private:
     rclone::RcloneManager& m_manager;
     DoneCallback           m_on_done;
     std::optional<rclone::Job> m_editing;
+    std::vector<std::string>  m_includes;
 
     Gtk::Widget* m_type_combo         = nullptr;
     Gtk::Widget* m_source_entry       = nullptr;
