@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.5 - Sync empty directory fix
+- Fixed `--create-empty-src-dirs` not being passed correctly to rclone RC (`createEmptySrcDirs` is a direct `sync/sync` parameter, not a `_config` override)
+
 ## 0.2.4 - Job Edit Checksum Fix
 - Fixed "Enable Checksum" toggle not loading correctly when editing existing jobs
 

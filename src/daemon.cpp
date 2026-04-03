@@ -308,7 +308,7 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (!job.bandwidth.empty()) opts["_config"]["BwLimit"] = job.bandwidth;
     if (job.ignore_checksum) opts["_config"]["IgnoreChecksum"] = true;
     if (job.type == rclone::JobType::Sync) {
-        opts["_config"]["create_empty_src_dirs"] = true;
+        opts["createEmptySrcDirs"] = true;
     }
     if (!job.includes.empty()) {
         json filter = json::array();
