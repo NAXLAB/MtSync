@@ -280,7 +280,7 @@ void SaddleDaemon::on_run_job(size_t index) {
     auto& job = m_jobs[index];
 
     if (job.type == rclone::JobType::Mount) {
-        if (index < m_jobs.size()) m_jobs[index].active = true;
+        m_jobs[index].active = true;
         json response_payload = {{"index", index}};
         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
         m_manager.rc().mount_async(job.source, job.destination,

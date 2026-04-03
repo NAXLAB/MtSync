@@ -35,7 +35,6 @@ const gchar SNI_ICON[]          = "network-server-symbolic";
 const gchar SADDLE_MENU_PATH[]  = "/com/saddle/Daemon/Menu";
 
 std::string g_tooltip = "Saddle";
-int g_running_jobs = 0;
 bool g_attention = false;
 saddle::TrayIcon* g_tray = nullptr;
 
@@ -477,10 +476,6 @@ void TrayIcon::set_tooltip(const std::string& text) {
     g_dbus_connection_emit_signal(m_connection, nullptr,
         SADDLE_SNI_PATH, SNI_IFACE, "NewToolTip", nullptr, &err);
     if (err) { g_warning("Tray: NewToolTip: %s", err->message); g_error_free(err); }
-}
-
-void TrayIcon::set_running_jobs(int count) {
-    g_running_jobs = count;
 }
 
 void TrayIcon::set_attention(bool attention) {

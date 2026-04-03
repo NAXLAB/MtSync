@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 - Code clean-up of dead code as operations have shifted from GUI to Daemon
+- Removed copy_files / move_files from rclone_cli.hpp, rclone_cli.cpp
+- Removed set_running_jobs / g_running_jobs from tray.hpp, tray.cpp
+- Removed ErrorCallback typedef from daemon_proxy.hpp
+- Removed m_args member + <vector> include from notification.hpp
+- Removed m_old_config_path + migration from job_view.hpp, job_view.cpp
+- Removed redundant inner bounds check from daemon.cpp:283
+- Removed spurious 500ms connectivity ping from rclone_rc.cpp
+
 ## 0.2.0 — Real-time Job Progress & Mount Improvements
 
 - Real-time progress updates in the Jobs tab showing transfer stats (files transferred, speed, ETA)

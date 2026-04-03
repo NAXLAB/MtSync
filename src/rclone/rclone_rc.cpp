@@ -131,14 +131,6 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
     auto session = m_session;
     auto base_url = m_base_url;
 
-    g_timeout_add(500, [](gpointer data) -> gboolean {
-        auto* self = static_cast<RcloneRc*>(data);
-        self->rc_post("core/version", json::object(), [](auto) {
-            // Just testing connectivity; result doesn't matter for startup
-        });
-        return G_SOURCE_REMOVE;
-    }, this);
-
     // Give it a second to start, then verify
     g_timeout_add(1500, [](gpointer data) -> gboolean {
         auto* pack = static_cast<std::pair<RcloneRc*, std::shared_ptr<AsyncCallback<std::monostate>>>*>(data);

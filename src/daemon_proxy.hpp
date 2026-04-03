@@ -33,7 +33,6 @@ public:
     using JobCallback = std::function<void(std::expected<std::vector<rclone::Job>, std::string>)>;
     using RemoteCallback = std::function<void(std::expected<std::vector<rclone::RemoteInfo>, std::string>)>;
     using IndexCallback = std::function<void(std::expected<size_t, std::string>)>;
-    using ErrorCallback = std::function<void(const std::string&)>;
 
     DaemonProxy();
     ~DaemonProxy();

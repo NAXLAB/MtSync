@@ -51,16 +51,6 @@ public:
                 AsyncCallback<std::vector<FileEntry>> callback);
 
     // File operations
-    void copy_files(const std::string& src_dir,
-                    const std::string& dst_dir,
-                    const std::vector<std::string>& includes,
-                    AsyncCallback<std::monostate> callback);
-
-    void move_files(const std::string& src_dir,
-                    const std::string& dst_dir,
-                    const std::vector<std::string>& includes,
-                    AsyncCallback<std::monostate> callback);
-
     void delete_files(const std::string& dir,
                       const std::vector<std::string>& includes,
                       AsyncCallback<std::monostate> callback);

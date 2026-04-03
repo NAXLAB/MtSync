@@ -44,7 +44,6 @@ private:
 
     std::vector<rclone::Job> m_jobs;
     std::string              m_config_path;
-    std::string              m_old_config_path;
 
     struct JobUI {
         Gtk::Widget*                      row          = nullptr;

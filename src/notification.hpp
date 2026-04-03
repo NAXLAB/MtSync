@@ -19,7 +19,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 namespace saddle {
 
@@ -29,9 +28,6 @@ public:
     ~Notification();
 
     void show(const std::string& title, const std::string& body);
-
-private:
-    std::vector<std::string> m_args;
 };
 
 void send_notification(const std::string& title, const std::string& body);

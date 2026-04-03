@@ -50,8 +50,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
 
     auto config_dir = fs::path(g_get_user_config_dir()) / "saddle";
     fs::create_directories(config_dir);
-    m_config_path     = (config_dir / "jobs.json").string();
-    m_old_config_path = (config_dir / "sync_pairs.json").string();
+    m_config_path = (config_dir / "jobs.json").string();
 
     m_scroll.set_vexpand(true);
     m_scroll.set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
@@ -110,31 +109,6 @@ void JobView::load_jobs() {
             g_warning("Failed to load jobs: %s", e.what());
         }
         return;
-    }
-
-    // First-run migration: convert sync_pairs.json → jobs.json
-    if (fs::exists(m_old_config_path)) {
-        try {
-            std::ifstream f(m_old_config_path);
-            auto j = json::parse(f);
-            if (j.contains("sync_pairs")) {
-                for (auto& p : j["sync_pairs"]) {
-                    rclone::Job job;
-                    job.id          = p.value("id", "");
-                    job.type        = rclone::JobType::Sync;
-                    job.source      = p.value("source", "");
-                    job.destination = p.value("destination", "");
-                    job.dry_run     = p.value("dry_run", false);
-                    job.bandwidth   = p.value("bandwidth", "");
-                    job.last_run    = p.value("last_run", "");
-                    job.last_status = p.value("last_status", "");
-                    m_jobs.push_back(std::move(job));
-                }
-                save_jobs();
-            }
-        } catch (const std::exception& e) {
-            g_warning("Failed to migrate sync_pairs: %s", e.what());
-        }
     }
 }
 

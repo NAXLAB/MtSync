@@ -31,7 +31,6 @@ public:
     ~TrayIcon();
 
     void set_tooltip(const std::string& text);
-    void set_running_jobs(int count);
     void set_attention(bool attention);
 
     sigc::signal<void()>& signal_show_window() { return m_signal_show_window; }
