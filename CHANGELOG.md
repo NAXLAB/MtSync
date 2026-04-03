@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 — Bi-directional Sync
+
+- **Bi-directional sync** toggle added to the job dialog when type is **Sync**
+- When enabled, the job uses the rclone RC `bisync/bisync` endpoint instead of `sync/sync`
+- Persisted as `bisync` field in `jobs.json`
+
 ## 0.1.5 — About Tab
 
 - New **About** tab to the right of Settings

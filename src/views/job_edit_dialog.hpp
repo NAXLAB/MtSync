@@ -52,6 +52,7 @@ private:
     Gtk::Widget* m_source_entry       = nullptr;
     Gtk::Widget* m_dest_entry         = nullptr;
     Gtk::Widget* m_dry_run_switch     = nullptr;
+    Gtk::Widget* m_bisync_switch      = nullptr;
     Gtk::Widget* m_bandwidth_entry    = nullptr;
     Gtk::Widget* m_mount_startup_switch = nullptr;
     Gtk::Widget* m_schedule_switch    = nullptr;

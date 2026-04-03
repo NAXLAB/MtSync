@@ -336,7 +336,10 @@ void SaddleDaemon::on_run_job(size_t index) {
 
         switch (job.type) {
             case rclone::JobType::Sync:
-                m_manager.rc().sync_async(job.source, job.destination, opts, done_cb);
+                if (job.bisync)
+                    m_manager.rc().bisync_async(job.source, job.destination, opts, done_cb);
+                else
+                    m_manager.rc().sync_async(job.source, job.destination, opts, done_cb);
                 break;
             case rclone::JobType::Copy:
                 m_manager.rc().copy_async(job.source, job.destination, opts, done_cb);

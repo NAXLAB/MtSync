@@ -319,11 +319,12 @@ void JobView::on_run_job(size_t index) {
     auto src      = m_jobs[index].source;
     auto dst      = m_jobs[index].destination;
     auto dry_run  = m_jobs[index].dry_run;
+    auto bisync   = m_jobs[index].bisync;
     auto bw       = m_jobs[index].bandwidth;
     auto type     = m_jobs[index].type;
     auto includes = m_jobs[index].includes;
 
-    m_manager.rc().ensure_daemon([this, index, src, dst, dry_run, bw, type, includes](auto result) {
+    m_manager.rc().ensure_daemon([this, index, src, dst, dry_run, bisync, bw, type, includes](auto result) {
         if (!result.has_value()) {
             if (index < m_ui_rows.size()) {
                 m_ui_rows[index].status_label->set_text("Error: " + result.error());
@@ -359,7 +360,10 @@ void JobView::on_run_job(size_t index) {
 
         switch (type) {
             case rclone::JobType::Sync:
-                m_manager.rc().sync_async(src, dst, opts, done_cb);
+                if (bisync)
+                    m_manager.rc().bisync_async(src, dst, opts, done_cb);
+                else
+                    m_manager.rc().sync_async(src, dst, opts, done_cb);
                 break;
             case rclone::JobType::Copy:
                 m_manager.rc().copy_async(src, dst, opts, done_cb);

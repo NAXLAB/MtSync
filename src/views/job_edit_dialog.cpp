@@ -133,6 +133,13 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     if (m_editing) adw::switch_row_set_active(m_dry_run_switch, m_editing->dry_run);
     adw::preferences_group_add(group, m_dry_run_switch);
 
+    // Bi-directional sync (only visible when type is Sync)
+    m_bisync_switch = adw::switch_row();
+    adw::preferences_row_set_title(m_bisync_switch, "Bi-directional sync");
+    m_bisync_switch->set_visible(initial_type == rclone::JobType::Sync);
+    if (m_editing) adw::switch_row_set_active(m_bisync_switch, m_editing->bisync);
+    adw::preferences_group_add(group, m_bisync_switch);
+
     // Bandwidth limit
     m_bandwidth_entry = adw::entry_row();
     adw::preferences_row_set_title(m_bandwidth_entry, "Bandwidth Limit (e.g. 10M)");
@@ -215,12 +222,13 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     // ── Reactive wiring ───────────────────────────────────────────────────
 
-    // Show/hide "Mount at Start-up" switch when type changes
+    // Show/hide type-specific options when type changes
     g_signal_connect(m_type_combo->gobj(), "notify::selected",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
-            bool is_mount = adw::combo_row_get_selected(self->m_type_combo) == 3;
-            self->m_mount_startup_switch->set_visible(is_mount);
+            guint sel = adw::combo_row_get_selected(self->m_type_combo);
+            self->m_bisync_switch->set_visible(sel == 0);  // Sync
+            self->m_mount_startup_switch->set_visible(sel == 3);  // Mount
         }), this);
 
     // Toggle cron group sensitivity + button label when switch changes
@@ -271,6 +279,8 @@ void JobEditDialog::on_commit() {
     job.source           = adw::entry_row_get_text(m_source_entry);
     job.destination      = adw::entry_row_get_text(m_dest_entry);
     job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
+    job.bisync           = m_bisync_switch->get_visible()
+                        && adw::switch_row_get_active(m_bisync_switch);
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);

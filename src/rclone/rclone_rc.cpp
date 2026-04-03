@@ -252,6 +252,30 @@ void RcloneRc::move_async(const std::string& src_fs, const std::string& dst_fs,
     });
 }
 
+void RcloneRc::bisync_async(const std::string& path1, const std::string& path2,
+                              const json& opts,
+                              AsyncCallback<int64_t> callback) {
+    json body = {
+        {"path1", path1},
+        {"path2", path2},
+        {"_async", true}
+    };
+    body.update(opts);
+
+    rc_post("bisync/bisync", body, [callback = std::move(callback)](auto result) {
+        if (!result.has_value()) {
+            callback(std::unexpected(result.error()));
+            return;
+        }
+        auto& j = result.value();
+        if (j.contains("jobid")) {
+            callback(j["jobid"].template get<int64_t>());
+        } else {
+            callback(std::unexpected("No jobid in response"));
+        }
+    });
+}
+
 void RcloneRc::get_stats(AsyncCallback<SyncStats> callback) {
     rc_post("core/stats", json::object(), [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
