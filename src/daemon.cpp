@@ -116,7 +116,13 @@ SaddleDaemon::SaddleDaemon() {
 
             } else if (type_str == "stop_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
-                if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
+                if (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount) {
+                    m_manager.rc().unmount_async(m_jobs[index].destination, [this, index](auto) {
+                        if (index < m_jobs.size()) m_jobs[index].active = false;
+                        json response_payload = {{"index", index}, {"success", true}};
+                        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+                    });
+                } else if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
                     m_manager.rc().job_stop(m_job_ids[index], [this, index, msg](auto) {
                         if (index < m_poll_timers.size()) {
                             m_poll_timers[index].disconnect();
@@ -274,17 +280,33 @@ void SaddleDaemon::on_run_job(size_t index) {
     auto& job = m_jobs[index];
 
     if (job.type == rclone::JobType::Mount) {
+        if (index < m_jobs.size()) m_jobs[index].active = true;
+        json response_payload = {{"index", index}};
+        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
         m_manager.rc().mount_async(job.source, job.destination,
-            [index](auto result) {
-                if (!result.has_value())
+            [this, index](auto result) {
+                json response_payload = {{"index", index}};
+                if (result.has_value()) {
+                    response_payload["success"] = true;
+                    if (index < m_jobs.size()) m_jobs[index].active = true;
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+                } else {
+                    response_payload["success"] = false;
+                    if (index < m_jobs.size()) m_jobs[index].active = false;
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
                     g_warning("Mount %zu failed: %s", index, result.error().c_str());
+                }
             });
         return;
     }
 
+    json response_payload = {{"index", index}};
+    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
+
     nlohmann::json opts;
     if (job.dry_run) opts["_config"] = {{"DryRun", true}};
     if (!job.bandwidth.empty()) opts["_config"]["BwLimit"] = job.bandwidth;
+    if (job.ignore_checksum) opts["_config"]["IgnoreChecksum"] = true;
     if (!job.includes.empty()) {
         json filter = json::array();
         for (auto& inc : job.includes) {
@@ -316,8 +338,20 @@ void SaddleDaemon::on_run_job(size_t index) {
                         return;
                     }
                 });
-                m_manager.rc().get_stats([this, index](auto) {
-                    // Could emit progress updates here
+                m_manager.rc().get_stats([this, index](auto result) {
+                    if (!result.has_value()) return;
+                    auto& stats = result.value();
+                    if (stats.bytes == 0 && stats.total_bytes == 0 && stats.transfers == 0) return;
+                    json response_payload = {
+                        {"index", index},
+                        {"bytes", stats.bytes},
+                        {"total_bytes", stats.total_bytes},
+                        {"transfers", stats.transfers},
+                        {"total_transfers", stats.total_transfers},
+                        {"speed", stats.speed}
+                    };
+                    if (stats.eta) response_payload["eta"] = *stats.eta;
+                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobProgress, response_payload));
                 });
                 return true;
             }, 500);
@@ -349,9 +383,13 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
     auto now = Glib::DateTime::create_now_local().format_iso8601();
     if (index < m_jobs.size()) {
         auto& job = m_jobs[index];
+        job.active = false;
         job.last_status = success ? "success" : "error";
         job.last_run = now;
         save_jobs();
+
+        json response_payload = {{"index", index}, {"success", success}};
+        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
 
         std::string title = success ? "Sync Complete" : "Sync Failed";
         std::string body = job.source + " → " + job.destination;

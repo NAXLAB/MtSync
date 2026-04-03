@@ -48,22 +48,21 @@ constexpr rclone::JobType index_to_job_type(guint i) {
 
 } // namespace
 
-JobEditDialog::JobEditDialog(rclone::RcloneManager& manager, DoneCallback on_done)
-    : m_manager(manager), m_on_done(std::move(on_done)) {
+JobEditDialog::JobEditDialog(DoneCallback on_done)
+    : m_on_done(std::move(on_done)) {
     setup_ui(rclone::JobType::Sync, "", "");
 }
 
-JobEditDialog::JobEditDialog(rclone::RcloneManager& manager, const rclone::Job& job,
-                               DoneCallback on_done)
-    : m_manager(manager), m_on_done(std::move(on_done)), m_editing(job) {
+JobEditDialog::JobEditDialog(const rclone::Job& job, DoneCallback on_done)
+    : m_on_done(std::move(on_done)), m_editing(job) {
     setup_ui(job.type, job.source, job.destination);
 }
 
-JobEditDialog::JobEditDialog(rclone::RcloneManager& manager, rclone::JobType type,
+JobEditDialog::JobEditDialog(rclone::JobType type,
                                const std::string& src, const std::string& dst,
                                const std::vector<std::string>& includes,
                                DoneCallback on_done)
-    : m_manager(manager), m_on_done(std::move(on_done)), m_includes(includes) {
+    : m_on_done(std::move(on_done)), m_includes(includes) {
     setup_ui(type, src, dst);
 }
 
@@ -73,6 +72,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     set_title(m_editing ? "Edit Job" : "New Job");
     set_default_size(460, -1);
     set_modal(true);
+    set_destroy_with_parent(true);
 
     auto* clamp = Glib::wrap(GTK_WIDGET(adw_clamp_new()));
     adw_clamp_set_maximum_size(ADW_CLAMP(clamp->gobj()), 520);
@@ -80,12 +80,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     clamp->set_margin_bottom(24);
     clamp->set_margin_start(12);
     clamp->set_margin_end(12);
-
-    auto* toolbar = adw::toolbar_view();
-    auto* header  = adw::header_bar();
-    adw::toolbar_view_add_top_bar(toolbar, header);
-    adw::toolbar_view_set_content(toolbar, clamp);
-    set_child(*toolbar);
+    set_child(*clamp);
 
     auto* vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 18);
     adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), GTK_WIDGET(vbox->gobj()));
@@ -139,6 +134,12 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_bisync_switch->set_visible(initial_type == rclone::JobType::Sync);
     if (m_editing) adw::switch_row_set_active(m_bisync_switch, m_editing->bisync);
     adw::preferences_group_add(group, m_bisync_switch);
+
+    // Enable Checksum (default ignores checksum)
+    m_enable_checksum_switch = adw::switch_row();
+    adw::preferences_row_set_title(m_enable_checksum_switch, "Enable Checksum");
+    if (m_editing) adw::switch_row_set_active(m_enable_checksum_switch, m_editing->ignore_checksum);
+    adw::preferences_group_add(group, m_enable_checksum_switch);
 
     // Bandwidth limit
     m_bandwidth_entry = adw::entry_row();
@@ -281,6 +282,7 @@ void JobEditDialog::on_commit() {
     job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
     job.bisync           = m_bisync_switch->get_visible()
                         && adw::switch_row_get_active(m_bisync_switch);
+    job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);

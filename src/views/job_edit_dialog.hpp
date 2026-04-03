@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
 #include "rclone/rclone_types.hpp"
 #include <gtkmm.h>
 #include <functional>
@@ -31,19 +30,14 @@ class JobEditDialog : public Gtk::Window {
 public:
     using DoneCallback = std::function<void(rclone::Job)>;
 
-    // Create new job (type=Sync, empty fields)
-    JobEditDialog(rclone::RcloneManager& manager, DoneCallback on_done);
-    // Edit existing job
-    JobEditDialog(rclone::RcloneManager& manager, const rclone::Job& job,
-                  DoneCallback on_done);
-    // Pre-fill from browser (type, src, dst, includes already known)
-    JobEditDialog(rclone::RcloneManager& manager, rclone::JobType type,
+    JobEditDialog(DoneCallback on_done);
+    JobEditDialog(const rclone::Job& job, DoneCallback on_done);
+    JobEditDialog(rclone::JobType type,
                   const std::string& src, const std::string& dst,
                   const std::vector<std::string>& includes,
                   DoneCallback on_done);
 
 private:
-    rclone::RcloneManager& m_manager;
     DoneCallback           m_on_done;
     std::optional<rclone::Job> m_editing;
     std::vector<std::string>  m_includes;
@@ -51,9 +45,10 @@ private:
     Gtk::Widget* m_type_combo         = nullptr;
     Gtk::Widget* m_source_entry       = nullptr;
     Gtk::Widget* m_dest_entry         = nullptr;
-    Gtk::Widget* m_dry_run_switch     = nullptr;
-    Gtk::Widget* m_bisync_switch      = nullptr;
-    Gtk::Widget* m_bandwidth_entry    = nullptr;
+    Gtk::Widget* m_dry_run_switch        = nullptr;
+    Gtk::Widget* m_bisync_switch         = nullptr;
+    Gtk::Widget* m_enable_checksum_switch = nullptr;
+    Gtk::Widget* m_bandwidth_entry       = nullptr;
     Gtk::Widget* m_mount_startup_switch = nullptr;
     Gtk::Widget* m_schedule_switch    = nullptr;
     Gtk::Widget* m_cron_fields_group  = nullptr;

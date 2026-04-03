@@ -44,9 +44,8 @@ const char* type_badge(rclone::JobType t) {
 
 } // namespace
 
-JobView::JobView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
+JobView::JobView(DaemonProxy* daemon_proxy)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
-    , m_manager(manager)
     , m_daemon_proxy(daemon_proxy) {
 
     auto config_dir = fs::path(g_get_user_config_dir()) / "saddle";
@@ -80,6 +79,10 @@ JobView::JobView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
     if (m_daemon_proxy) {
         m_daemon_proxy->signal_message().connect(
             sigc::mem_fun(*this, &JobView::on_daemon_message));
+        Glib::signal_timeout().connect([this]() {
+            m_daemon_proxy->get_jobs([this](auto) {});
+            return true;
+        }, 10000);
     }
 
     signal_map().connect([this]() { load_jobs(); rebuild_ui(); });
@@ -199,6 +202,19 @@ void JobView::rebuild_ui() {
         ui.stop_btn->set_visible(false);
         ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
 
+        // For mount jobs, reflect active state in UI
+        if (job.type == rclone::JobType::Mount) {
+            if (job.active) {
+                ui.run_btn->set_visible(false);
+                ui.stop_btn->set_visible(true);
+                ui.status_label->set_text("Mounted");
+                ui.status_label->set_visible(true);
+            } else {
+                ui.run_btn->set_visible(true);
+                ui.stop_btn->set_visible(false);
+            }
+        }
+
         ui.edit_btn = std::make_unique<Gtk::Button>();
         ui.edit_btn->set_icon_name("document-edit-symbolic");
         ui.edit_btn->set_valign(Gtk::Align::CENTER);
@@ -231,8 +247,8 @@ void JobView::rebuild_ui() {
 
 void JobView::show_add_dialog() {
     auto* toplevel = dynamic_cast<Gtk::Window*>(get_root());
-    m_edit_dialog = std::make_unique<JobEditDialog>(m_manager,
-        [this](rclone::Job job) { add_job(std::move(job)); });
+    m_edit_dialog = std::unique_ptr<JobEditDialog>(new JobEditDialog(
+        [this](rclone::Job job) { add_job(std::move(job)); }));
     if (toplevel) m_edit_dialog->set_transient_for(*toplevel);
     m_edit_dialog->present();
 }
@@ -240,14 +256,14 @@ void JobView::show_add_dialog() {
 void JobView::show_edit_dialog(size_t index) {
     if (index >= m_jobs.size()) return;
     auto* toplevel = dynamic_cast<Gtk::Window*>(get_root());
-    m_edit_dialog = std::make_unique<JobEditDialog>(m_manager, m_jobs[index],
+    m_edit_dialog = std::unique_ptr<JobEditDialog>(new JobEditDialog(m_jobs[index],
         [this, index](rclone::Job job) {
             if (index < m_jobs.size()) {
                 m_jobs[index] = std::move(job);
                 save_jobs();
                 rebuild_ui();
             }
-        });
+        }));
     if (toplevel) m_edit_dialog->set_transient_for(*toplevel);
     m_edit_dialog->present();
 }
@@ -324,7 +340,16 @@ void JobView::on_run_job(size_t index) {
     auto type     = m_jobs[index].type;
     auto includes = m_jobs[index].includes;
 
-    m_manager.rc().ensure_daemon([this, index, src, dst, dry_run, bisync, bw, type, includes](auto result) {
+    if (!m_daemon_proxy || !m_daemon_proxy->is_connected()) {
+        if (index < m_ui_rows.size()) {
+            m_ui_rows[index].status_label->set_text("Error: not connected to daemon");
+            m_ui_rows[index].run_btn->set_visible(true);
+            m_ui_rows[index].stop_btn->set_visible(false);
+        }
+        return;
+    }
+
+    m_daemon_proxy->run_job(index, [this, index](auto result) {
         if (!result.has_value()) {
             if (index < m_ui_rows.size()) {
                 m_ui_rows[index].status_label->set_text("Error: " + result.error());
@@ -333,59 +358,8 @@ void JobView::on_run_job(size_t index) {
             }
             return;
         }
-
-        nlohmann::json opts;
-        if (dry_run) opts["_config"] = {{"DryRun", true}};
-        if (!bw.empty()) opts["_config"]["BwLimit"] = bw;
-        if (!includes.empty()) {
-            json filter = json::array();
-            for (auto& inc : includes) {
-                filter.push_back({{"IncludeRule", {{"Pattern", inc}}}});
-            }
-            opts["_config"]["Filter"] = filter;
-        }
-
-        auto done_cb = [this, index](auto result) {
-            if (index >= m_ui_rows.size()) return;
-            if (!result.has_value()) {
-                m_ui_rows[index].status_label->set_text("Error: " + result.error());
-                m_ui_rows[index].run_btn->set_visible(true);
-                m_ui_rows[index].stop_btn->set_visible(false);
-                return;
-            }
-            m_ui_rows[index].jobid = result.value();
+        if (index < m_ui_rows.size()) {
             m_ui_rows[index].status_label->set_text("Running...");
-            poll_progress(index);
-        };
-
-        switch (type) {
-            case rclone::JobType::Sync:
-                if (bisync)
-                    m_manager.rc().bisync_async(src, dst, opts, done_cb);
-                else
-                    m_manager.rc().sync_async(src, dst, opts, done_cb);
-                break;
-            case rclone::JobType::Copy:
-                m_manager.rc().copy_async(src, dst, opts, done_cb);
-                break;
-            case rclone::JobType::Move:
-                m_manager.rc().move_async(src, dst, opts, done_cb);
-                break;
-            case rclone::JobType::Mount:
-                m_manager.rc().mount_async(src, dst,
-                    [this, index](auto result) {
-                        if (index >= m_ui_rows.size()) return;
-                        if (!result.has_value()) {
-                            m_ui_rows[index].status_label->set_text("Error: " + result.error());
-                            m_ui_rows[index].run_btn->set_visible(true);
-                            m_ui_rows[index].stop_btn->set_visible(false);
-                            m_ui_rows[index].progress->set_visible(false);
-                            return;
-                        }
-                        m_ui_rows[index].status_label->set_text("Mounted");
-                        m_ui_rows[index].progress->set_visible(false);
-                    });
-                break;
         }
     });
 }
@@ -393,25 +367,21 @@ void JobView::on_run_job(size_t index) {
 void JobView::on_stop_job(size_t index) {
     if (index >= m_ui_rows.size()) return;
 
-    if (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount) {
-        m_manager.rc().unmount_async(m_jobs[index].destination,
-            [this, index](auto) {
-                if (index >= m_ui_rows.size()) return;
-                m_ui_rows[index].status_label->set_text("Unmounted");
-                m_ui_rows[index].run_btn->set_visible(true);
-                m_ui_rows[index].stop_btn->set_visible(false);
-                m_ui_rows[index].progress->set_visible(false);
-            });
+    if (!m_daemon_proxy || !m_daemon_proxy->is_connected()) {
+        if (index < m_ui_rows.size()) {
+            m_ui_rows[index].status_label->set_text("Error: not connected to daemon");
+        }
         return;
     }
 
-    auto& ui = m_ui_rows[index];
-    if (ui.jobid < 0) return;
-
-    m_manager.rc().job_stop(ui.jobid, [this, index](auto) {
+    m_daemon_proxy->stop_job(index, [this, index](auto result) {
         if (index >= m_ui_rows.size()) return;
         m_ui_rows[index].poll_timer.disconnect();
-        m_ui_rows[index].status_label->set_text("Stopped");
+        if (!result.has_value()) {
+            m_ui_rows[index].status_label->set_text("Error: " + result.error());
+        } else {
+            m_ui_rows[index].status_label->set_text("Stopped");
+        }
         m_ui_rows[index].run_btn->set_visible(true);
         m_ui_rows[index].stop_btn->set_visible(false);
         m_ui_rows[index].progress->set_visible(false);
@@ -424,74 +394,14 @@ void JobView::on_delete_job(size_t index) {
         m_ui_rows[index].poll_timer.disconnect();
         m_ui_rows[index].sched_timer.disconnect();
     }
-    m_jobs.erase(m_jobs.begin() + static_cast<ptrdiff_t>(index));
-    save_jobs();
-    rebuild_ui();
-}
 
-void JobView::poll_progress(size_t index) {
-    if (index >= m_ui_rows.size()) return;
-    auto& ui = m_ui_rows[index];
-
-    ui.poll_timer = Glib::signal_timeout().connect([this, index]() -> bool {
-        if (index >= m_ui_rows.size()) return false;
-        auto& ui = m_ui_rows[index];
-
-        m_manager.rc().get_stats([this, index](auto result) {
-            if (index >= m_ui_rows.size()) return;
-            if (!result.has_value()) return;
-            auto& stats = result.value();
-            auto& ui    = m_ui_rows[index];
-
-            double frac = (stats.total_bytes > 0)
-                ? static_cast<double>(stats.bytes) / stats.total_bytes : 0.0;
-            ui.progress->set_fraction(frac);
-
-            auto text = std::format("{}/{} files | {}",
-                stats.transfers, stats.total_transfers,
-                format_speed(stats.speed));
-            if (stats.eta) {
-                int secs = static_cast<int>(*stats.eta);
-                text += std::format(" | ETA {}:{:02d}", secs / 60, secs % 60);
-            }
-            ui.status_label->set_text(text);
-        });
-
-        m_manager.rc().job_status(ui.jobid, [this, index](auto result) {
-            if (index >= m_ui_rows.size()) return;
-            if (!result.has_value()) return;
-            auto& status = result.value();
-            if (status.finished) {
-                auto& ui = m_ui_rows[index];
-                ui.poll_timer.disconnect();
-                ui.run_btn->set_visible(true);
-                ui.stop_btn->set_visible(false);
-                ui.progress->set_visible(false);
-
-                auto now = Glib::DateTime::create_now_local().format_iso8601();
-
-                if (status.success) {
-                    ui.status_label->set_text("Complete");
-                    if (index < m_jobs.size()) {
-                        m_jobs[index].last_status = "success";
-                        m_jobs[index].last_run    = now;
-                    }
-                } else {
-                    ui.status_label->set_text("Failed: " + status.error);
-                    if (index < m_jobs.size()) {
-                        m_jobs[index].last_status = "error";
-                        m_jobs[index].last_run    = now;
-                    }
-                }
-                save_jobs();
-                // Re-arm for next cron occurrence
-                if (index < m_jobs.size() && m_jobs[index].schedule_enabled)
-                    schedule_job(index);
-            }
-        });
-
-        return true;
-    }, 500);
+    if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
+        m_daemon_proxy->delete_job(index, [this](auto) {});
+    } else {
+        m_jobs.erase(m_jobs.begin() + static_cast<ptrdiff_t>(index));
+        save_jobs();
+        rebuild_ui();
+    }
 }
 
 std::string JobView::format_speed(double bytes_per_sec) {
@@ -525,42 +435,73 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
     } else if (type == "job_deleted") {
         load_jobs();
         rebuild_ui();
-    } else if (type == "job_started" || type == "job_progress") {
+    } else if (type == "job_started") {
         auto index = payload.value("index", 0);
         if (index < m_ui_rows.size()) {
             m_ui_rows[index].run_btn->set_visible(false);
             m_ui_rows[index].stop_btn->set_visible(true);
             m_ui_rows[index].progress->set_visible(true);
             m_ui_rows[index].status_label->set_visible(true);
-            m_ui_rows[index].status_label->set_text("Running...");
+            m_ui_rows[index].status_label->set_text("Starting...");
         }
+    } else if (type == "job_progress") {
+        auto index = payload.value("index", 0);
+        if (index >= m_ui_rows.size()) return;
+        auto& ui = m_ui_rows[index];
+
+        auto bytes = payload.value("bytes", int64_t{0});
+        auto total_bytes = payload.value("total_bytes", int64_t{1});
+        auto transfers = payload.value("transfers", 0);
+        auto total_transfers = payload.value("total_transfers", 0);
+        auto speed = payload.value("speed", 0.0);
+
+        double frac = (total_bytes > 0) ? static_cast<double>(bytes) / total_bytes : 0.0;
+        ui.progress->set_fraction(frac);
+
+        std::string text = std::format("{}/{} files | {}", 
+            transfers, total_transfers, format_speed(speed));
+        if (payload.contains("eta")) {
+            auto eta = payload["eta"].get<double>();
+            int secs = static_cast<int>(eta);
+            text += std::format(" | ETA {}:{:02d}", secs / 60, secs % 60);
+        }
+        ui.status_label->set_text(text);
     } else if (type == "job_completed") {
         auto index = payload.value("index", 0);
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
-            ui.run_btn->set_visible(true);
-            ui.stop_btn->set_visible(false);
             ui.progress->set_visible(false);
 
             auto now = Glib::DateTime::create_now_local().format_iso8601();
             auto success = payload.value("success", false);
 
+            bool is_mount = (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount);
+
             if (success) {
-                ui.status_label->set_text("Complete");
+                ui.status_label->set_text(is_mount ? "Mounted" : "Complete");
                 if (index < m_jobs.size()) {
                     m_jobs[index].last_status = "success";
                     m_jobs[index].last_run = now;
                 }
+                if (is_mount) {
+                    ui.run_btn->set_visible(false);
+                    ui.stop_btn->set_visible(true);
+                } else {
+                    ui.run_btn->set_visible(true);
+                    ui.stop_btn->set_visible(false);
+                }
             } else {
-                ui.status_label->set_text("Failed");
+                ui.status_label->set_text(is_mount ? "Mount failed" : "Failed");
                 if (index < m_jobs.size()) {
                     m_jobs[index].last_status = "error";
                     m_jobs[index].last_run = now;
                 }
+                ui.run_btn->set_visible(true);
+                ui.stop_btn->set_visible(false);
             }
             save_jobs();
-            if (index < m_jobs.size() && m_jobs[index].schedule_enabled) {
+            if (index < m_jobs.size() && m_jobs[index].schedule_enabled && !is_mount) {
                 schedule_job(index);
             }
         }
@@ -569,10 +510,12 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
-            ui.status_label->set_text("Stopped");
+            ui.progress->set_visible(false);
+
+            bool is_mount = (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount);
+            ui.status_label->set_text(is_mount ? "Unmounted" : "Stopped");
             ui.run_btn->set_visible(true);
             ui.stop_btn->set_visible(false);
-            ui.progress->set_visible(false);
         }
     }
 }

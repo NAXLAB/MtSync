@@ -202,7 +202,7 @@ void BrowserView::show_job_dialog(rclone::JobType type) {
         }
     }
 
-    m_job_dialog = std::make_unique<JobEditDialog>(m_manager, type, src, dst, includes,
+    m_job_dialog = std::make_unique<JobEditDialog>(type, src, dst, includes,
         [this](rclone::Job job) { signal_job_created.emit(job); });
     if (auto* win = dynamic_cast<Gtk::Window*>(get_root()))
         m_job_dialog->set_transient_for(*win);

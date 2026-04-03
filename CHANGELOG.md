@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — Real-time Job Progress & Mount Improvements
+
+- Real-time progress updates in the Jobs tab showing transfer stats (files transferred, speed, ETA)
+- Mount jobs now properly show stop button when active
+- "Ignore Checksum" enabled by default; "Enable Checksum" option to disable
+- Mount status persists via `active` field and is restored when switching to Jobs tab
+- Jobs tab periodically refreshes job list from daemon to keep UI in sync
+
 ## 0.1.7 — Daemon RC Startup
 
 - Daemon now starts `rclone rcd` immediately upon startup

@@ -110,9 +110,11 @@ struct Job {
     std::string destination;
     bool        dry_run          = false;
     bool        bisync           = false;
+    bool        ignore_checksum  = true;
     std::string bandwidth;
     bool        schedule_enabled  = false;
     bool        mount_at_startup  = false;
+    bool        active            = false;
     std::string cron_minute      = "*";
     std::string cron_hour        = "*";
     std::string cron_day         = "*";
@@ -124,8 +126,8 @@ struct Job {
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
-    id, type, source, destination, dry_run, bisync, bandwidth,
-    schedule_enabled, mount_at_startup,
+    id, type, source, destination, dry_run, bisync, ignore_checksum, bandwidth,
+    schedule_enabled, mount_at_startup, active,
     cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
     last_run, last_status, includes)
 

@@ -18,9 +18,8 @@
 
 #pragma once
 
-#include "rclone/rclone_manager.hpp"
-#include "rclone/rclone_types.hpp"
 #include "daemon_proxy.hpp"
+#include "rclone/rclone_types.hpp"
 #include <adwaita.h>
 #include <gtkmm.h>
 #include <memory>
@@ -32,13 +31,12 @@ class JobEditDialog;
 
 class JobView : public Gtk::Box {
 public:
-    explicit JobView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy = nullptr);
+    explicit JobView(DaemonProxy* daemon_proxy);
     ~JobView() override;
 
     void add_job(rclone::Job job);
 
 private:
-    rclone::RcloneManager& m_manager;
     DaemonProxy* m_daemon_proxy = nullptr;
 
     Gtk::ScrolledWindow m_scroll;
@@ -73,7 +71,6 @@ private:
     void on_stop_job(size_t index);
     void on_delete_job(size_t index);
     void schedule_job(size_t index);
-    void poll_progress(size_t index);
     std::string format_speed(double bytes_per_sec);
     void on_daemon_message(const nlohmann::json& msg);
 };

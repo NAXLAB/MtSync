@@ -188,7 +188,7 @@ void RcloneRc::sync_async(const std::string& src_fs, const std::string& dst_fs,
         {"dstFs", dst_fs},
         {"_async", true}
     };
-    body.update(opts);
+    if (!opts.empty()) body.update(opts);
 
     rc_post("sync/sync", body, [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
@@ -212,7 +212,7 @@ void RcloneRc::copy_async(const std::string& src_fs, const std::string& dst_fs,
         {"dstFs", dst_fs},
         {"_async", true}
     };
-    body.update(opts);
+    if (!opts.empty()) body.update(opts);
 
     rc_post("sync/copy", body, [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
@@ -236,7 +236,7 @@ void RcloneRc::move_async(const std::string& src_fs, const std::string& dst_fs,
         {"dstFs", dst_fs},
         {"_async", true}
     };
-    body.update(opts);
+    if (!opts.empty()) body.update(opts);
 
     rc_post("sync/move", body, [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
@@ -254,13 +254,13 @@ void RcloneRc::move_async(const std::string& src_fs, const std::string& dst_fs,
 
 void RcloneRc::bisync_async(const std::string& path1, const std::string& path2,
                               const json& opts,
-                              AsyncCallback<int64_t> callback) {
+                            AsyncCallback<int64_t> callback) {
     json body = {
         {"path1", path1},
         {"path2", path2},
         {"_async", true}
     };
-    body.update(opts);
+    if (!opts.empty()) body.update(opts);
 
     rc_post("bisync/bisync", body, [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
