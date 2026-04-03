@@ -4,3 +4,4 @@ compile_commands.json
 *.o
 *.d
 Saddle.code-workspace
+cmake-build*/

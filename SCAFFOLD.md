@@ -1,8 +1,10 @@
-# Saddle — C++ GTK4 Frontend to rclone: Implementation Plan
+# Saddle — C++ GTK4 Frontend to rclone: Implementation Reference
 
 ## Context
 
-Saddle is a C++ GTK4 GUI frontend to rclone. It allows users to configure rclone backends via a graphical interface, manage sync operations between remotes with live progress, and browse remote file systems — replacing the need for CLI-based rclone configuration.
+Saddle is a C++ GTK4 GUI frontend to rclone. It allows users to configure rclone backends via a
+graphical interface, manage sync/copy/move/mount jobs with live progress, browse remote file
+systems, and control application settings — replacing the need for CLI-based rclone configuration.
 
 **Key system facts:**
 - rclone v1.60.1-DEV installed at `/usr/bin/rclone`, config at `~/.config/rclone/rclone.conf`
@@ -36,23 +38,36 @@ Saddle/
 ├── CMakeLists.txt
 ├── .gitignore
 ├── src/
-│   ├── main.cpp                    # Entry point, adw_init(), app run
-│   ├── application.hpp/cpp         # SaddleApplication (Gtk::Application subclass)
-│   ├── window.hpp/cpp              # SaddleWindow — AdwToolbarView + AdwViewStack + AdwViewSwitcher
+│   ├── main.cpp                        # Entry point, adw_init(), --daemon dispatch
+│   ├── application.hpp/cpp             # SaddleApplication (Gtk::Application subclass)
+│   ├── window.hpp/cpp                  # SaddleWindow — AdwToolbarView + AdwViewStack + AdwViewSwitcher
+│   ├── daemon.hpp/cpp                  # SaddleDaemon — background process, job scheduler
+│   ├── daemon_proxy.hpp/cpp            # GUI-side IPC client wrapper
+│   ├── settings.hpp                    # Settings struct + load/save (settings.json)
+│   ├── notification.hpp/cpp            # Desktop notifications (notify-send / kdialog)
+│   ├── tray.hpp/cpp                    # StatusNotifierItem tray icon (D-Bus SNI + dbusmenu)
+│   ├── ipc/
+│   │   ├── protocol.hpp                # JSON message types, RequestType enum
+│   │   ├── server.hpp/cpp              # Unix socket IPC server (daemon side)
+│   │   └── client.hpp/cpp              # Unix socket IPC client (GUI side)
 │   ├── rclone/
-│   │   ├── rclone_types.hpp        # Data structs: RemoteInfo, ProviderInfo, FileEntry, SyncStats, etc.
-│   │   ├── rclone_cli.hpp/cpp      # CLI subprocess interface (Gio::Subprocess)
-│   │   ├── rclone_rc.hpp/cpp       # RC HTTP API interface (libsoup-3.0)
-│   │   └── rclone_manager.hpp      # Facade owning CLI + RC (header-only)
+│   │   ├── rclone_types.hpp            # Data structs: RemoteInfo, ProviderInfo, FileEntry, Job, etc.
+│   │   ├── rclone_cli.hpp/cpp          # CLI subprocess interface (Gio::Subprocess)
+│   │   ├── rclone_rc.hpp/cpp           # RC HTTP API interface (libsoup-3.0)
+│   │   ├── rclone_manager.hpp          # Facade owning CLI + RC (header-only)
+│   │   └── cron_utils.hpp              # Header-only cron engine: parser, next-occurrence, description
 │   ├── views/
-│   │   ├── backends_view.hpp/cpp   # Remote list with AdwNavigationView for drill-down
-│   │   ├── backend_edit_view.hpp/cpp  # Dynamic form for create/edit remote
-│   │   ├── sync_view.hpp/cpp       # Sync pair list with progress
-│   │   ├── sync_edit_dialog.hpp/cpp   # Dialog to configure a sync pair
-│   │   └── browser_view.hpp/cpp    # File browser with ColumnView
+│   │   ├── backends_view.hpp/cpp       # Remote list with AdwNavigationView for drill-down
+│   │   ├── backend_edit_view.hpp/cpp   # Dynamic form for create/edit remote
+│   │   ├── job_view.hpp/cpp            # Job list with progress, run/stop controls
+│   │   ├── job_edit_dialog.hpp/cpp     # Dialog to configure a job (type, src, dst, schedule)
+│   │   ├── browser_view.hpp/cpp        # Dual-pane file browser (two BrowserPane widgets)
+│   │   ├── settings_view.hpp/cpp       # Application and transfer settings
+│   │   └── about_view.hpp/cpp          # Version, license, and copyright
 │   └── widgets/
-│       ├── adw_wrapper.hpp         # Thin C++ helpers over libadwaita C API
-│       ├── file_row.hpp/cpp        # FileObject (Glib::Object subclass) for ListView model
+│       ├── adw_wrapper.hpp             # Thin C++ helpers over libadwaita C API
+│       ├── browser_pane.hpp/cpp        # Single browser pane (ColumnView, breadcrumbs, nav)
+│       ├── file_row.hpp/cpp            # FileObject (Glib::Object subclass) for ListView model
 ```
 
 ---
@@ -65,29 +80,27 @@ Single executable (saddle) with two modes:
 1. GUI Mode (default):
    saddle main() → SaddleApplication → SaddleWindow
    └── RcloneManager (CLI + RC interfaces)
+       └── DaemonProxy (IPC client → SaddleDaemon)
 
 2. Daemon Mode (--daemon flag):
    saddle --daemon → SaddleDaemon
    ├── RcloneManager (CLI + RC interfaces)
-   ├── TrayIcon (simple mode - GTK4 tray stub)
+   ├── TrayIcon (StatusNotifierItem via D-Bus)
    ├── IpcServer (Unix socket at ~/.cache/saddle/socket)
    └── JobScheduler (cron-based scheduling)
-
-IpcServer handles:
-- Client connections from GUI instances
-- Message dispatch to daemon components
 ```
 
 **IPC Protocol** (`src/ipc/protocol.hpp`):
 - Unix socket communication
-- JSON messages with type + payload
-- Request/Response pattern
+- JSON messages with type (`RequestType` enum) + payload
+- Request/Response pattern with `request_id` correlation
 
-**Note**: System tray integration is stubbed for GTK4 compatibility. Full tray support planned.
+**Navigation**: `AdwViewStack` + `AdwViewSwitcher` for 5 top-level views (GNOME HIG pattern).
+`AdwNavigationView` used only inside `BackendsView` for list → edit push/pop.
 
-**Navigation**: `AdwViewStack` + `AdwViewSwitcher` for 3 top-level views (GNOME HIG pattern). `AdwNavigationView` only inside BackendsView for list → edit push/pop.
-
-**Async model**: Both `Gio::Subprocess::communicate_utf8_async()` and `soup_session_send_and_read_async()` dispatch on GLib main loop = GTK thread. No manual threading needed. All async callbacks use `std::expected<T, std::string>` (C++23).
+**Async model**: Both `Gio::Subprocess::communicate_utf8_async()` and
+`soup_session_send_and_read_async()` dispatch on GLib main loop = GTK thread. No manual
+threading needed. All async callbacks use `std::expected<T, std::string>` (C++23).
 
 ---
 
@@ -102,83 +115,58 @@ IpcServer handles:
 - `config_delete()` → `rclone config delete <name>`
 - `lsjson()` → `rclone lsjson <remote:path>` → `vector<FileEntry>`
 
-### RC API (`RcloneRc`) — for sync with progress
+### RC API (`RcloneRc`) — for jobs with progress
 - `ensure_daemon()`: spawn `rclone rcd --rc-addr localhost:5572 --rc-no-auth`, verify with `core/version`
-- `sync_async()`: POST `/sync/sync` with `{srcFs, dstFs, _async: true}` → returns jobid
+- `sync_async()` / `copy_async()` / `move_async()`: POST `/sync/{sync,copy,move}` with `_async: true` → jobid
+- `mount_async()`: POST `mount/mount`; `unmount()`: POST `mount/unmount`
 - `get_stats()`: POST `/core/stats` → `SyncStats` (bytes, speed, ETA, transfers)
 - `job_status()`: POST `/job/status` with `{jobid}` → `JobStatus` (finished, success, error)
 - `job_stop()`: POST `/job/stop` with `{jobid}`
-- HTTP via libsoup: `soup_session_send_and_read_async()` with JSON body
 
 ---
 
 ## 5. Screen Details
 
-### Screen 1: Backend Configuration
-- **BackendsView**: `AdwPreferencesGroup` with `AdwActionRow` per remote (name, type subtitle, edit/delete buttons). "Add Remote" button pushes BackendEditView.
-- **BackendEditView**: Provider dropdown populated from `config providers`. On selection, dynamically generates form fields from provider `Options`:
+### Tab 1: Browse
+- **BrowserView**: Two independent `BrowserPane` widgets in a `Gtk::Paned` split
+- Each pane: remote dropdown, breadcrumb nav, back history, `Gtk::ColumnView` (Name/Size/Modified), hidden-files toggle, status bar (file/folder counts + total size)
+- Active pane tracked with accent stripe; multi-selection supported
+- Copy/Move/Sync/Mount action bar buttons; Copy and Move pass selected files as `--include` filters
+- New Folder popover; Delete via `AdwAlertDialog` confirmation
+
+### Tab 2: Jobs
+- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`), type badge [SYNC]/[COPY]/[MOVE]/[MOUNT]
+- Run/Stop per job; live progress (bytes, speed, ETA) via polling `core/stats` + `job/status`
+- **JobEditDialog**: source, destination, job type, cron schedule (five fields + human-readable summary), "Mount at Start-up" option for mount jobs
+
+### Tab 3: Remotes
+- **BackendsView**: `AdwPreferencesGroup` with `AdwActionRow` per remote; "Add Remote" pushes BackendEditView via `AdwNavigationView`
+- **BackendEditView**: Provider dropdown → dynamic form from provider `Options`:
   - `bool` → `AdwSwitchRow`
   - `exclusive + examples` → `AdwComboRow`
   - `is_password` → `AdwPasswordEntryRow`
   - default → `AdwEntryRow`
-  - `advanced=true` fields go in `AdwExpanderRow`
+  - `advanced=true` fields in `AdwExpanderRow`
   - `required=true` fields marked with asterisk
-- Save calls `rclone config create` or `update` with `--non-interactive`
+- Save calls `rclone config create` or `update --non-interactive`
 
-### Screen 2: Sync Management
-- Sync pairs stored in `~/.config/saddle/sync_pairs.json` (app-local, rclone has no sync pair concept)
-- List of pairs with source/dest, last run time, status
-- "Run Sync" → `ensure_daemon()` → `sync_async()` → poll `core/stats` + `job/status` every 500ms via `Glib::signal_timeout()`
-- Progress UI: bar, bytes transferred, speed, ETA, file count, stop button
+### Tab 4: Settings
+- **SettingsView**: `AdwClamp` (max 600px) + scrollable `AdwPreferencesGroup` sections
+- **General**: Start daemon on login (writes `~/.config/autostart/saddle-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing
+- **Transfers**: Default bandwidth limit, Verify checksums, Parallel transfers count
+- **rclone**: Binary path override (empty = PATH lookup; restart required)
+- All settings persist immediately to `~/.config/saddle/settings.json`
 
-### Screen 3: File Browser
-- Remote dropdown + path entry bar
-- `Gtk::ColumnView` with columns: Name (icon + text), Size, Modified
-- GTK4 list model pattern: `FileObject` (Glib::Object subclass with `Glib::Property`) → `Gio::ListStore` → `Gtk::SingleSelection`
-- Entries sorted in-code (directories first, then by name) before populating the ListStore
-- Directory click → re-fetch `lsjson` for new path; history stack for back navigation
+### Tab 5: About
+- **AboutView**: `AdwStatusPage` (icon, app name, description) + `AdwPreferencesGroup` rows for Version, License, Copyright
 
 ---
 
-## 6. Incremental Build Phases
-
-### Phase 1: Skeleton — empty window with Adwaita styling
-**Files**: `CMakeLists.txt`, `.gitignore`, `main.cpp`, `application.hpp/cpp`, `window.hpp/cpp`, `adw_wrapper.hpp`
-**Result**: Window with AdwHeaderBar + ViewSwitcher + 3 placeholder labels
-**Verify**: `cmake -B build && cmake --build build && ./build/saddle`
-
-### Phase 2: CLI layer + Backend list
-**Files**: `rclone_types.hpp`, `rclone_cli.hpp/cpp`, `rclone_manager.hpp`, `backends_view.hpp/cpp`
-**Result**: Fetches and displays existing remotes with delete capability
-**Verify**: App shows "ANTG GG OneDrive" in the Backends tab
-
-### Phase 3: Backend creation/editing
-**Files**: `backend_edit_view.hpp/cpp`
-**Result**: Dynamic form generation from provider options, create/update remotes
-**Verify**: Create a "local" type remote, see it appear, edit it, delete it
-
-### Phase 4: File Browser
-**Files**: `browser_view.hpp/cpp`, `file_row.hpp/cpp`
-**Result**: Browse remote contents with ColumnView, directory navigation
-**Verify**: Select a remote, browse files, navigate into directories
-
-### Phase 5: RC API + Sync
-**Files**: `rclone_rc.hpp/cpp`, `sync_view.hpp/cpp`, `sync_edit_dialog.hpp/cpp`
-**Result**: Configure sync pairs, run sync with live progress bar
-**Verify**: Create local→local sync pair, run it, see progress, completion
-
-### Phase 6: Polish
-- `AdwToastOverlay` for error notifications
-- `AdwStatusPage` empty state on Backends view when no remotes configured
-- Loading spinner and status label on Browser view
-
----
-
-## 7. CMake Configuration
+## 6. CMake Configuration
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.1.0 LANGUAGES CXX)
+project(Saddle VERSION 0.1.5 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -202,11 +190,12 @@ C++23 for `std::expected`, `std::format`, ranges. `CONFIGURE_DEPENDS` auto-detec
 
 ---
 
-## 8. Verification Plan
+## 7. Configuration Files
 
-1. **Phase 1**: `./build/saddle` opens a window with Adwaita styling and 3-tab switcher
-2. **Phase 2**: Backends tab lists the existing "ANTG GG OneDrive" remote
-3. **Phase 3**: Can create a new "local" remote via the GUI form, verify with `rclone listremotes`
-4. **Phase 4**: Can browse files on OneDrive remote, navigate directories
-5. **Phase 5**: Create a local→local sync pair, run it, observe progress bar updating, verify files synced
-6. **End-to-end**: Full workflow — add remote → browse its files → set up sync → run sync with progress
+| Path | Purpose |
+|------|---------|
+| `~/.config/rclone/rclone.conf` | rclone backend configuration |
+| `~/.config/saddle/jobs.json` | Saddle job definitions |
+| `~/.config/saddle/settings.json` | Saddle application settings |
+| `~/.config/autostart/saddle-daemon.desktop` | Autostart entry (written when enabled in Settings) |
+| `~/.cache/saddle/socket` | IPC socket (daemon ↔ GUI) |

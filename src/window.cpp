@@ -50,6 +50,10 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
         m_view_stack, &m_settings_view, "settings", "Settings");
     adw_view_stack_page_set_icon_name(page4, "preferences-other-symbolic");
 
+    auto* page5 = adw::view_stack_add_titled(
+        m_view_stack, &m_about_view, "about", "About");
+    adw_view_stack_page_set_icon_name(page5, "help-about-symbolic");
+
     auto* switcher = adw::view_switcher(m_view_stack);
     auto* header = adw::header_bar();
     adw::header_bar_set_show_start_title_buttons(header, false);

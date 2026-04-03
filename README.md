@@ -11,13 +11,17 @@ application backed by a persistent daemon.
 - **Dual-pane file browser** — Two independent browser panes with column view, breadcrumb
   navigation, back history, MIME-type icons, sortable columns, and a status bar showing file/folder
   counts and total size; hidden files toggled per-pane
-- **Jobs system** — Define Sync, Copy, and Move jobs; run them on demand or on a cron schedule;
-  live progress with per-job status; jobs persist across GUI restarts
+- **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
+  schedule; live progress with per-job status; jobs persist across GUI restarts; Mount jobs can be
+  set to auto-mount at daemon start-up
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
   GUI if it is not running
 - **Desktop notifications** — Notified on job completion via `notify-send` or `kdialog`
+- **Settings** — General app settings (autostart, tray behaviour), transfer defaults (bandwidth
+  limit, checksums, parallel transfers), rclone binary path override; persisted to
+  `~/.config/saddle/settings.json`
 
 ## Dependencies
 
@@ -54,9 +58,11 @@ SaddleApplication (Gtk::Application)
  └── SaddleWindow (Gtk::ApplicationWindow)
       ├── AdwHeaderBar + AdwViewSwitcher
       └── AdwViewStack
-           ├── BackendsView  — remote list with drill-down edit form
+           ├── BrowserView   — dual-pane file browser (two BrowserPane widgets)
            ├── JobView       — job list with progress, run/stop controls
-           └── BrowserView   — dual-pane file browser (two BrowserPane widgets)
+           ├── BackendsView  — remote list with drill-down edit form
+           ├── SettingsView  — application and transfer settings
+           └── AboutView     — version, license, and copyright
 
 SaddleDaemon (background process, saddle --daemon)
  ├── IpcServer             — Unix socket at ~/.cache/saddle/socket
@@ -83,6 +89,7 @@ All async I/O dispatches on the GLib main loop — no manual threading.
 |------|---------|
 | `~/.config/rclone/rclone.conf` | rclone backend configuration |
 | `~/.config/saddle/jobs.json` | Saddle job definitions |
+| `~/.config/saddle/settings.json` | Saddle application settings |
 | `~/.cache/saddle/socket` | IPC socket (daemon ↔ GUI) |
 
 ## License

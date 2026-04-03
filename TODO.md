@@ -6,7 +6,7 @@
 - [x] Daemon
 - [ ] Internal rclone
 - [x] App indicator icon
-- [ ] About tab/screen
-- [ ] Preferences tab/screen
+- [x] About tab/screen
+- [x] Settings tab/screen
 - [x] Better file manager design/component
 - [x] Dual pane mode

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 — About Tab
+
+- New **About** tab to the right of Settings
+- Shows app name, description, version, license, and copyright
+
 ## 0.1.4 — Settings Tab
 
 - New **Settings** tab to the right of Backends
