@@ -5,3 +5,4 @@ compile_commands.json
 *.d
 Saddle.code-workspace
 cmake-build*/
+notes.md

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7 — Daemon RC Startup
+
+- Daemon now starts `rclone rcd` immediately upon startup
+- Jobs no longer need to ensure the daemon on-demand; it's always running
+- GUI only configures the daemon and performs no backend work
+
 ## 0.1.6 — Bi-directional Sync
 
 - **Bi-directional sync** toggle added to the job dialog when type is **Sync**

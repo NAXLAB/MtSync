@@ -156,6 +156,8 @@ SaddleDaemon::SaddleDaemon() {
         }
     });
 
+    m_manager.rc().ensure_daemon([](auto) {});
+
     schedule_all_jobs();
 
     // Auto-mount jobs flagged with mount_at_startup
@@ -272,85 +274,71 @@ void SaddleDaemon::on_run_job(size_t index) {
     auto& job = m_jobs[index];
 
     if (job.type == rclone::JobType::Mount) {
-        m_manager.rc().ensure_daemon([this, index, job](auto result) {
-            if (!result.has_value()) {
-                g_warning("Mount %zu: daemon failed: %s", index, result.error().c_str());
-                return;
-            }
-            m_manager.rc().mount_async(job.source, job.destination,
-                [index](auto result) {
-                    if (!result.has_value())
-                        g_warning("Mount %zu failed: %s", index, result.error().c_str());
-                });
-        });
+        m_manager.rc().mount_async(job.source, job.destination,
+            [index](auto result) {
+                if (!result.has_value())
+                    g_warning("Mount %zu failed: %s", index, result.error().c_str());
+            });
         return;
     }
 
-    // Ensure daemon is running
-    m_manager.rc().ensure_daemon([this, index, job](auto result) {
+    nlohmann::json opts;
+    if (job.dry_run) opts["_config"] = {{"DryRun", true}};
+    if (!job.bandwidth.empty()) opts["_config"]["BwLimit"] = job.bandwidth;
+    if (!job.includes.empty()) {
+        json filter = json::array();
+        for (auto& inc : job.includes) {
+            filter.push_back({{"IncludeRule", {{"Pattern", inc}}}});
+        }
+        opts["_config"]["Filter"] = filter;
+    }
+
+    auto done_cb = [this, index](auto result) {
         if (!result.has_value()) {
-            g_warning("Failed to start rclone daemon: %s", result.error().c_str());
+            g_warning("Job %zu failed: %s", index, result.error().c_str());
+            on_job_completed(index, false);
             return;
         }
 
-        nlohmann::json opts;
-        if (job.dry_run) opts["_config"] = {{"DryRun", true}};
-        if (!job.bandwidth.empty()) opts["_config"]["BwLimit"] = job.bandwidth;
-        if (!job.includes.empty()) {
-            json filter = json::array();
-            for (auto& inc : job.includes) {
-                filter.push_back({{"IncludeRule", {{"Pattern", inc}}}});
-            }
-            opts["_config"]["Filter"] = filter;
+        if (index >= m_job_ids.size()) m_job_ids.resize(index + 1, -1);
+        m_job_ids[index] = result.value();
+
+        // Start polling for progress
+        if (index >= m_poll_timers.size()) {
+            m_poll_timers.resize(index + 1);
         }
 
-        auto done_cb = [this, index](auto result) {
-            if (!result.has_value()) {
-                g_warning("Job %zu failed: %s", index, result.error().c_str());
-                on_job_completed(index, false);
-                return;
-            }
+        m_poll_timers[index] = Glib::signal_timeout().connect(
+            [this, index]() -> bool {
+                m_manager.rc().job_status(m_job_ids[index], [this, index](auto status) {
+                    if (status.has_value() && status->finished) {
+                        on_job_completed(index, status->success);
+                        return;
+                    }
+                });
+                m_manager.rc().get_stats([this, index](auto) {
+                    // Could emit progress updates here
+                });
+                return true;
+            }, 500);
+    };
 
-            if (index >= m_job_ids.size()) m_job_ids.resize(index + 1, -1);
-            m_job_ids[index] = result.value();
-
-            // Start polling for progress
-            if (index >= m_poll_timers.size()) {
-                m_poll_timers.resize(index + 1);
-            }
-
-            m_poll_timers[index] = Glib::signal_timeout().connect(
-                [this, index]() -> bool {
-                    m_manager.rc().job_status(m_job_ids[index], [this, index](auto status) {
-                        if (status.has_value() && status->finished) {
-                            on_job_completed(index, status->success);
-                            return;
-                        }
-                    });
-                    m_manager.rc().get_stats([this, index](auto) {
-                        // Could emit progress updates here
-                    });
-                    return true;
-                }, 500);
-        };
-
-        switch (job.type) {
-            case rclone::JobType::Sync:
-                if (job.bisync)
-                    m_manager.rc().bisync_async(job.source, job.destination, opts, done_cb);
-                else
-                    m_manager.rc().sync_async(job.source, job.destination, opts, done_cb);
-                break;
-            case rclone::JobType::Copy:
-                m_manager.rc().copy_async(job.source, job.destination, opts, done_cb);
-                break;
-            case rclone::JobType::Move:
-                m_manager.rc().move_async(job.source, job.destination, opts, done_cb);
-                break;
-            case rclone::JobType::Mount:
-                break; // handled by early-return above
-        }
-    });
+    switch (job.type) {
+        case rclone::JobType::Sync:
+            if (job.bisync)
+                m_manager.rc().bisync_async(job.source, job.destination, opts, done_cb);
+            else
+                m_manager.rc().sync_async(job.source, job.destination, opts, done_cb);
+            break;
+        case rclone::JobType::Copy:
+            m_manager.rc().copy_async(job.source, job.destination, opts, done_cb);
+            break;
+        case rclone::JobType::Move:
+            m_manager.rc().move_async(job.source, job.destination, opts, done_cb);
+            break;
+        case rclone::JobType::Mount:
+            break; // handled by early-return above
+    }
 }
 
 void SaddleDaemon::on_job_completed(size_t index, bool success) {
