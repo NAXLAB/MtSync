@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/github/saddle">
+    <file alias="icons/application.png">Saddle App Icon 1.png</file>
+  </gresource>
+</gresources>

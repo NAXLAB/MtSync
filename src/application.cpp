@@ -23,10 +23,13 @@
 #include <glibmm.h>
 #include <nlohmann/json.hpp>
 
+extern "C" GResource* saddle_get_resource();
+
 namespace saddle {
 
 SaddleApplication::SaddleApplication()
     : Gtk::Application("com.saddle.Saddle") {
+    saddle_get_resource(); // register embedded GLib resources
     adw::init();
     m_settings = load_settings();
 }

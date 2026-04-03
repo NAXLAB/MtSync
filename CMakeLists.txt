@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.2.6 LANGUAGES CXX)
+project(Saddle VERSION 0.3.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,10 +12,27 @@ pkg_check_modules(ADWAITA REQUIRED IMPORTED_TARGET libadwaita-1)
 pkg_check_modules(SOUP REQUIRED IMPORTED_TARGET libsoup-3.0)
 find_package(nlohmann_json 3.2 REQUIRED)
 
-# Collect sources
+# Compile GLib resources into a generated C file
+find_program(GLIB_COMPILE_RESOURCES glib-compile-resources REQUIRED)
+set(RESOURCE_XML "${CMAKE_SOURCE_DIR}/data/saddle.gresource.xml")
+set(RESOURCE_C  "${CMAKE_BINARY_DIR}/saddle_resources.c")
+add_custom_command(
+    OUTPUT "${RESOURCE_C}"
+    COMMAND "${GLIB_COMPILE_RESOURCES}"
+        "--target=${RESOURCE_C}"
+        "--generate-source"
+        "--sourcedir=${CMAKE_SOURCE_DIR}/assets/icons/application"
+        "${RESOURCE_XML}"
+    DEPENDS
+        "${RESOURCE_XML}"
+        "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
+    COMMENT "Compiling GLib resources"
+)
+
+# Collect sources and include the generated resource file
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(saddle ${SOURCES})
+add_executable(saddle ${SOURCES} "${RESOURCE_C}")
 
 target_include_directories(saddle PRIVATE
     ${CMAKE_SOURCE_DIR}/src

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 — Application Icon
+- Application icon now embedded in the binary via GLib resources and displayed on the About tab
+- Added `data/saddle.gresource.xml` and updated CMakeLists.txt to compile resources at build time
+- No installation step required — icon is always available regardless of system paths
+
 ## 0.2.6 - Mount at startup fix
 - Fixed "Mount at Start-up" jobs not mounting on daemon start — auto-mount now runs inside the `ensure_daemon` callback so rclone RC is ready before the mount is attempted
 

@@ -19,7 +19,6 @@
 #include "views/about_view.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
-#include <gdk/gdk.h>
 
 namespace saddle {
 
@@ -52,24 +51,13 @@ void AboutView::setup_ui() {
     adw::status_page_set_title(status, "Saddle");
     adw::status_page_set_description(status, "GTK4 frontend to rclone");
 
-    std::vector<std::string> icon_paths = {
-        Glib::build_filename(Glib::get_user_data_dir(), "saddle", "icons", "application.svg"),
-        Glib::build_filename(Glib::get_home_dir(), ".local", "share", "saddle", "icons", "application.svg"),
-    };
-
-    bool icon_loaded = false;
-    for (const auto& icon_path : icon_paths) {
-        if (Glib::file_test(icon_path, Glib::FileTest::EXISTS)) {
-            try {
-                auto pixbuf = Gdk::Pixbuf::create_from_file(icon_path, 128, 128);
-                auto image = Gtk::make_managed<Gtk::Image>(pixbuf);
-                adw::status_page_set_child(status, image);
-                icon_loaded = true;
-                break;
-            } catch (...) {}
-        }
-    }
-    if (!icon_loaded) {
+    GBytes* probe = g_resources_lookup_data("/io/github/saddle/icons/application.png",
+                                             G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
+    if (probe) {
+        g_bytes_unref(probe);
+        auto texture = Gdk::Texture::create_from_resource("/io/github/saddle/icons/application.png");
+        adw_status_page_set_paintable(ADW_STATUS_PAGE(status->gobj()), GDK_PAINTABLE(texture->gobj()));
+    } else {
         adw::status_page_set_icon_name(status, "help-about-symbolic");
     }
     vbox->append(*status);
@@ -80,7 +68,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.2.6");
+    adw::action_row_set_subtitle(version_row, "0.3.0");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
