@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 — Desktop Integration
+- Application icon now appears in taskbar, launcher, and dock when the app is running
+- Added `data/com.saddle.Saddle.desktop` for XDG desktop entry
+- CMake install rules deploy the icon to `share/icons/hicolor/256x256/apps/` and the `.desktop` file to `share/applications/`
+- Window sets `icon-name` to `com.saddle.Saddle` for X11 tray/taskbar resolution
+- Added Installing section to README
+
 ## 0.3.0 — Application Icon
 - Application icon now embedded in the binary via GLib resources and displayed on the About tab
 - Added `data/saddle.gresource.xml` and updated CMakeLists.txt to compile resources at build time

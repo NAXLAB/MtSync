@@ -31,6 +31,7 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     , m_settings_view(m_settings) {
     set_title("Saddle");
     set_default_size(900, 900);
+    set_icon_name("com.saddle.Saddle");
 
     m_view_stack = adw::view_stack_new();
 

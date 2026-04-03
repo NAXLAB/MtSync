@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Saddle
+Comment=GTK4 frontend to rclone
+Exec=saddle
+Icon=com.saddle.Saddle
+Type=Application
+Categories=Utility;Network;FileTransfer;
+StartupWMClass=saddle

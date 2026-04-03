@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.3.0 LANGUAGES C CXX)
+project(Saddle VERSION 0.3.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,3 +46,12 @@ target_link_libraries(saddle PRIVATE
 )
 
 install(TARGETS saddle DESTINATION bin)
+install(FILES
+    "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
+    DESTINATION share/icons/hicolor/256x256/apps
+    RENAME com.saddle.Saddle.png
+)
+install(FILES
+    "${CMAKE_SOURCE_DIR}/data/com.saddle.Saddle.desktop"
+    DESTINATION share/applications
+)
