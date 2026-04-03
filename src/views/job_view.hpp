@@ -55,7 +55,6 @@ private:
         std::unique_ptr<Gtk::Label>       status_label;
         int64_t                           jobid        = -1;
         sigc::connection                  poll_timer;
-        sigc::connection                  sched_timer;
     };
     std::vector<JobUI> m_ui_rows;
 
@@ -69,7 +68,6 @@ private:
     void on_run_job(size_t index);
     void on_stop_job(size_t index);
     void on_delete_job(size_t index);
-    void schedule_job(size_t index);
     std::string format_speed(double bytes_per_sec);
     void on_daemon_message(const nlohmann::json& msg);
 };

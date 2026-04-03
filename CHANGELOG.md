@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 - Removed redundant scheduler from GUI
+- Removed duplicate job scheduling from JobView since daemon handles all scheduling
+- Removed sched_timer member and schedule_job() method from job_view.hpp/cpp
+- Sync jobs now run with `--create-empty-src-dirs` by default
+
 ## 0.2.1 - Code clean-up of dead code as operations have shifted from GUI to Daemon
 - Removed copy_files / move_files from rclone_cli.hpp, rclone_cli.cpp
 - Removed set_running_jobs / g_running_jobs from tray.hpp, tray.cpp

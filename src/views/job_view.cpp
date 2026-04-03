@@ -90,7 +90,6 @@ JobView::JobView(DaemonProxy* daemon_proxy)
 JobView::~JobView() {
     for (auto& ui : m_ui_rows) {
         ui.poll_timer.disconnect();
-        ui.sched_timer.disconnect();
     }
 }
 
@@ -126,7 +125,6 @@ void JobView::save_jobs() {
 void JobView::rebuild_ui() {
     for (auto& ui : m_ui_rows) {
         ui.poll_timer.disconnect();
-        ui.sched_timer.disconnect();
         adw_preferences_group_remove(
             ADW_PREFERENCES_GROUP(m_prefs_group->gobj()),
             ui.row->gobj());
@@ -212,11 +210,6 @@ void JobView::rebuild_ui() {
         m_ui_rows.push_back(std::move(ui));
     }
 
-    // Re-arm scheduled timers
-    for (size_t i = 0; i < m_jobs.size(); ++i) {
-        if (m_jobs[i].schedule_enabled)
-            schedule_job(i);
-    }
 }
 
 void JobView::show_add_dialog() {
@@ -236,6 +229,9 @@ void JobView::show_edit_dialog(size_t index) {
                 m_jobs[index] = std::move(job);
                 save_jobs();
                 rebuild_ui();
+                if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
+                    m_daemon_proxy->update_job(index, m_jobs[index], [](auto) {});
+                }
             }
         }));
     if (toplevel) m_edit_dialog->set_transient_for(*toplevel);
@@ -245,53 +241,19 @@ void JobView::show_edit_dialog(size_t index) {
 void JobView::add_job(rclone::Job job) {
     m_jobs.push_back(job);
     save_jobs();
-    rebuild_ui(); // re-arms scheduled timers for all pending jobs
+    rebuild_ui();
 
     size_t index = m_jobs.size() - 1;
-    // For immediate jobs, run now; scheduled jobs were already armed by rebuild_ui
-    if (!job.schedule_enabled)
-        on_run_job(index);
-}
-
-void JobView::schedule_job(size_t index) {
-    if (index >= m_jobs.size() || index >= m_ui_rows.size()) return;
-    auto& job = m_jobs[index];
-    if (!job.schedule_enabled) return;
-
-    GDateTime* now  = g_date_time_new_now_local();
-    GDateTime* next = cron::next_occurrence(job, now);
-    g_date_time_unref(now);
-
-    if (!next) return; // invalid/unmatchable expression
-
-    GDateTime* now2   = g_date_time_new_now_local();
-    gint64     diff_us = g_date_time_difference(next, now2);
-    g_date_time_unref(now2);
-
-    // Format next occurrence for the status label
-    gchar* iso = g_date_time_format_iso8601(next);
-    std::string next_str = iso ? iso : "";
-    g_free(iso);
-    g_date_time_unref(next);
-
-    if (diff_us <= 0) {
-        // Already past — run immediately
-        on_run_job(index);
-        return;
+    if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
+        m_daemon_proxy->add_job(job, [this, index](auto result) {
+            if (!result.has_value()) {
+                g_warning("Failed to add job to daemon: %s", result.error().c_str());
+            }
+        });
     }
 
-    // Cap at 24 hours to stay within guint range; re-arms via poll_progress after each run
-    constexpr gint64 MAX_DELAY_MS = 24LL * 3600 * 1000;
-    auto delay_ms = static_cast<unsigned int>(std::min(diff_us / 1000, MAX_DELAY_MS));
-
-    m_ui_rows[index].sched_timer = Glib::signal_timeout().connect(
-        [this, index]() -> bool {
-            on_run_job(index);
-            return false;
-        }, delay_ms);
-
-    m_ui_rows[index].status_label->set_visible(true);
-    m_ui_rows[index].status_label->set_text("Next: " + next_str.substr(0, 16));
+    if (!job.schedule_enabled)
+        on_run_job(index);
 }
 
 void JobView::on_run_job(size_t index) {
@@ -366,7 +328,6 @@ void JobView::on_delete_job(size_t index) {
     if (index >= m_jobs.size()) return;
     if (index < m_ui_rows.size()) {
         m_ui_rows[index].poll_timer.disconnect();
-        m_ui_rows[index].sched_timer.disconnect();
     }
 
     if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
@@ -475,9 +436,6 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
                 ui.stop_btn->set_visible(false);
             }
             save_jobs();
-            if (index < m_jobs.size() && m_jobs[index].schedule_enabled && !is_mount) {
-                schedule_job(index);
-            }
         }
     } else if (type == "job_stopped") {
         auto index = payload.value("index", 0);
