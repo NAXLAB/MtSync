@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 - Job dialog Save button and sync fixes
+- Added "Save" button to JobEditDialog to save job without running it
+- Fixed jobs not being synced to daemon when created from browser view
+- Fixed Sync jobs using `--create-empty-src-dirs` flag (was using wrong case)
+
 ## 0.2.2 - Removed redundant scheduler from GUI
 - Removed duplicate job scheduling from JobView since daemon handles all scheduling
 - Removed sched_timer member and schedule_job() method from job_view.hpp/cpp

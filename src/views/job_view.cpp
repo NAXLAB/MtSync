@@ -216,6 +216,9 @@ void JobView::show_add_dialog() {
     auto* toplevel = dynamic_cast<Gtk::Window*>(get_root());
     m_edit_dialog = std::unique_ptr<JobEditDialog>(new JobEditDialog(
         [this](rclone::Job job) { add_job(std::move(job)); }));
+    m_edit_dialog->set_save_callback([this](rclone::Job job) {
+        add_job_no_run(std::move(job));
+    });
     if (toplevel) m_edit_dialog->set_transient_for(*toplevel);
     m_edit_dialog->present();
 }
@@ -231,9 +234,21 @@ void JobView::show_edit_dialog(size_t index) {
                 rebuild_ui();
                 if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
                     m_daemon_proxy->update_job(index, m_jobs[index], [](auto) {});
+                    if (!m_jobs[index].schedule_enabled)
+                        on_run_job(index);
                 }
             }
         }));
+    m_edit_dialog->set_save_callback([this, index](rclone::Job job) {
+        if (index < m_jobs.size()) {
+            m_jobs[index] = std::move(job);
+            save_jobs();
+            rebuild_ui();
+            if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
+                m_daemon_proxy->update_job(index, m_jobs[index], [](auto) {});
+            }
+        }
+    });
     if (toplevel) m_edit_dialog->set_transient_for(*toplevel);
     m_edit_dialog->present();
 }
@@ -248,12 +263,25 @@ void JobView::add_job(rclone::Job job) {
         m_daemon_proxy->add_job(job, [this, index](auto result) {
             if (!result.has_value()) {
                 g_warning("Failed to add job to daemon: %s", result.error().c_str());
+                return;
             }
+            // Now run the job after daemon has acknowledged it
+            if (!m_jobs[index].schedule_enabled)
+                on_run_job(index);
         });
-    }
-
-    if (!job.schedule_enabled)
+    } else if (!job.schedule_enabled) {
         on_run_job(index);
+    }
+}
+
+void JobView::add_job_no_run(rclone::Job job) {
+    m_jobs.push_back(job);
+    save_jobs();
+    rebuild_ui();
+
+    if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
+        m_daemon_proxy->add_job(job, [](auto) {});
+    }
 }
 
 void JobView::on_run_job(size_t index) {

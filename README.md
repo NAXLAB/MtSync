@@ -13,8 +13,9 @@ application backed by a persistent daemon.
   counts and total size; hidden files toggled per-pane
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
-  restarts; Sync jobs support bi-directional sync mode (rclone bisync); Mount jobs show active
-  state and can be stopped/unmounted; checksum verification disabled by default
+  restarts; Sync jobs support bi-directional sync mode (rclone bisync) and copy empty directories;
+  Mount jobs show active state and can be stopped/unmounted; checksum verification disabled by
+  default; Save button to store job without running
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the

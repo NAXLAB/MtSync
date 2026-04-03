@@ -72,6 +72,8 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
 
     m_browser_view.signal_job_created.connect(
         sigc::mem_fun(m_job_view, &JobView::add_job));
+    m_browser_view.signal_job_saved.connect(
+        sigc::mem_fun(m_job_view, &JobView::add_job_no_run));
 
     signal_close_request().connect([this]() -> bool {
         if (m_settings.shutdown_daemon_on_close && m_daemon_proxy)

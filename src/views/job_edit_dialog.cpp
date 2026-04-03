@@ -211,6 +211,9 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_action_btn->add_css_class("suggested-action");
     m_action_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_commit));
 
+    m_save_btn = Gtk::make_managed<Gtk::Button>("Save");
+    m_save_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_save));
+
     auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
     cancel_btn->signal_clicked().connect([this]() { close(); });
 
@@ -218,6 +221,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     btn_box->set_halign(Gtk::Align::CENTER);
     btn_box->set_margin_top(6);
     btn_box->append(*m_action_btn);
+    btn_box->append(*m_save_btn);
     btn_box->append(*cancel_btn);
     vbox->append(*btn_box);
 
@@ -299,6 +303,45 @@ void JobEditDialog::on_commit() {
     if (job.source.empty() || job.destination.empty()) return;
 
     if (m_on_done) m_on_done(std::move(job));
+    close();
+}
+
+void JobEditDialog::set_save_callback(DoneCallback cb) {
+    m_on_save = std::move(cb);
+}
+
+void JobEditDialog::on_save() {
+    rclone::Job job;
+    job.id               = m_editing ? m_editing->id : generate_uuid();
+    job.type             = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
+    job.source           = adw::entry_row_get_text(m_source_entry);
+    job.destination      = adw::entry_row_get_text(m_dest_entry);
+    job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
+    job.bisync           = m_bisync_switch->get_visible()
+                        && adw::switch_row_get_active(m_bisync_switch);
+    job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
+    job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
+    job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
+    job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
+    job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
+    job.cron_day         = adw::entry_row_get_text(m_cron_day_entry);
+    job.cron_month       = adw::entry_row_get_text(m_cron_month_entry);
+    job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
+    job.mount_at_startup = m_mount_startup_switch->get_visible()
+                        && adw::switch_row_get_active(m_mount_startup_switch);
+    job.last_run         = m_editing ? m_editing->last_run    : "";
+    job.last_status      = m_editing ? m_editing->last_status : "";
+    job.includes         = m_includes;
+
+    if (job.source.empty() || job.destination.empty()) return;
+
+    g_message("JobEditDialog: on_save called");
+    if (m_on_save) {
+        g_message("JobEditDialog: m_on_save is set, calling it");
+        m_on_save(std::move(job));
+    } else {
+        g_message("JobEditDialog: m_on_save is NULL");
+    }
     close();
 }
 

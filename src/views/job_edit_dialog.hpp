@@ -36,9 +36,11 @@ public:
                   const std::string& src, const std::string& dst,
                   const std::vector<std::string>& includes,
                   DoneCallback on_done);
+    void set_save_callback(DoneCallback cb);
 
 private:
     DoneCallback           m_on_done;
+    DoneCallback           m_on_save;
     std::optional<rclone::Job> m_editing;
     std::vector<std::string>  m_includes;
 
@@ -59,12 +61,14 @@ private:
     Gtk::Widget* m_cron_weekday_entry = nullptr;
     Gtk::Label*  m_schedule_summary   = nullptr;
     Gtk::Button* m_action_btn         = nullptr;
+    Gtk::Button* m_save_btn          = nullptr;
 
     void setup_ui(rclone::JobType initial_type,
                   const std::string& initial_src,
                   const std::string& initial_dst);
     void update_summary();
     void on_commit();
+    void on_save();
     static std::string generate_uuid();
 };
 

@@ -34,6 +34,7 @@ public:
     ~BrowserView();
 
     sigc::signal<void(rclone::Job)> signal_job_created;
+    sigc::signal<void(rclone::Job)> signal_job_saved;
 
 private:
     rclone::RcloneManager& m_manager;

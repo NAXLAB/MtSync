@@ -35,6 +35,7 @@ public:
     ~JobView() override;
 
     void add_job(rclone::Job job);
+    void add_job_no_run(rclone::Job job);
 
 private:
     DaemonProxy* m_daemon_proxy = nullptr;
