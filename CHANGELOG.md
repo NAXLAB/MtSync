@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.6 - Mount at startup fix
+- Fixed "Mount at Start-up" jobs not mounting on daemon start — auto-mount now runs inside the `ensure_daemon` callback so rclone RC is ready before the mount is attempted
+
 ## 0.2.5 - Sync empty directory fix
 - Fixed `--create-empty-src-dirs` not being passed correctly to rclone RC (`createEmptySrcDirs` is a direct `sync/sync` parameter, not a `_config` override)
 

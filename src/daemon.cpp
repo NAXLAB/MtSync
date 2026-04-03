@@ -162,15 +162,17 @@ SaddleDaemon::SaddleDaemon() {
         }
     });
 
-    m_manager.rc().ensure_daemon([](auto) {});
+    m_manager.rc().ensure_daemon([this](auto result) {
+        if (!result.has_value()) return;
+
+        // Auto-mount jobs flagged with mount_at_startup
+        for (size_t i = 0; i < m_jobs.size(); ++i) {
+            if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].mount_at_startup)
+                on_run_job(i);
+        }
+    });
 
     schedule_all_jobs();
-
-    // Auto-mount jobs flagged with mount_at_startup
-    for (size_t i = 0; i < m_jobs.size(); ++i) {
-        if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].mount_at_startup)
-            on_run_job(i);
-    }
 }
 
 SaddleDaemon::~SaddleDaemon() {
