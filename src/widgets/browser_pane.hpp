@@ -105,6 +105,7 @@ private:
     void show_content_state(const std::string& name);
 
     static std::string mime_to_icon(const std::string& mime, bool is_dir);
+    static const char* mime_to_css_class(const std::string& mime, bool is_dir);
     static std::string format_size(int64_t bytes);
 };
 

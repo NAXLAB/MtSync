@@ -43,11 +43,36 @@ static bool get_bool_prop(GObject* obj, const char* prop) {
     return static_cast<bool>(v);
 }
 
+static void install_mime_icon_css() {
+    static bool installed = false;
+    if (installed) return;
+    installed = true;
+    auto css = Gtk::CssProvider::create();
+    css->load_from_string(
+        "image.icon-folder       { color: #f5a623; }\n"
+        "image.icon-image        { color: #4a90d9; }\n"
+        "image.icon-video        { color: #9b59b6; }\n"
+        "image.icon-audio        { color: #1db954; }\n"
+        "image.icon-archive      { color: #e67e22; }\n"
+        "image.icon-document     { color: #e74c3c; }\n"
+        "image.icon-spreadsheet  { color: #27ae60; }\n"
+        "image.icon-presentation { color: #e74c3c; }\n"
+        "image.icon-code         { color: #00b894; }\n"
+        "image.icon-font         { color: #8e44ad; }\n"
+        "image.icon-executable   { color: #d63031; }\n"
+        "image.icon-text         { color: #a0a8b0; }\n"
+    );
+    Gtk::StyleContext::add_provider_for_display(
+        Gdk::Display::get_default(), css,
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+
 BrowserPane::BrowserPane(rclone::RcloneManager& manager)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
     , m_manager(manager) {
     set_vexpand(true);
     set_hexpand(true);
+    install_mime_icon_css();
 
     m_list_store        = Gio::ListStore<FileObject>::create();
     m_remote_string_list = Gtk::StringList::create({});
@@ -207,9 +232,17 @@ void BrowserPane::build_column_view() {
         if (!box) return;
         auto* icon  = dynamic_cast<Gtk::Image*>(box->get_first_child());
         auto* label = dynamic_cast<Gtk::Label*>(icon ? icon->get_next_sibling() : nullptr);
-        if (icon)  icon->set_from_icon_name(
-            mime_to_icon(std::string(obj->property_mime_type.get_value()),
-                         obj->property_is_dir.get_value()));
+        if (icon) {
+            std::string mime = std::string(obj->property_mime_type.get_value());
+            bool is_dir = obj->property_is_dir.get_value();
+            icon->set_from_icon_name(mime_to_icon(mime, is_dir));
+            for (const char* cls : {"icon-folder","icon-image","icon-video","icon-audio",
+                                    "icon-archive","icon-document","icon-spreadsheet",
+                                    "icon-presentation","icon-code","icon-font",
+                                    "icon-executable","icon-text"})
+                icon->remove_css_class(cls);
+            icon->add_css_class(mime_to_css_class(mime, is_dir));
+        }
         if (label) label->set_text(obj->property_name.get_value());
     });
     auto name_col = Gtk::ColumnViewColumn::create("Name", name_factory);
@@ -546,6 +579,48 @@ std::string BrowserPane::format_size(int64_t bytes) {
     if (bytes < 1024 * 1024) return std::format("{:.1f} KB", bytes / 1024.0);
     if (bytes < 1024LL * 1024 * 1024) return std::format("{:.1f} MB", bytes / (1024.0 * 1024));
     return std::format("{:.1f} GB", bytes / (1024.0 * 1024 * 1024));
+}
+
+// static
+const char* BrowserPane::mime_to_css_class(const std::string& mime, bool is_dir) {
+    if (is_dir) return "icon-folder";
+    if (mime.empty()) return "icon-text";
+
+    if (mime == "application/pdf")               return "icon-document";
+    if (mime == "application/x-executable")      return "icon-executable";
+    if (mime == "application/json" ||
+        mime == "application/xml")               return "icon-code";
+
+    // Archives
+    for (const auto* s : {"zip","tar","gzip","bzip","x-xz","7z","rar"})
+        if (mime.find(s) != std::string::npos)   return "icon-archive";
+
+    // Office
+    if (mime.find("spreadsheet") != std::string::npos ||
+        mime.find("excel") != std::string::npos) return "icon-spreadsheet";
+    if (mime.find("presentation") != std::string::npos ||
+        mime.find("powerpoint") != std::string::npos) return "icon-presentation";
+    if (mime.find("word") != std::string::npos ||
+        mime.find("document") != std::string::npos) return "icon-document";
+
+    auto slash = mime.find('/');
+    std::string cat = (slash != std::string::npos) ? mime.substr(0, slash) : mime;
+    std::string sub = (slash != std::string::npos) ? mime.substr(slash + 1) : "";
+
+    if (cat == "image") return "icon-image";
+    if (cat == "video") return "icon-video";
+    if (cat == "audio") return "icon-audio";
+    if (cat == "font")  return "icon-font";
+    if (cat == "text") {
+        if (sub == "csv")                        return "icon-spreadsheet";
+        if (sub == "html" || sub == "xml")       return "icon-code";
+        if (sub.find("script") != std::string::npos ||
+            sub == "javascript" || sub == "x-python" ||
+            sub == "x-go"       || sub == "x-rust"   ||
+            sub == "x-csrc"     || sub == "x-c++src" ||
+            sub == "x-java")                     return "icon-code";
+    }
+    return "icon-text";
 }
 
 // static

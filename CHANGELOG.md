@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 — Job Dialog Improvements & Coloured File Icons
+- Scheduling off: shows **Run Now** + **Save** buttons; scheduling on: shows **Schedule** only
+- Cron fields section is now hidden entirely when scheduling is disabled (previously greyed out)
+- Dialog shrinks to fit when cron section is hidden
+- Run Now button styled as destructive-action; Cancel button styled as success
+- File browser icons are now coloured by type (folders amber, images blue, video purple, audio green, archives orange, documents/PDFs red, code teal, etc.)
+
 ## 0.3.1 — Desktop Integration
 - Application icon now appears in taskbar, launcher, and dock when the app is running
 - Added `data/com.saddle.Saddle.desktop` for XDG desktop entry

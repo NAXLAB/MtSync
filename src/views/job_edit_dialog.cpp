@@ -165,7 +165,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // ── Cron fields group ─────────────────────────────────────────────────
     m_cron_fields_group = adw::preferences_group();
     adw::preferences_group_set_title(m_cron_fields_group, "Schedule (cron)");
-    m_cron_fields_group->set_sensitive(sched_on);
+    m_cron_fields_group->set_visible(sched_on);
     vbox->append(*m_cron_fields_group);
 
     auto make_cron_row = [&](const char* title, const char* placeholder,
@@ -203,18 +203,21 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_schedule_summary->set_margin_top(4);
     m_schedule_summary->set_margin_start(12);
     m_schedule_summary->set_xalign(0.0f);
-    m_schedule_summary->set_sensitive(sched_on);
+    m_schedule_summary->set_visible(sched_on);
     vbox->append(*m_schedule_summary);
 
     // ── Buttons ───────────────────────────────────────────────────────────
     m_action_btn = Gtk::make_managed<Gtk::Button>(sched_on ? "Schedule" : "Run Now");
-    m_action_btn->add_css_class("suggested-action");
+    m_action_btn->add_css_class("destructive-action");
     m_action_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_commit));
 
     m_save_btn = Gtk::make_managed<Gtk::Button>("Save");
+    m_save_btn->add_css_class("suggested-action");
+    m_save_btn->set_visible(!sched_on);
     m_save_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_save));
 
     auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
+    cancel_btn->add_css_class("success");
     cancel_btn->signal_clicked().connect([this]() { close(); });
 
     auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 12);
@@ -236,14 +239,16 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             self->m_mount_startup_switch->set_visible(sel == 3);  // Mount
         }), this);
 
-    // Toggle cron group sensitivity + button label when switch changes
+    // Toggle cron group visibility + button state when switch changes
     g_signal_connect(m_schedule_switch->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
             bool on = adw::switch_row_get_active(self->m_schedule_switch);
-            self->m_cron_fields_group->set_sensitive(on);
-            self->m_schedule_summary->set_sensitive(on);
+            self->m_cron_fields_group->set_visible(on);
+            self->m_schedule_summary->set_visible(on);
             self->m_action_btn->set_label(on ? "Schedule" : "Run Now");
+            self->m_save_btn->set_visible(!on);
+            if (!on) self->set_default_size(460, 1);
             self->update_summary();
         }), this);
 
@@ -335,13 +340,7 @@ void JobEditDialog::on_save() {
 
     if (job.source.empty() || job.destination.empty()) return;
 
-    g_message("JobEditDialog: on_save called");
-    if (m_on_save) {
-        g_message("JobEditDialog: m_on_save is set, calling it");
-        m_on_save(std::move(job));
-    } else {
-        g_message("JobEditDialog: m_on_save is NULL");
-    }
+    if (m_on_save) m_on_save(std::move(job));
     close();
 }
 
