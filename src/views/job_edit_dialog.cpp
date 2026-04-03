@@ -138,7 +138,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Enable Checksum (default ignores checksum)
     m_enable_checksum_switch = adw::switch_row();
     adw::preferences_row_set_title(m_enable_checksum_switch, "Enable Checksum");
-    if (m_editing) adw::switch_row_set_active(m_enable_checksum_switch, m_editing->ignore_checksum);
+    if (m_editing) adw::switch_row_set_active(m_enable_checksum_switch, !m_editing->ignore_checksum);
     adw::preferences_group_add(group, m_enable_checksum_switch);
 
     // Bandwidth limit

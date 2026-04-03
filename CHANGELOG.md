@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.4 - Job Edit Checksum Fix
+- Fixed "Enable Checksum" toggle not loading correctly when editing existing jobs
+
 ## 0.2.3 - Job dialog Save button and sync fixes
 - Added "Save" button to JobEditDialog to save job without running it
 - Fixed jobs not being synced to daemon when created from browser view
