@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.14 — Remote Type Icons on Backends Tab
+- Each remote row now shows a symbolic icon representing its type (Google Drive, Dropbox, encrypted, local disk, terminal-based, or generic network server)
+
 ## 0.3.13 — Compact Browser Navigation Bar
 - Navigation strip (Back, Up, breadcrumbs, Reload) is now more compact: halved spacing, margins, and remote dropdown minimum width
 - Breadcrumb buttons use reduced horizontal padding for a tighter path display

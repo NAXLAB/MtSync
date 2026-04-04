@@ -161,6 +161,10 @@ inline void action_row_set_subtitle(Gtk::Widget* row, const char* subtitle) {
     adw_action_row_set_subtitle(ADW_ACTION_ROW(row->gobj()), subtitle);
 }
 
+inline void action_row_add_prefix(Gtk::Widget* row, Gtk::Widget* prefix) {
+    adw_action_row_add_prefix(ADW_ACTION_ROW(row->gobj()), prefix->gobj());
+}
+
 inline void action_row_add_suffix(Gtk::Widget* row, Gtk::Widget* suffix) {
     adw_action_row_add_suffix(ADW_ACTION_ROW(row->gobj()), suffix->gobj());
 }

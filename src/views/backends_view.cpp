@@ -22,6 +22,27 @@
 
 namespace saddle {
 
+namespace {
+
+static const char* remote_type_icon(const std::string& type) {
+    if (type == "drive")   return "folder-google-drive-symbolic";
+    if (type == "dropbox") return "folder-dropbox-symbolic";
+    if (type == "crypt")   return "channel-secure-symbolic";
+    if (type == "local")   return "drive-harddisk-symbolic";
+    if (type == "alias"   ||
+        type == "union"   ||
+        type == "chunker" ||
+        type == "combine" ||
+        type == "cache"   ||
+        type == "compress") return "folder-symbolic";
+    if (type == "sftp" ||
+        type == "ftp"  ||
+        type == "ftps") return "utilities-terminal-symbolic";
+    return "network-server-symbolic";
+}
+
+} // namespace
+
 BackendsView::~BackendsView() = default;
 
 BackendsView::BackendsView(rclone::RcloneManager& manager)
@@ -100,6 +121,12 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         auto* row = adw::action_row();
         adw::preferences_row_set_title(row, remote.name.c_str());
         adw::action_row_set_subtitle(row, remote.type.c_str());
+
+        auto* icon_img = Gtk::make_managed<Gtk::Image>();
+        icon_img->set_from_icon_name(remote_type_icon(remote.type));
+        icon_img->set_pixel_size(16);
+        icon_img->set_valign(Gtk::Align::CENTER);
+        adw::action_row_add_prefix(row, icon_img);
 
         RemoteRow rr;
         rr.row = row;
