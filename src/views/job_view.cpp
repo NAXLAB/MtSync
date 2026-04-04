@@ -33,14 +33,14 @@ namespace fs = std::filesystem;
 
 namespace {
 
-const char* type_badge(rclone::JobType t) {
+const char* type_icon(rclone::JobType t) {
     switch (t) {
-        case rclone::JobType::Sync:  return "[SYNC]";
-        case rclone::JobType::Copy:  return "[COPY]";
-        case rclone::JobType::Move:  return "[MOVE]";
-        case rclone::JobType::Mount: return "[MOUNT]";
+        case rclone::JobType::Sync:  return "emblem-synchronizing-symbolic";
+        case rclone::JobType::Copy:  return "edit-copy-symbolic";
+        case rclone::JobType::Move:  return "document-send-symbolic";
+        case rclone::JobType::Mount: return "drive-harddisk-symbolic";
     }
-    return "[?]";
+    return "dialog-question-symbolic";
 }
 
 } // namespace
@@ -180,10 +180,11 @@ void JobView::rebuild_ui() {
         // Header row: type badge | job id (expands) | buttons
         auto* header = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
 
-        auto* badge_label = Gtk::make_managed<Gtk::Label>(type_badge(job.type));
-        badge_label->add_css_class("caption");
-        badge_label->set_valign(Gtk::Align::CENTER);
-        header->append(*badge_label);
+        auto* type_img = Gtk::make_managed<Gtk::Image>();
+        type_img->set_from_icon_name(type_icon(job.type));
+        type_img->set_icon_size(Gtk::IconSize::NORMAL);
+        type_img->set_valign(Gtk::Align::CENTER);
+        header->append(*type_img);
 
         auto* id_label = Gtk::make_managed<Gtk::Label>(job.id);
         id_label->add_css_class("heading");

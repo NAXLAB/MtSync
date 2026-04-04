@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.10 — Job Type Icons
+- Job rows in the Jobs tab now show the job type as a symbolic icon instead of a text badge (`[SYNC]`, `[COPY]`, etc.)
+- Icons match those used on the Copy/Move/Sync/Mount buttons in the browse tab action bar
+
 ## 0.3.9 — Browser Pane Cleanup
 - Removed source/destination role labels from browser pane headers
 - Removed virtual swap logic (`m_source_on_left`, `update_pane_roles`, `BrowserPane::Role`) — left pane is always source now that swapping is physical
