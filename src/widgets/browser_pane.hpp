@@ -51,6 +51,9 @@ public:
     // Set source/destination role for transfer operations
     void set_role(Role r);
 
+    // Physically swap the remote, path, and navigation history with another pane
+    void swap_location_with(BrowserPane& other);
+
     // Emitted when the user interacts with this pane (for active-pane tracking)
     sigc::signal<void()> signal_focused;
 

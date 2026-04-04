@@ -172,8 +172,7 @@ void BrowserView::set_active_pane(BrowserPane* pane) {
 }
 
 void BrowserView::swap_source_destination() {
-    m_source_on_left = !m_source_on_left;
-    update_pane_roles();
+    m_left_pane->swap_location_with(*m_right_pane);
 }
 
 void BrowserView::update_pane_roles() {

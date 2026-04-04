@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8 — Physical Pane Swap
+- Swap button now exchanges the actual remote and path between the two browser panes, rather than just flipping the source/destination role labels
+- Navigation history is also swapped, so the Back button continues to work correctly after a swap
+
 ## 0.3.7 — Security Hardening
 - Fixed: deleting a job now disconnects its poll/schedule timers and removes it from all internal tracking vectors — previously stale timer callbacks could fire after deletion and reference the wrong job
 - Fixed: poll timer lambda now exits early if the job index is out of range or the job ID is unset — prevents stale callbacks after a job delete

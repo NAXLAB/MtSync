@@ -521,6 +521,35 @@ void BrowserPane::go_up() {
     }
 }
 
+void BrowserPane::swap_location_with(BrowserPane& other) {
+    // Block both dropdown signals to prevent on_remote_selection_changed
+    // from overwriting state while we're setting it
+    m_dropdown_conn.block();
+    other.m_dropdown_conn.block();
+
+    std::swap(m_current_remote, other.m_current_remote);
+    std::swap(m_current_path,   other.m_current_path);
+    std::swap(m_is_local,       other.m_is_local);
+    std::swap(m_path_history,   other.m_path_history);
+
+    auto find_index = [](const BrowserPane& p) -> guint {
+        if (p.m_is_local) return 0;
+        for (size_t i = 0; i < p.m_remotes.size(); ++i)
+            if (p.m_remotes[i].name == p.m_current_remote)
+                return static_cast<guint>(i + 1);
+        return GTK_INVALID_LIST_POSITION;
+    };
+
+    m_remote_dropdown->set_selected(find_index(*this));
+    other.m_remote_dropdown->set_selected(find_index(other));
+
+    m_dropdown_conn.unblock();
+    other.m_dropdown_conn.unblock();
+
+    navigate(m_current_path);
+    other.navigate(other.m_current_path);
+}
+
 void BrowserPane::show_content_state(const std::string& name) {
     m_content_stack->set_visible_child(name);
     bool active  = (name == "files" || name == "empty");
