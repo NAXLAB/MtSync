@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.3.14 LANGUAGES C CXX)
+project(Saddle VERSION 0.3.15 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,16 +16,30 @@ find_package(nlohmann_json 3.2 REQUIRED)
 find_program(GLIB_COMPILE_RESOURCES glib-compile-resources REQUIRED)
 set(RESOURCE_XML "${CMAKE_SOURCE_DIR}/data/saddle.gresource.xml")
 set(RESOURCE_C  "${CMAKE_BINARY_DIR}/saddle_resources.c")
+set(PROVIDER_ICON_DIR "${CMAKE_SOURCE_DIR}/data/provider-icons")
+set(PROVIDER_ICONS
+    "${PROVIDER_ICON_DIR}/drive.svg"           "${PROVIDER_ICON_DIR}/drive-dark.svg"
+    "${PROVIDER_ICON_DIR}/dropbox.svg"         "${PROVIDER_ICON_DIR}/dropbox-dark.svg"
+    "${PROVIDER_ICON_DIR}/b2.svg"              "${PROVIDER_ICON_DIR}/b2-dark.svg"
+    "${PROVIDER_ICON_DIR}/mega.svg"            "${PROVIDER_ICON_DIR}/mega-dark.svg"
+    "${PROVIDER_ICON_DIR}/box.svg"             "${PROVIDER_ICON_DIR}/box-dark.svg"
+    "${PROVIDER_ICON_DIR}/gcs.svg"             "${PROVIDER_ICON_DIR}/gcs-dark.svg"
+    "${PROVIDER_ICON_DIR}/protondrive.svg"     "${PROVIDER_ICON_DIR}/protondrive-dark.svg"
+    "${PROVIDER_ICON_DIR}/internetarchive.svg" "${PROVIDER_ICON_DIR}/internetarchive-dark.svg"
+)
+
 add_custom_command(
     OUTPUT "${RESOURCE_C}"
     COMMAND "${GLIB_COMPILE_RESOURCES}"
         "--target=${RESOURCE_C}"
         "--generate-source"
         "--sourcedir=${CMAKE_SOURCE_DIR}/assets/icons/application"
+        "--sourcedir=${PROVIDER_ICON_DIR}"
         "${RESOURCE_XML}"
     DEPENDS
         "${RESOURCE_XML}"
         "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
+        ${PROVIDER_ICONS}
     COMMENT "Compiling GLib resources"
 )
 

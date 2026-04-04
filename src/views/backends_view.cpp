@@ -24,9 +24,7 @@ namespace saddle {
 
 namespace {
 
-static const char* remote_type_icon(const std::string& type) {
-    if (type == "drive")   return "folder-google-drive-symbolic";
-    if (type == "dropbox") return "folder-dropbox-symbolic";
+static const char* remote_type_symbolic(const std::string& type) {
     if (type == "crypt")   return "channel-secure-symbolic";
     if (type == "local")   return "drive-harddisk-symbolic";
     if (type == "alias"   ||
@@ -41,9 +39,38 @@ static const char* remote_type_icon(const std::string& type) {
     return "network-server-symbolic";
 }
 
+static bool resource_exists(const std::string& path) {
+    GBytes* b = g_resources_lookup_data(path.c_str(),
+                    G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
+    if (b) { g_bytes_unref(b); return true; }
+    return false;
+}
+
+static Gtk::Image* make_remote_icon(const std::string& type) {
+    bool dark = adw_style_manager_get_dark(adw_style_manager_get_default());
+    std::string base = "/io/github/saddle/provider-icons/" + type;
+    std::string res;
+    if (dark && resource_exists(base + "-dark.svg"))
+        res = base + "-dark.svg";
+    else if (resource_exists(base + ".svg"))
+        res = base + ".svg";
+
+    auto* img = Gtk::make_managed<Gtk::Image>();
+    if (!res.empty())
+        gtk_image_set_from_resource(GTK_IMAGE(img->gobj()), res.c_str());
+    else
+        img->set_from_icon_name(remote_type_symbolic(type));
+    img->set_pixel_size(20);
+    img->set_valign(Gtk::Align::CENTER);
+    return img;
+}
+
 } // namespace
 
-BackendsView::~BackendsView() = default;
+BackendsView::~BackendsView() {
+    if (m_dark_signal_id)
+        g_signal_handler_disconnect(adw_style_manager_get_default(), m_dark_signal_id);
+}
 
 BackendsView::BackendsView(rclone::RcloneManager& manager)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
@@ -97,6 +124,12 @@ BackendsView::BackendsView(rclone::RcloneManager& manager)
     append(*m_nav_view);
 
     signal_map().connect([this]() { refresh(); });
+
+    m_dark_signal_id = g_signal_connect(
+        adw_style_manager_get_default(), "notify::dark",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            static_cast<BackendsView*>(data)->refresh();
+        }), this);
 }
 
 void BackendsView::refresh() {
@@ -122,11 +155,7 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         adw::preferences_row_set_title(row, remote.name.c_str());
         adw::action_row_set_subtitle(row, remote.type.c_str());
 
-        auto* icon_img = Gtk::make_managed<Gtk::Image>();
-        icon_img->set_from_icon_name(remote_type_icon(remote.type));
-        icon_img->set_pixel_size(16);
-        icon_img->set_valign(Gtk::Align::CENTER);
-        adw::action_row_add_prefix(row, icon_img);
+        adw::action_row_add_prefix(row, make_remote_icon(remote.type));
 
         RemoteRow rr;
         rr.row = row;

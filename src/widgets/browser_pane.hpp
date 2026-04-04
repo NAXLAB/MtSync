@@ -59,6 +59,7 @@ private:
     Glib::RefPtr<Gtk::StringList> m_remote_string_list;
     Gtk::DropDown*                m_remote_dropdown = nullptr;
     sigc::connection              m_dropdown_conn;
+    gulong                        m_dark_signal_id  = 0;
 
     // Navigation buttons & breadcrumbs
     Gtk::ScrolledWindow* m_breadcrumb_scroll = nullptr;

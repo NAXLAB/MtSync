@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.15 — Provider Icons
+- Remote type icons now use Simple Icons SVGs (Google Drive, Dropbox, Backblaze, MEGA, Box, Google Cloud, Proton Drive, Internet Archive) with symbolic fallbacks for all other types
+- Light and dark variants of each icon — dark mode shows white icons automatically
+- Icons appear both in the Backends tab remote list and in the file manager remote dropdown
+- Remote dropdown width increased to 150px to accommodate icon + name
+
 ## 0.3.14 — Remote Type Icons on Backends Tab
 - Each remote row now shows a symbolic icon representing its type (Google Drive, Dropbox, encrypted, local disk, terminal-based, or generic network server)
 

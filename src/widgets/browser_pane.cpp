@@ -17,6 +17,7 @@
  */
 
 #include "widgets/browser_pane.hpp"
+#include <adwaita.h>
 #include <format>
 #include <unordered_map>
 
@@ -41,6 +42,25 @@ static bool get_bool_prop(GObject* obj, const char* prop) {
     gboolean v = FALSE;
     g_object_get(obj, prop, &v, nullptr);
     return static_cast<bool>(v);
+}
+
+static void set_remote_icon(Gtk::Image* img, const std::string& type) {
+    bool dark = adw_style_manager_get_dark(adw_style_manager_get_default());
+    std::string base = "/io/github/saddle/provider-icons/" + type;
+    auto try_res = [&](const std::string& path) -> bool {
+        GBytes* b = g_resources_lookup_data(path.c_str(),
+                        G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
+        if (b) { g_bytes_unref(b); gtk_image_set_from_resource(GTK_IMAGE(img->gobj()), path.c_str()); return true; }
+        return false;
+    };
+    if (dark && try_res(base + "-dark.svg")) return;
+    if (try_res(base + ".svg")) return;
+    // symbolic fallback
+    if (type == "local")   { img->set_from_icon_name("drive-harddisk-symbolic");   return; }
+    if (type == "crypt")   { img->set_from_icon_name("channel-secure-symbolic");    return; }
+    if (type == "sftp" || type == "ftp" || type == "ftps")
+                           { img->set_from_icon_name("utilities-terminal-symbolic"); return; }
+    img->set_from_icon_name("network-server-symbolic");
 }
 
 static void install_mime_icon_css() {
@@ -147,6 +167,24 @@ BrowserPane::BrowserPane(rclone::RcloneManager& manager)
             load_remotes();
         }
     });
+
+    // Trigger factory rebind (icon colour swap) when theme switches
+    m_dark_signal_id = g_signal_connect(
+        adw_style_manager_get_default(), "notify::dark",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<BrowserPane*>(data);
+            guint n = self->m_remote_string_list->get_n_items();
+            if (n > 0)
+                g_list_model_items_changed(
+                    G_LIST_MODEL(self->m_remote_string_list->gobj()), 0, n, n);
+        }), this);
+
+    signal_unrealize().connect([this]() {
+        if (m_dark_signal_id) {
+            g_signal_handler_disconnect(adw_style_manager_get_default(), m_dark_signal_id);
+            m_dark_signal_id = 0;
+        }
+    });
 }
 
 void BrowserPane::setup_header() {
@@ -159,7 +197,37 @@ void BrowserPane::setup_header() {
 
     m_remote_dropdown = Gtk::make_managed<Gtk::DropDown>();
     m_remote_dropdown->set_model(m_remote_string_list);
-    m_remote_dropdown->set_size_request(80, -1);
+    m_remote_dropdown->set_size_request(150, -1);
+
+    // Factory: render each remote entry as icon + name
+    auto factory = Gtk::SignalListItemFactory::create();
+    factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
+        auto* img = Gtk::make_managed<Gtk::Image>();
+        img->set_pixel_size(16);
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_ellipsize(Pango::EllipsizeMode::END);
+        box->append(*img);
+        box->append(*lbl);
+        item->set_child(*box);
+    });
+    factory->signal_bind().connect([this](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = dynamic_cast<Gtk::Box*>(item->get_child());
+        if (!box) return;
+        auto* img = dynamic_cast<Gtk::Image*>(box->get_first_child());
+        auto* lbl = dynamic_cast<Gtk::Label*>(img ? img->get_next_sibling() : nullptr);
+        auto pos = item->get_position();
+        std::string name, type;
+        if (pos == 0) {
+            name = "Local"; type = "local";
+        } else if (pos - 1 < m_remotes.size()) {
+            name = m_remotes[pos - 1].name;
+            type = m_remotes[pos - 1].type;
+        }
+        if (lbl) lbl->set_text(Glib::ustring(name));
+        if (img) set_remote_icon(img, type);
+    });
+    m_remote_dropdown->set_factory(factory);
     nav_bar->append(*m_remote_dropdown);
 
 

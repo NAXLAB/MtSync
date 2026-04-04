@@ -58,6 +58,8 @@ private:
     // Currently shown edit view (kept alive while pushed)
     std::unique_ptr<BackendEditView> m_edit_view;
 
+    gulong m_dark_signal_id = 0;
+
     void populate(const std::vector<rclone::RemoteInfo>& remotes);
     void on_delete_remote(const std::string& name);
     void show_add_remote();

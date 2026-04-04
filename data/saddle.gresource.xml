@@ -3,4 +3,22 @@
   <gresource prefix="/io/github/saddle">
     <file alias="icons/application.png">Saddle App Icon 1.png</file>
   </gresource>
+  <gresource prefix="/io/github/saddle/provider-icons">
+    <file preprocess="xml-stripblanks">drive.svg</file>
+    <file preprocess="xml-stripblanks">drive-dark.svg</file>
+    <file preprocess="xml-stripblanks">dropbox.svg</file>
+    <file preprocess="xml-stripblanks">dropbox-dark.svg</file>
+    <file preprocess="xml-stripblanks">b2.svg</file>
+    <file preprocess="xml-stripblanks">b2-dark.svg</file>
+    <file preprocess="xml-stripblanks">mega.svg</file>
+    <file preprocess="xml-stripblanks">mega-dark.svg</file>
+    <file preprocess="xml-stripblanks">box.svg</file>
+    <file preprocess="xml-stripblanks">box-dark.svg</file>
+    <file preprocess="xml-stripblanks">gcs.svg</file>
+    <file preprocess="xml-stripblanks">gcs-dark.svg</file>
+    <file preprocess="xml-stripblanks">protondrive.svg</file>
+    <file preprocess="xml-stripblanks">protondrive-dark.svg</file>
+    <file preprocess="xml-stripblanks">internetarchive.svg</file>
+    <file preprocess="xml-stripblanks">internetarchive-dark.svg</file>
+  </gresource>
 </gresources>
