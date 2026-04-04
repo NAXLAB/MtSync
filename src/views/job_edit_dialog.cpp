@@ -21,6 +21,7 @@
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
 #include <random>
+#include <sstream>
 
 namespace saddle {
 
@@ -54,7 +55,7 @@ JobEditDialog::JobEditDialog(DoneCallback on_done)
 }
 
 JobEditDialog::JobEditDialog(const rclone::Job& job, DoneCallback on_done)
-    : m_on_done(std::move(on_done)), m_editing(job) {
+    : m_on_done(std::move(on_done)), m_editing(job), m_includes(job.includes) {
     setup_ui(job.type, job.source, job.destination);
 }
 
@@ -121,6 +122,22 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     else if (m_editing)
         adw::entry_row_set_text(m_dest_entry, m_editing->destination.c_str());
     adw::preferences_group_add(group, m_dest_entry);
+
+    // File filters
+    m_includes_entry = adw::entry_row();
+    adw::preferences_row_set_title(m_includes_entry, "File Filters (space-separated patterns)");
+    gtk_text_set_placeholder_text(
+        GTK_TEXT(gtk_editable_get_delegate(GTK_EDITABLE(m_includes_entry->gobj()))),
+        "All files");
+    if (!m_includes.empty()) {
+        std::string joined;
+        for (size_t i = 0; i < m_includes.size(); ++i) {
+            if (i > 0) joined += ' ';
+            joined += m_includes[i];
+        }
+        adw::entry_row_set_text(m_includes_entry, joined.c_str());
+    }
+    adw::preferences_group_add(group, m_includes_entry);
 
     // Dry Run
     m_dry_run_switch = adw::switch_row();
@@ -303,7 +320,11 @@ void JobEditDialog::on_commit() {
                         && adw::switch_row_get_active(m_mount_startup_switch);
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
-    job.includes         = m_includes;
+    {
+        std::istringstream ss(adw::entry_row_get_text(m_includes_entry));
+        std::string token;
+        while (ss >> token) job.includes.push_back(token);
+    }
 
     if (job.source.empty() || job.destination.empty()) return;
 
@@ -336,7 +357,11 @@ void JobEditDialog::on_save() {
                         && adw::switch_row_get_active(m_mount_startup_switch);
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
-    job.includes         = m_includes;
+    {
+        std::istringstream ss(adw::entry_row_get_text(m_includes_entry));
+        std::string token;
+        while (ss >> token) job.includes.push_back(token);
+    }
 
     if (job.source.empty() || job.destination.empty()) return;
 

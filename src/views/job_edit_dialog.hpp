@@ -47,6 +47,7 @@ private:
     Gtk::Widget* m_type_combo         = nullptr;
     Gtk::Widget* m_source_entry       = nullptr;
     Gtk::Widget* m_dest_entry         = nullptr;
+    Gtk::Widget* m_includes_entry     = nullptr;
     Gtk::Widget* m_dry_run_switch        = nullptr;
     Gtk::Widget* m_bisync_switch         = nullptr;
     Gtk::Widget* m_enable_checksum_switch = nullptr;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.5 — File Filters in Job Dialog
+- Job add/edit dialog now shows a **File Filters** field displaying the include patterns for the job
+- Patterns are shown space-separated and can be edited directly
+- Fixed: editing an existing job no longer silently discards its file filter patterns
+
 ## 0.3.4 — Job Activity Log
 - Job execution results are now written to `~/.local/state/saddle/saddle.log`
 - Each job logs a STARTED line and a COMPLETED line (with file count, bytes transferred, and speed for sync/copy/move jobs)
