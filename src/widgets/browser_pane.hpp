@@ -64,8 +64,9 @@ private:
     sigc::connection              m_dropdown_conn;
 
     // Navigation buttons & breadcrumbs
-    Gtk::Box*    m_breadcrumb_box = nullptr;
-    Gtk::Label*  m_role_label      = nullptr;
+    Gtk::ScrolledWindow* m_breadcrumb_scroll = nullptr;
+    Gtk::Box*            m_breadcrumb_box    = nullptr;
+    Gtk::Label*          m_role_label        = nullptr;
     Gtk::Button  m_back_btn;
     Gtk::Button  m_up_btn;
     Gtk::Button  m_refresh_btn;

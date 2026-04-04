@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6 — Breadcrumb Bar Overflow Fix
+- File path bar no longer grows the main window when navigating into deep directories
+- Breadcrumbs are now clipped to their allocated space and scroll to show the deepest segment
+
 ## 0.3.5 — File Filters in Job Dialog
 - Job add/edit dialog now shows a **File Filters** field displaying the include patterns for the job
 - Patterns are shown space-separated and can be edited directly

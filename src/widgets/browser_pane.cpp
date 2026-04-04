@@ -179,8 +179,12 @@ void BrowserPane::setup_header() {
     nav_bar->append(m_up_btn);
 
     m_breadcrumb_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
-    m_breadcrumb_box->set_hexpand(true);
-    nav_bar->append(*m_breadcrumb_box);
+
+    m_breadcrumb_scroll = Gtk::make_managed<Gtk::ScrolledWindow>();
+    m_breadcrumb_scroll->set_hexpand(true);
+    m_breadcrumb_scroll->set_policy(Gtk::PolicyType::EXTERNAL, Gtk::PolicyType::NEVER);
+    m_breadcrumb_scroll->set_child(*m_breadcrumb_box);
+    nav_bar->append(*m_breadcrumb_scroll);
 
     m_refresh_btn.set_icon_name("view-refresh-symbolic");
     m_refresh_btn.set_tooltip_text("Refresh");
@@ -466,6 +470,12 @@ void BrowserPane::rebuild_breadcrumbs() {
             });
         }
         m_breadcrumb_box->append(*btn);
+    }
+
+    // Scroll to the end so the deepest segment is always visible
+    if (m_breadcrumb_scroll) {
+        auto adj = m_breadcrumb_scroll->get_hadjustment();
+        if (adj) adj->set_value(adj->get_upper() - adj->get_page_size());
     }
 }
 
