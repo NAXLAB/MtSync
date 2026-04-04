@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.13 — Compact Browser Navigation Bar
+- Navigation strip (Back, Up, breadcrumbs, Reload) is now more compact: halved spacing, margins, and remote dropdown minimum width
+- Breadcrumb buttons use reduced horizontal padding for a tighter path display
+
 ## 0.3.12 — Mount Job Dialog Cleanup
 - File Filters field is now hidden when the job type is Mount, as rclone mount does not use include filters
 

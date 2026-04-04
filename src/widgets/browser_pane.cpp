@@ -61,6 +61,7 @@ static void install_mime_icon_css() {
         "image.icon-font         { color: #8e44ad; }\n"
         "image.icon-executable   { color: #d63031; }\n"
         "image.icon-text         { color: #a0a8b0; }\n"
+        ".breadcrumb-bar > button { padding-left: 4px; padding-right: 4px; min-height: 0; }\n"
     );
     Gtk::StyleContext::add_provider_for_display(
         Gdk::Display::get_default(), css,
@@ -149,16 +150,16 @@ BrowserPane::BrowserPane(rclone::RcloneManager& manager)
 }
 
 void BrowserPane::setup_header() {
-    auto* nav_bar = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
+    auto* nav_bar = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 2);
     nav_bar->add_css_class("toolbar");
-    nav_bar->set_margin_start(6);
-    nav_bar->set_margin_end(6);
-    nav_bar->set_margin_top(4);
-    nav_bar->set_margin_bottom(4);
+    nav_bar->set_margin_start(3);
+    nav_bar->set_margin_end(3);
+    nav_bar->set_margin_top(2);
+    nav_bar->set_margin_bottom(2);
 
     m_remote_dropdown = Gtk::make_managed<Gtk::DropDown>();
     m_remote_dropdown->set_model(m_remote_string_list);
-    m_remote_dropdown->set_size_request(150, -1);
+    m_remote_dropdown->set_size_request(80, -1);
     nav_bar->append(*m_remote_dropdown);
 
 
@@ -174,7 +175,8 @@ void BrowserPane::setup_header() {
     m_up_btn.signal_clicked().connect([this]() { go_up(); });
     nav_bar->append(m_up_btn);
 
-    m_breadcrumb_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
+    m_breadcrumb_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 2);
+    m_breadcrumb_box->add_css_class("breadcrumb-bar");
 
     m_breadcrumb_scroll = Gtk::make_managed<Gtk::ScrolledWindow>();
     m_breadcrumb_scroll->set_hexpand(true);
