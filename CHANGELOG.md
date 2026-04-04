@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.17 — Smaller Job Log Font
+- Activity log in the Jobs tab now renders at 80% font size for a more compact display
+
 ## 0.3.16 — Extended Provider Icons
 - Added Simple Icons SVGs for Google Photos, Seafile, Zoho WorkDrive, Filen, OpenStack Swift, Apache HDFS, Citrix ShareFile, DigitalOcean, Wasabi, Cloudflare, and Hetzner
 - SMB remotes now use `folder-remote-symbolic` instead of the generic terminal icon

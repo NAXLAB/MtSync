@@ -126,6 +126,17 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     m_log_view->set_cursor_visible(false);
     m_log_view->set_wrap_mode(Gtk::WrapMode::NONE);
     m_log_view->add_css_class("monospace");
+    m_log_view->add_css_class("job-log");
+
+    static bool css_installed = false;
+    if (!css_installed) {
+        css_installed = true;
+        auto css = Gtk::CssProvider::create();
+        css->load_from_string("textview.job-log { font-size: 0.8em; }\n");
+        Gtk::StyleContext::add_provider_for_display(
+            Gdk::Display::get_default(), css,
+            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
     m_log_view->set_margin_start(6);
     m_log_view->set_margin_end(6);
     m_log_view->set_margin_bottom(6);
