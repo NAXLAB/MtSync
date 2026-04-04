@@ -157,9 +157,6 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     m_active_pane = m_left_pane;
     m_left_pane->set_active(true);
 
-    // Initialize source/destination roles
-    update_pane_roles();
-
     m_left_pane->signal_focused.connect([this]() { set_active_pane(m_left_pane); });
     m_right_pane->signal_focused.connect([this]() { set_active_pane(m_right_pane); });
 }
@@ -175,19 +172,9 @@ void BrowserView::swap_source_destination() {
     m_left_pane->swap_location_with(*m_right_pane);
 }
 
-void BrowserView::update_pane_roles() {
-    if (m_source_on_left) {
-        m_left_pane->set_role(BrowserPane::Role::Source);
-        m_right_pane->set_role(BrowserPane::Role::Destination);
-    } else {
-        m_left_pane->set_role(BrowserPane::Role::Destination);
-        m_right_pane->set_role(BrowserPane::Role::Source);
-    }
-}
-
 void BrowserView::show_job_dialog(rclone::JobType type) {
-    auto* src_pane = m_source_on_left ? m_left_pane : m_right_pane;
-    auto* dst_pane = m_source_on_left ? m_right_pane : m_left_pane;
+    auto* src_pane = m_left_pane;
+    auto* dst_pane = m_right_pane;
 
     auto src = src_pane->get_current_rclone_path();
     auto dst = dst_pane->get_current_rclone_path();

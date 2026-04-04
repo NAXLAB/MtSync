@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.9 — Browser Pane Cleanup
+- Removed source/destination role labels from browser pane headers
+- Removed virtual swap logic (`m_source_on_left`, `update_pane_roles`, `BrowserPane::Role`) — left pane is always source now that swapping is physical
+- Removed vertical separator between remote dropdown and navigation buttons
+
 ## 0.3.8 — Physical Pane Swap
 - Swap button now exchanges the actual remote and path between the two browser panes, rather than just flipping the source/destination role labels
 - Navigation history is also swapped, so the Back button continues to work correctly after a swap

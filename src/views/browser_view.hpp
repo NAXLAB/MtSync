@@ -42,13 +42,11 @@ private:
     BrowserPane* m_left_pane   = nullptr;
     BrowserPane* m_right_pane  = nullptr;
     BrowserPane* m_active_pane = nullptr;
-    bool         m_source_on_left = true;
 
     std::unique_ptr<JobEditDialog> m_job_dialog;
 
     void set_active_pane(BrowserPane* pane);
     void swap_source_destination();
-    void update_pane_roles();
     void show_job_dialog(rclone::JobType type);
     void on_delete_confirm();
     void on_delete();

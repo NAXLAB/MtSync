@@ -161,10 +161,6 @@ void BrowserPane::setup_header() {
     m_remote_dropdown->set_size_request(150, -1);
     nav_bar->append(*m_remote_dropdown);
 
-    auto* sep = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::VERTICAL);
-    sep->set_margin_start(2);
-    sep->set_margin_end(2);
-    nav_bar->append(*sep);
 
     m_back_btn.set_icon_name("go-previous-symbolic");
     m_back_btn.set_tooltip_text("Go Back");
@@ -195,11 +191,6 @@ void BrowserPane::setup_header() {
     });
     nav_bar->append(m_refresh_btn);
 
-    m_role_label = Gtk::make_managed<Gtk::Label>();
-    m_role_label->set_valign(Gtk::Align::CENTER);
-    m_role_label->set_margin_start(8);
-    m_role_label->set_width_chars(14);
-    nav_bar->append(*m_role_label);
 
     m_dropdown_conn = m_remote_dropdown->property_selected().signal_changed().connect(
         sigc::mem_fun(*this, &BrowserPane::on_remote_selection_changed));
@@ -589,28 +580,6 @@ void BrowserPane::set_active(bool active) {
         remove_css_class("browser-pane-active");
 }
 
-void BrowserPane::set_role(Role r) {
-    m_role = r;
-    if (m_role_label) {
-        switch (r) {
-            case Role::Source:
-                m_role_label->set_text("← Source");
-                m_role_label->add_css_class("accent-color");
-                m_role_label->remove_css_class("dim-label");
-                break;
-            case Role::Destination:
-                m_role_label->set_text("Destination →");
-                m_role_label->add_css_class("dim-label");
-                m_role_label->remove_css_class("accent-color");
-                break;
-            case Role::None:
-                m_role_label->set_text("");
-                m_role_label->remove_css_class("accent-color");
-                m_role_label->remove_css_class("dim-label");
-                break;
-        }
-    }
-}
 
 // static
 std::string BrowserPane::format_size(int64_t bytes) {

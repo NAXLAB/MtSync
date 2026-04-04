@@ -29,8 +29,6 @@ namespace saddle {
 
 class BrowserPane : public Gtk::Box {
 public:
-    enum class Role { None, Source, Destination };
-
     explicit BrowserPane(rclone::RcloneManager& manager);
 
     // Called by parent to populate the remote dropdown on first map
@@ -48,9 +46,6 @@ public:
     // Highlight this pane as the active one
     void set_active(bool active);
 
-    // Set source/destination role for transfer operations
-    void set_role(Role r);
-
     // Physically swap the remote, path, and navigation history with another pane
     void swap_location_with(BrowserPane& other);
 
@@ -58,7 +53,6 @@ public:
     sigc::signal<void()> signal_focused;
 
 private:
-    Role m_role = Role::None;
     rclone::RcloneManager& m_manager;
 
     // Remote selector
@@ -69,7 +63,6 @@ private:
     // Navigation buttons & breadcrumbs
     Gtk::ScrolledWindow* m_breadcrumb_scroll = nullptr;
     Gtk::Box*            m_breadcrumb_box    = nullptr;
-    Gtk::Label*          m_role_label        = nullptr;
     Gtk::Button  m_back_btn;
     Gtk::Button  m_up_btn;
     Gtk::Button  m_refresh_btn;
