@@ -137,6 +137,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         }
         adw::entry_row_set_text(m_includes_entry, joined.c_str());
     }
+    m_includes_entry->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_includes_entry);
 
     // Dry Run
@@ -252,8 +253,9 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
             guint sel = adw::combo_row_get_selected(self->m_type_combo);
-            self->m_bisync_switch->set_visible(sel == 0);  // Sync
-            self->m_mount_startup_switch->set_visible(sel == 3);  // Mount
+            self->m_bisync_switch->set_visible(sel == 0);        // Sync only
+            self->m_mount_startup_switch->set_visible(sel == 3); // Mount only
+            self->m_includes_entry->set_visible(sel != 3);       // Not for Mount
         }), this);
 
     // Toggle cron group visibility + button state when switch changes

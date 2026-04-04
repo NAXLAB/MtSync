@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.12 — Mount Job Dialog Cleanup
+- File Filters field is now hidden when the job type is Mount, as rclone mount does not use include filters
+
 ## 0.3.11 — Job Row Display
 - Job title now shows `SourceDir → DestDir` (last path component of each) instead of the raw UUID
 - Footer line of each job row now shows the UUID left-justified and the status text right-justified
