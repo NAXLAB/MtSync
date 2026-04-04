@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.18 — Mount Job Dialog Cleanup (continued)
+- Dry Run, Enable Checksum, and Bandwidth Limit options are now hidden when the job type is Mount
+
 ## 0.3.17 — Smaller Job Log Font
 - Activity log in the Jobs tab now renders at 80% font size for a more compact display
 

@@ -144,6 +144,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_dry_run_switch = adw::switch_row();
     adw::preferences_row_set_title(m_dry_run_switch, "Dry Run");
     if (m_editing) adw::switch_row_set_active(m_dry_run_switch, m_editing->dry_run);
+    m_dry_run_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_dry_run_switch);
 
     // Bi-directional sync (only visible when type is Sync)
@@ -157,6 +158,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_enable_checksum_switch = adw::switch_row();
     adw::preferences_row_set_title(m_enable_checksum_switch, "Enable Checksum");
     if (m_editing) adw::switch_row_set_active(m_enable_checksum_switch, !m_editing->ignore_checksum);
+    m_enable_checksum_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_enable_checksum_switch);
 
     // Bandwidth limit
@@ -164,6 +166,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     adw::preferences_row_set_title(m_bandwidth_entry, "Bandwidth Limit (e.g. 10M)");
     if (m_editing && !m_editing->bandwidth.empty())
         adw::entry_row_set_text(m_bandwidth_entry, m_editing->bandwidth.c_str());
+    m_bandwidth_entry->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_bandwidth_entry);
 
     // Mount at Start-up (only visible when type is Mount)
@@ -253,9 +256,12 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
             guint sel = adw::combo_row_get_selected(self->m_type_combo);
-            self->m_bisync_switch->set_visible(sel == 0);        // Sync only
-            self->m_mount_startup_switch->set_visible(sel == 3); // Mount only
-            self->m_includes_entry->set_visible(sel != 3);       // Not for Mount
+            self->m_bisync_switch->set_visible(sel == 0);             // Sync only
+            self->m_mount_startup_switch->set_visible(sel == 3);      // Mount only
+            self->m_includes_entry->set_visible(sel != 3);            // Not for Mount
+            self->m_dry_run_switch->set_visible(sel != 3);            // Not for Mount
+            self->m_enable_checksum_switch->set_visible(sel != 3);    // Not for Mount
+            self->m_bandwidth_entry->set_visible(sel != 3);           // Not for Mount
         }), this);
 
     // Toggle cron group visibility + button state when switch changes

@@ -1,22 +1,27 @@
 # Saddle
 
 A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote
-file systems, and manage sync/copy/move jobs with live progress — all from a native GNOME desktop
-application backed by a persistent daemon.
+file systems, and manage sync/copy/move/mount jobs with live progress — all from a native GNOME
+desktop application backed by a persistent daemon.
 
 ## Features
 
 - **Backend configuration** — Create, edit, and delete rclone remotes via dynamically generated
-  forms derived from rclone's own provider option metadata
+  forms derived from rclone's own provider option metadata; each remote row shows a type-appropriate
+  provider icon (Google Drive, Dropbox, Backblaze B2, MEGA, Box, Google Cloud Storage, Proton Drive,
+  and more) with automatic light/dark variants; unknown providers fall back to symbolic icons
 - **Dual-pane file browser** — Two independent browser panes with column view, breadcrumb
   navigation, back history, MIME-type icons, sortable columns, and a status bar showing file/folder
-  counts and total size; hidden files toggled per-pane
+  counts and total size; hidden files toggled per-pane; compact navigation bar with provider icon
+  in the remote dropdown; swap button physically exchanges remote and path between panes
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer
-  with the job UUID and last status; Sync jobs support bi-directional sync mode (rclone bisync)
-  and copy empty directories; Mount jobs show active state and can be stopped/unmounted; checksum
-  verification disabled by default; Save button to store job without running
+  with the job UUID and last status; Sync jobs support bi-directional sync mode (rclone bisync),
+  copy empty directories, and file include-pattern filters; Mount jobs show active state, can be
+  stopped/unmounted, and expose only mount-relevant options (irrelevant fields such as Dry Run,
+  Enable Checksum, Bandwidth Limit, and File Filters are hidden); checksum verification disabled
+  by default; Save button to store job without running; activity log panel with auto-scroll
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
@@ -73,8 +78,8 @@ SaddleApplication (Gtk::Application)
       ├── AdwHeaderBar + AdwViewSwitcher
       └── AdwViewStack
            ├── BrowserView   — dual-pane file browser (two BrowserPane widgets)
-           ├── JobView       — job list with progress, run/stop controls
-           ├── BackendsView  — remote list with drill-down edit form
+           ├── JobView       — job list with progress, run/stop controls, activity log
+           ├── BackendsView  — remote list with provider icons and drill-down edit form
            ├── SettingsView  — application and transfer settings
            └── AboutView     — version, license, and copyright
 
