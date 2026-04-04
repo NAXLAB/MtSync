@@ -22,6 +22,7 @@
 #include <adwaita.h>
 #include <gtkmm.h>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -59,7 +60,8 @@ private:
     Gtk::Button m_authorize_btn{"Authorize"};
     Gtk::Label m_oauth_status;
     Gtk::Spinner m_oauth_spinner;
-    std::string m_oauth_token; // captured token JSON
+    std::string m_oauth_token;                           // captured token JSON
+    std::shared_ptr<bool> m_alive = std::make_shared<bool>(true); // authorize callback guard
 
     // Dynamic form fields
     struct FormField {

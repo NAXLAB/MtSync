@@ -201,6 +201,7 @@ void RcloneCli::authorize(const std::string& backend,
             auto end = text.find("<---");
             if (start != std::string::npos && end != std::string::npos) {
                 start += 4; // skip "--->"
+                if (start > end) return {};  // malformed — markers reversed or adjacent
                 auto token = text.substr(start, end - start);
                 // Trim whitespace
                 auto first = token.find_first_not_of(" \t\n\r");

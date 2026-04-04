@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.7 — Security Hardening
+- Fixed: deleting a job now disconnects its poll/schedule timers and removes it from all internal tracking vectors — previously stale timer callbacks could fire after deletion and reference the wrong job
+- Fixed: poll timer lambda now exits early if the job index is out of range or the job ID is unset — prevents stale callbacks after a job delete
+- Fixed: `rclone authorize` callback now uses a weak lifetime guard — no longer accesses the widget if it was destroyed while OAuth was in progress
+- Fixed: malformed rclone authorize output with reversed `-->` / `<--` markers no longer causes a size_t underflow in the token extraction
+
 ## 0.3.6 — Breadcrumb Bar Overflow Fix
 - File path bar no longer grows the main window when navigating into deep directories
 - Breadcrumbs are now clipped to their allocated space and scroll to show the deepest segment

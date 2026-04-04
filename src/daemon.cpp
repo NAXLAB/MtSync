@@ -133,7 +133,17 @@ SaddleDaemon::SaddleDaemon() {
             } else if (type_str == "delete_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
+                    // Disconnect timers and clean up all parallel vectors before erasing
+                    if (index < m_sched_timers.size()) m_sched_timers[index].disconnect();
+                    if (index < m_poll_timers.size())  m_poll_timers[index].disconnect();
+                    auto erase_at = [](auto& vec, size_t i) {
+                        if (i < vec.size()) vec.erase(vec.begin() + i);
+                    };
                     m_jobs.erase(m_jobs.begin() + index);
+                    erase_at(m_job_ids,      index);
+                    erase_at(m_poll_timers,  index);
+                    erase_at(m_last_stats,   index);
+                    erase_at(m_sched_timers, index);
                     save_jobs();
                     json response_payload = {{"index", index}};
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobDeleted, response_payload, msg));
@@ -378,6 +388,7 @@ void SaddleDaemon::on_run_job(size_t index) {
 
         m_poll_timers[index] = Glib::signal_timeout().connect(
             [this, index]() -> bool {
+                if (index >= m_job_ids.size() || m_job_ids[index] < 0) return false;
                 m_manager.rc().job_status(m_job_ids[index], [this, index](auto status) {
                     if (status.has_value() && status->finished) {
                         on_job_completed(index, status->success);

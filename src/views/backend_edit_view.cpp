@@ -294,7 +294,8 @@ void BackendEditView::on_authorize() {
     std::string backend = provider.prefix.empty() ? provider.name : provider.prefix;
 
     m_manager.cli().authorize(backend, client_id, client_secret,
-        [this](auto result) {
+        [this, weak_alive = std::weak_ptr<bool>(m_alive)](auto result) {
+            if (weak_alive.expired()) return;
             m_oauth_spinner.set_spinning(false);
             m_oauth_spinner.set_visible(false);
             m_authorize_btn.set_sensitive(true);
