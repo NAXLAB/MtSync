@@ -60,6 +60,7 @@ static void set_remote_icon(Gtk::Image* img, const std::string& type) {
     if (type == "crypt")   { img->set_from_icon_name("channel-secure-symbolic");    return; }
     if (type == "sftp" || type == "ftp" || type == "ftps")
                            { img->set_from_icon_name("utilities-terminal-symbolic"); return; }
+    if (type == "smb")     { img->set_from_icon_name("folder-remote-symbolic");     return; }
     img->set_from_icon_name("network-server-symbolic");
 }
 

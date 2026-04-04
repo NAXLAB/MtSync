@@ -20,5 +20,27 @@
     <file preprocess="xml-stripblanks">protondrive-dark.svg</file>
     <file preprocess="xml-stripblanks">internetarchive.svg</file>
     <file preprocess="xml-stripblanks">internetarchive-dark.svg</file>
+    <file preprocess="xml-stripblanks">gphotos.svg</file>
+    <file preprocess="xml-stripblanks">gphotos-dark.svg</file>
+    <file preprocess="xml-stripblanks">seafile.svg</file>
+    <file preprocess="xml-stripblanks">seafile-dark.svg</file>
+    <file preprocess="xml-stripblanks">zoho.svg</file>
+    <file preprocess="xml-stripblanks">zoho-dark.svg</file>
+    <file preprocess="xml-stripblanks">filen.svg</file>
+    <file preprocess="xml-stripblanks">filen-dark.svg</file>
+    <file preprocess="xml-stripblanks">swift.svg</file>
+    <file preprocess="xml-stripblanks">swift-dark.svg</file>
+    <file preprocess="xml-stripblanks">hdfs.svg</file>
+    <file preprocess="xml-stripblanks">hdfs-dark.svg</file>
+    <file preprocess="xml-stripblanks">sharefile.svg</file>
+    <file preprocess="xml-stripblanks">sharefile-dark.svg</file>
+    <file preprocess="xml-stripblanks">digitalocean.svg</file>
+    <file preprocess="xml-stripblanks">digitalocean-dark.svg</file>
+    <file preprocess="xml-stripblanks">wasabi.svg</file>
+    <file preprocess="xml-stripblanks">wasabi-dark.svg</file>
+    <file preprocess="xml-stripblanks">cloudflare.svg</file>
+    <file preprocess="xml-stripblanks">cloudflare-dark.svg</file>
+    <file preprocess="xml-stripblanks">hetzner.svg</file>
+    <file preprocess="xml-stripblanks">hetzner-dark.svg</file>
   </gresource>
 </gresources>

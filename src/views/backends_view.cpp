@@ -36,6 +36,7 @@ static const char* remote_type_symbolic(const std::string& type) {
     if (type == "sftp" ||
         type == "ftp"  ||
         type == "ftps") return "utilities-terminal-symbolic";
+    if (type == "smb") return "folder-remote-symbolic";
     return "network-server-symbolic";
 }
 

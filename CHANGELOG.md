@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.16 — Extended Provider Icons
+- Added Simple Icons SVGs for Google Photos, Seafile, Zoho WorkDrive, Filen, OpenStack Swift, Apache HDFS, Citrix ShareFile, DigitalOcean, Wasabi, Cloudflare, and Hetzner
+- SMB remotes now use `folder-remote-symbolic` instead of the generic terminal icon
+- Provider icons appear in both the Backends tab and the file manager remote dropdown
+
 ## 0.3.15 — Provider Icons
 - Remote type icons now use Simple Icons SVGs (Google Drive, Dropbox, Backblaze, MEGA, Box, Google Cloud, Proton Drive, Internet Archive) with symbolic fallbacks for all other types
 - Light and dark variants of each icon — dark mode shows white icons automatically
