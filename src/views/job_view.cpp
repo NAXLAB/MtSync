@@ -134,32 +134,34 @@ void JobView::rebuild_ui() {
     for (size_t i = 0; i < m_jobs.size(); ++i) {
         auto& job = m_jobs[i];
 
-        auto* row   = adw::action_row();
-        auto  title = job.source + " → " + job.destination;
-        adw::preferences_row_set_title(row, title.c_str());
+        auto* row = adw::preferences_row_new();
+        adw::preferences_row_set_title(row, job.id.c_str());
 
-        std::string subtitle = type_badge(job.type);
-        if (job.dry_run) subtitle += " [dry-run]";
-        if (job.schedule_enabled)
-            subtitle += " | " + cron::describe(job);
-        if (!job.last_run.empty())
-            subtitle += " | Last: " + job.last_run;
-        if (!job.last_status.empty())
-            subtitle += " (" + job.last_status + ")";
-        adw::action_row_set_subtitle(row, subtitle.c_str());
+        // Outer vertical container
+        auto* outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
+        outer->set_margin_top(10);
+        outer->set_margin_bottom(10);
+        outer->set_margin_start(12);
+        outer->set_margin_end(12);
+
+        // Header row: type badge | job id (expands) | buttons
+        auto* header = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+
+        auto* badge_label = Gtk::make_managed<Gtk::Label>(type_badge(job.type));
+        badge_label->add_css_class("caption");
+        badge_label->set_valign(Gtk::Align::CENTER);
+        header->append(*badge_label);
+
+        auto* id_label = Gtk::make_managed<Gtk::Label>(job.id);
+        id_label->add_css_class("heading");
+        id_label->set_halign(Gtk::Align::START);
+        id_label->set_hexpand(true);
+        header->append(*id_label);
+
+        auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
 
         JobUI ui;
         ui.row = row;
-
-        ui.progress = std::make_unique<Gtk::ProgressBar>();
-        ui.progress->set_visible(false);
-        ui.progress->set_valign(Gtk::Align::CENTER);
-        ui.progress->set_size_request(120, -1);
-
-        ui.status_label = std::make_unique<Gtk::Label>();
-        ui.status_label->set_visible(false);
-        ui.status_label->set_valign(Gtk::Align::CENTER);
-        ui.status_label->add_css_class("dim-label");
 
         ui.run_btn = std::make_unique<Gtk::Button>();
         ui.run_btn->set_icon_name("media-playback-start-symbolic");
@@ -174,19 +176,6 @@ void JobView::rebuild_ui() {
         ui.stop_btn->set_visible(false);
         ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
 
-        // For mount jobs, reflect active state in UI
-        if (job.type == rclone::JobType::Mount) {
-            if (job.active) {
-                ui.run_btn->set_visible(false);
-                ui.stop_btn->set_visible(true);
-                ui.status_label->set_text("Mounted");
-                ui.status_label->set_visible(true);
-            } else {
-                ui.run_btn->set_visible(true);
-                ui.stop_btn->set_visible(false);
-            }
-        }
-
         ui.edit_btn = std::make_unique<Gtk::Button>();
         ui.edit_btn->set_icon_name("document-edit-symbolic");
         ui.edit_btn->set_valign(Gtk::Align::CENTER);
@@ -199,12 +188,55 @@ void JobView::rebuild_ui() {
         ui.del_btn->add_css_class("flat");
         ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
 
-        adw::action_row_add_suffix(row, ui.status_label.get());
-        adw::action_row_add_suffix(row, ui.progress.get());
-        adw::action_row_add_suffix(row, ui.run_btn.get());
-        adw::action_row_add_suffix(row, ui.stop_btn.get());
-        adw::action_row_add_suffix(row, ui.edit_btn.get());
-        adw::action_row_add_suffix(row, ui.del_btn.get());
+        btn_box->append(*ui.run_btn);
+        btn_box->append(*ui.stop_btn);
+        btn_box->append(*ui.edit_btn);
+        btn_box->append(*ui.del_btn);
+        header->append(*btn_box);
+        outer->append(*header);
+
+        // Source and destination labels
+        auto* src_label = Gtk::make_managed<Gtk::Label>("Source: " + job.source);
+        src_label->set_halign(Gtk::Align::START);
+        src_label->add_css_class("caption");
+        src_label->add_css_class("dim-label");
+        outer->append(*src_label);
+
+        auto* dst_label = Gtk::make_managed<Gtk::Label>("Destination: " + job.destination);
+        dst_label->set_halign(Gtk::Align::START);
+        dst_label->add_css_class("caption");
+        dst_label->add_css_class("dim-label");
+        outer->append(*dst_label);
+
+        // Progress bar — only visible while a job is running
+        ui.progress = std::make_unique<Gtk::ProgressBar>();
+        ui.progress->set_fraction(0.0);
+        ui.progress->set_hexpand(true);
+        ui.progress->set_visible(false);
+        outer->append(*ui.progress);
+
+        // Status label — shown when there is something to report
+        ui.status_label = std::make_unique<Gtk::Label>();
+        ui.status_label->set_halign(Gtk::Align::START);
+        ui.status_label->add_css_class("caption");
+        ui.status_label->add_css_class("dim-label");
+        if (!job.last_status.empty()) {
+            ui.status_label->set_text("Last run: " + job.last_status);
+            ui.status_label->set_visible(true);
+        } else {
+            ui.status_label->set_visible(false);
+        }
+        outer->append(*ui.status_label);
+
+        // For mount jobs, reflect active state in UI
+        if (job.type == rclone::JobType::Mount && job.active) {
+            ui.run_btn->set_visible(false);
+            ui.stop_btn->set_visible(true);
+            ui.status_label->set_text("Mounted");
+            ui.status_label->set_visible(true);
+        }
+
+        gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row->gobj()), GTK_WIDGET(outer->gobj()));
 
         adw::preferences_group_add(m_prefs_group, row);
         m_ui_rows.push_back(std::move(ui));
@@ -290,8 +322,8 @@ void JobView::on_run_job(size_t index) {
 
     ui.run_btn->set_visible(false);
     ui.stop_btn->set_visible(true);
-    ui.progress->set_visible(true);
     ui.progress->set_fraction(0.0);
+    ui.progress->set_visible(true);
     ui.status_label->set_visible(true);
     ui.status_label->set_text("Starting...");
 
@@ -348,6 +380,7 @@ void JobView::on_stop_job(size_t index) {
         }
         m_ui_rows[index].run_btn->set_visible(true);
         m_ui_rows[index].stop_btn->set_visible(false);
+        m_ui_rows[index].progress->set_fraction(0.0);
         m_ui_rows[index].progress->set_visible(false);
     });
 }
@@ -403,6 +436,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         if (index < m_ui_rows.size()) {
             m_ui_rows[index].run_btn->set_visible(false);
             m_ui_rows[index].stop_btn->set_visible(true);
+            m_ui_rows[index].progress->set_fraction(0.0);
             m_ui_rows[index].progress->set_visible(true);
             m_ui_rows[index].status_label->set_visible(true);
             m_ui_rows[index].status_label->set_text("Starting...");
@@ -434,6 +468,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
+            ui.progress->set_fraction(0.0);
             ui.progress->set_visible(false);
 
             auto now = Glib::DateTime::create_now_local().format_iso8601();
@@ -470,6 +505,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
+            ui.progress->set_fraction(0.0);
             ui.progress->set_visible(false);
 
             bool is_mount = (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount);

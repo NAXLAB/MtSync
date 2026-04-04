@@ -141,6 +141,11 @@ inline void preferences_group_set_header_suffix(Gtk::Widget* group, Gtk::Widget*
 
 // --- Preferences Row (base class for all row types) ---
 
+inline Gtk::Widget* preferences_row_new() {
+    auto* w = adw_preferences_row_new();
+    return Glib::wrap(GTK_WIDGET(w));
+}
+
 inline void preferences_row_set_title(Gtk::Widget* row, const char* title) {
     adw_preferences_row_set_title(ADW_PREFERENCES_ROW(row->gobj()), title);
 }

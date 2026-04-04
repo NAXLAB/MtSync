@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 — Progress Bar Visibility
+- Progress bar in the job list is now hidden when a job is inactive
+- Progress bar appears only while a job is running and is hidden again on completion or stop
+
 ## 0.3.2 — Job Dialog Improvements & Coloured File Icons
 - Scheduling off: shows **Run Now** + **Save** buttons; scheduling on: shows **Schedule** only
 - Cron fields section is now hidden entirely when scheduling is disabled (previously greyed out)
