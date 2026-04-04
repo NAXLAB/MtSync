@@ -132,12 +132,15 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 - Each pane: remote dropdown, breadcrumb nav, back history, `Gtk::ColumnView` (Name/Size/Modified), hidden-files toggle, status bar (file/folder counts + total size)
 - Active pane tracked with accent stripe; multi-selection supported
 - Copy/Move/Sync/Mount action bar buttons; Copy and Move pass selected files as `--include` filters
+- Swap button physically exchanges the remote and path between panes (navigation history swapped too)
 - New Folder popover; Delete via `AdwAlertDialog` confirmation
 
 ### Tab 2: Jobs
-- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`), type badge [SYNC]/[COPY]/[MOVE]/[MOUNT]
+- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`)
+- Each job row shows: type icon (symbolic), `SourceDir → DestDir` display name derived from the last path component of source and destination, source/destination full paths, progress bar (visible while running), footer with UUID left and last status right
+- Activity log panel at the bottom of the tab (auto-scrolling, persisted to `~/.local/state/saddle/saddle.log`)
 - Run/Stop per job; live progress (bytes, speed, ETA) via polling `core/stats` + `job/status`
-- **JobEditDialog**: source, destination, job type, cron schedule (five fields + human-readable summary), "Mount at Start-up" option for mount jobs
+- **JobEditDialog**: source, destination, job type, file filter patterns (space-separated `--include` patterns), cron schedule (five fields + human-readable summary), "Mount at Start-up" option for mount jobs; bi-directional sync toggle for Sync jobs
 
 ### Tab 3: Remotes
 - **BackendsView**: `AdwPreferencesGroup` with `AdwActionRow` per remote; "Add Remote" pushes BackendEditView via `AdwNavigationView`
@@ -166,7 +169,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.1.5 LANGUAGES CXX)
+project(Saddle VERSION 0.3.11 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

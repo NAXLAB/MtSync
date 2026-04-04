@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.11 — Job Row Display
+- Job title now shows `SourceDir → DestDir` (last path component of each) instead of the raw UUID
+- Footer line of each job row now shows the UUID left-justified and the status text right-justified
+
 ## 0.3.10 — Job Type Icons
 - Job rows in the Jobs tab now show the job type as a symbolic icon instead of a text badge (`[SYNC]`, `[COPY]`, etc.)
 - Icons match those used on the Copy/Move/Sync/Mount buttons in the browse tab action bar

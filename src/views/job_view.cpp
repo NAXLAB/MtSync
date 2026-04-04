@@ -33,6 +33,26 @@ namespace fs = std::filesystem;
 
 namespace {
 
+std::string last_path_component(const std::string& rclone_path) {
+    auto colon = rclone_path.find(':');
+    std::string path_part = (colon != std::string::npos)
+        ? rclone_path.substr(colon + 1)
+        : rclone_path;
+
+    // Strip trailing slashes
+    while (path_part.size() > 1 && path_part.back() == '/')
+        path_part.pop_back();
+
+    if (path_part.empty())
+        return (colon != std::string::npos) ? rclone_path.substr(0, colon) : "/";
+
+    return fs::path(path_part).filename().string();
+}
+
+std::string job_display_name(const rclone::Job& job) {
+    return last_path_component(job.source) + " → " + last_path_component(job.destination);
+}
+
 const char* type_icon(rclone::JobType t) {
     switch (t) {
         case rclone::JobType::Sync:  return "emblem-synchronizing-symbolic";
@@ -168,7 +188,7 @@ void JobView::rebuild_ui() {
         auto& job = m_jobs[i];
 
         auto* row = adw::preferences_row_new();
-        adw::preferences_row_set_title(row, job.id.c_str());
+        adw::preferences_row_set_title(row, job_display_name(job).c_str());
 
         // Outer vertical container
         auto* outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
@@ -186,7 +206,7 @@ void JobView::rebuild_ui() {
         type_img->set_valign(Gtk::Align::CENTER);
         header->append(*type_img);
 
-        auto* id_label = Gtk::make_managed<Gtk::Label>(job.id);
+        auto* id_label = Gtk::make_managed<Gtk::Label>(job_display_name(job));
         id_label->add_css_class("heading");
         id_label->set_halign(Gtk::Align::START);
         id_label->set_hexpand(true);
@@ -249,9 +269,18 @@ void JobView::rebuild_ui() {
         ui.progress->set_visible(false);
         outer->append(*ui.progress);
 
-        // Status label — shown when there is something to report
+        // Footer row: UUID (left) | status (right)
+        auto* footer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+
+        auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
+        uuid_label->set_halign(Gtk::Align::START);
+        uuid_label->set_hexpand(true);
+        uuid_label->add_css_class("caption");
+        uuid_label->add_css_class("dim-label");
+        footer->append(*uuid_label);
+
         ui.status_label = std::make_unique<Gtk::Label>();
-        ui.status_label->set_halign(Gtk::Align::START);
+        ui.status_label->set_halign(Gtk::Align::END);
         ui.status_label->add_css_class("caption");
         ui.status_label->add_css_class("dim-label");
         if (!job.last_status.empty()) {
@@ -260,7 +289,8 @@ void JobView::rebuild_ui() {
         } else {
             ui.status_label->set_visible(false);
         }
-        outer->append(*ui.status_label);
+        footer->append(*ui.status_label);
+        outer->append(*footer);
 
         // For mount jobs, reflect active state in UI
         if (job.type == rclone::JobType::Mount && job.active) {

@@ -13,6 +13,6 @@
 
 ## Next
 
-- [ ] Job progress real-time updates
-- [ ] Mount active state tracking
-- [ ] Periodic job list refresh
+- [x] Job progress real-time updates
+- [x] Mount active state tracking
+- [x] Periodic job list refresh
