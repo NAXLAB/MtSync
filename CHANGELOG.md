@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4 — Job Activity Log
+- Job execution results are now written to `~/.local/state/saddle/saddle.log`
+- Each job logs a STARTED line and a COMPLETED line (with file count, bytes transferred, and speed for sync/copy/move jobs)
+- Mount jobs log success or failure with error message
+- Jobs tab now shows an **Activity Log** panel at the bottom, displaying the log file contents and auto-scrolling to the latest entry
+
 ## 0.3.3 — Progress Bar Visibility
 - Progress bar in the job list is now hidden when a job is inactive
 - Progress bar appears only while a job is running and is hidden again on completion or stop

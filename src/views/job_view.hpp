@@ -43,6 +43,10 @@ private:
     Gtk::ScrolledWindow m_scroll;
     Gtk::Widget*        m_prefs_group    = nullptr;
 
+    Gtk::ScrolledWindow              m_log_scroll;
+    Gtk::TextView*                   m_log_view   = nullptr;
+    Glib::RefPtr<Gtk::TextBuffer>    m_log_buffer;
+
     std::vector<rclone::Job> m_jobs;
     std::string              m_config_path;
 
@@ -69,6 +73,7 @@ private:
     void on_run_job(size_t index);
     void on_stop_job(size_t index);
     void on_delete_job(size_t index);
+    void refresh_log();
     std::string format_speed(double bytes_per_sec);
     void on_daemon_message(const nlohmann::json& msg);
 };

@@ -59,6 +59,7 @@ private:
     std::vector<sigc::connection> m_poll_timers;
     std::vector<sigc::connection> m_sched_timers;
     std::vector<int64_t> m_job_ids;
+    std::vector<rclone::SyncStats> m_last_stats;
 
     bool m_running = true;
 };

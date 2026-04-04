@@ -23,6 +23,7 @@
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <format>
 
 namespace saddle {
@@ -84,7 +85,39 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         }, 10000);
     }
 
-    signal_map().connect([this]() { load_jobs(); rebuild_ui(); });
+    // Log section
+    auto* separator = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::HORIZONTAL);
+    append(*separator);
+
+    auto* log_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 0);
+
+    auto* log_header = Gtk::make_managed<Gtk::Label>("Activity Log");
+    log_header->set_halign(Gtk::Align::START);
+    log_header->add_css_class("caption");
+    log_header->add_css_class("dim-label");
+    log_header->set_margin_start(12);
+    log_header->set_margin_top(6);
+    log_header->set_margin_bottom(4);
+    log_box->append(*log_header);
+
+    m_log_buffer = Gtk::TextBuffer::create();
+    m_log_view = Gtk::make_managed<Gtk::TextView>(m_log_buffer);
+    m_log_view->set_editable(false);
+    m_log_view->set_cursor_visible(false);
+    m_log_view->set_wrap_mode(Gtk::WrapMode::NONE);
+    m_log_view->add_css_class("monospace");
+    m_log_view->set_margin_start(6);
+    m_log_view->set_margin_end(6);
+    m_log_view->set_margin_bottom(6);
+
+    m_log_scroll.set_child(*m_log_view);
+    m_log_scroll.set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
+    m_log_scroll.set_size_request(-1, 160);
+    log_box->append(m_log_scroll);
+
+    append(*log_box);
+
+    signal_map().connect([this]() { load_jobs(); rebuild_ui(); refresh_log(); });
 }
 
 JobView::~JobView() {
@@ -410,6 +443,20 @@ std::string JobView::format_speed(double bytes_per_sec) {
     return std::format("{:.1f} GB/s", bytes_per_sec / (1024.0 * 1024 * 1024));
 }
 
+void JobView::refresh_log() {
+    auto path = fs::path(g_get_user_state_dir()) / "saddle" / "saddle.log";
+    std::ifstream f(path);
+    if (!f) {
+        m_log_buffer->set_text("(no log entries yet)");
+        return;
+    }
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    m_log_buffer->set_text(ss.str());
+    m_log_buffer->place_cursor(m_log_buffer->end());
+    m_log_view->scroll_to(m_log_buffer->get_insert());
+}
+
 void JobView::on_daemon_message(const nlohmann::json& msg) {
     auto type = msg.value("type", "");
     auto payload = msg.value("payload", json{});
@@ -441,6 +488,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             m_ui_rows[index].status_label->set_visible(true);
             m_ui_rows[index].status_label->set_text("Starting...");
         }
+        refresh_log();
     } else if (type == "job_progress") {
         auto index = payload.value("index", 0);
         if (index >= m_ui_rows.size()) return;
@@ -499,6 +547,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
                 ui.stop_btn->set_visible(false);
             }
             save_jobs();
+            refresh_log();
         }
     } else if (type == "job_stopped") {
         auto index = payload.value("index", 0);
@@ -512,6 +561,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             ui.status_label->set_text(is_mount ? "Unmounted" : "Stopped");
             ui.run_btn->set_visible(true);
             ui.stop_btn->set_visible(false);
+            refresh_log();
         }
     }
 }

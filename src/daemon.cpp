@@ -39,6 +39,39 @@ json make_response(saddle::ipc::ResponseType type, const json& payload,
     return resp;
 }
 
+const char* type_str(rclone::JobType t) {
+    switch (t) {
+        case rclone::JobType::Sync:  return "SYNC";
+        case rclone::JobType::Copy:  return "COPY";
+        case rclone::JobType::Move:  return "MOVE";
+        case rclone::JobType::Mount: return "MOUNT";
+    }
+    return "?";
+}
+
+std::string format_bytes(int64_t bytes) {
+    if (bytes < 1024) return std::format("{} B", bytes);
+    if (bytes < 1024 * 1024) return std::format("{:.1f} KB", bytes / 1024.0);
+    if (bytes < 1024LL * 1024 * 1024) return std::format("{:.1f} MB", bytes / (1024.0 * 1024));
+    return std::format("{:.2f} GB", bytes / (1024.0 * 1024 * 1024));
+}
+
+std::string format_speed(double bps) {
+    if (bps < 1024) return std::format("{:.0f} B/s", bps);
+    if (bps < 1024 * 1024) return std::format("{:.1f} KB/s", bps / 1024);
+    if (bps < 1024 * 1024 * 1024) return std::format("{:.1f} MB/s", bps / (1024.0 * 1024));
+    return std::format("{:.1f} GB/s", bps / (1024.0 * 1024 * 1024));
+}
+
+void append_log(const std::string& line) {
+    auto dir = fs::path(g_get_user_state_dir()) / "saddle";
+    fs::create_directories(dir);
+    std::ofstream f(dir / "saddle.log", std::ios::app);
+    if (!f) return;
+    auto ts = Glib::DateTime::create_now_local().format_iso8601();
+    f << "[" << ts.raw() << "] " << line << "\n";
+}
+
 } // namespace
 
 namespace saddle {
@@ -281,6 +314,9 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
 
+    append_log(std::format("STARTED   {} [{}] {} -> {}",
+        job.id, type_str(job.type), job.source, job.destination));
+
     if (job.type == rclone::JobType::Mount) {
         m_jobs[index].active = true;
         json response_payload = {{"index", index}};
@@ -292,10 +328,16 @@ void SaddleDaemon::on_run_job(size_t index) {
                     response_payload["success"] = true;
                     if (index < m_jobs.size()) m_jobs[index].active = true;
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+                    if (index < m_jobs.size())
+                        append_log(std::format("COMPLETED {} [MOUNT] SUCCESS",
+                            m_jobs[index].id));
                 } else {
                     response_payload["success"] = false;
                     if (index < m_jobs.size()) m_jobs[index].active = false;
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+                    if (index < m_jobs.size())
+                        append_log(std::format("COMPLETED {} [MOUNT] FAILED -- {}",
+                            m_jobs[index].id, result.error()));
                     g_warning("Mount %zu failed: %s", index, result.error().c_str());
                 }
             });
@@ -331,9 +373,8 @@ void SaddleDaemon::on_run_job(size_t index) {
         m_job_ids[index] = result.value();
 
         // Start polling for progress
-        if (index >= m_poll_timers.size()) {
-            m_poll_timers.resize(index + 1);
-        }
+        if (index >= m_poll_timers.size()) m_poll_timers.resize(index + 1);
+        if (index >= m_last_stats.size()) m_last_stats.resize(index + 1);
 
         m_poll_timers[index] = Glib::signal_timeout().connect(
             [this, index]() -> bool {
@@ -346,6 +387,7 @@ void SaddleDaemon::on_run_job(size_t index) {
                 m_manager.rc().get_stats([this, index](auto result) {
                     if (!result.has_value()) return;
                     auto& stats = result.value();
+                    if (index < m_last_stats.size()) m_last_stats[index] = stats;
                     if (stats.bytes == 0 && stats.total_bytes == 0 && stats.transfers == 0) return;
                     json response_payload = {
                         {"index", index},
@@ -395,6 +437,16 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
 
         json response_payload = {{"index", index}, {"success", success}};
         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+
+        if (index < m_last_stats.size()) {
+            auto& s = m_last_stats[index];
+            std::string detail = success
+                ? std::format("SUCCESS -- {} files, {}, {}",
+                    s.transfers, format_bytes(s.bytes), format_speed(s.speed))
+                : "FAILED";
+            append_log(std::format("COMPLETED {} [{}] {}",
+                job.id, type_str(job.type), detail));
+        }
 
         std::string title = success ? "Sync Complete" : "Sync Failed";
         std::string body = job.source + " → " + job.destination;
