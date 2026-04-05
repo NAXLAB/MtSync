@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.3.23 LANGUAGES C CXX)
+project(Saddle VERSION 0.3.24 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,6 +10,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 pkg_check_modules(ADWAITA REQUIRED IMPORTED_TARGET libadwaita-1)
 pkg_check_modules(SOUP REQUIRED IMPORTED_TARGET libsoup-3.0)
+pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET cairo)
 find_package(nlohmann_json 3.2 REQUIRED)
 
 # Compile GLib resources into a generated C file
@@ -67,6 +68,7 @@ target_link_libraries(saddle PRIVATE
     PkgConfig::GTKMM
     PkgConfig::ADWAITA
     PkgConfig::SOUP
+    PkgConfig::CAIRO
     nlohmann_json::nlohmann_json
 )
 

@@ -338,6 +338,8 @@ void SaddleDaemon::on_run_job(size_t index) {
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 
+    m_tray->start_animation();
+
     if (job.type == rclone::JobType::Mount) {
         m_jobs[index].active = true;
         json response_payload = {{"index", index}};
@@ -506,6 +508,19 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
     }
 
     m_tray->set_attention(success);
+
+    if (!any_job_running())
+        m_tray->stop_animation();
+}
+
+bool SaddleDaemon::any_job_running() const {
+    for (size_t i = 0; i < m_jobs.size(); ++i) {
+        if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].active)
+            return true;
+        if (i < m_job_ids.size() && m_job_ids[i] >= 0)
+            return true;
+    }
+    return false;
 }
 
 } // namespace saddle

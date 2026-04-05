@@ -17,6 +17,10 @@
  */
 
 #include "tray.hpp"
+#include <cairo/cairo.h>
+#include <glibmm/main.h>
+#include <cmath>
+#include <cstring>
 
 namespace {
 
@@ -94,15 +98,19 @@ static GVariant* handle_get_prop_sni(GDBusConnection*, const gchar*, const gchar
     if (g_strcmp0(prop, "WindowId") == 0)
         return g_variant_new_uint32(0);
     if (g_strcmp0(prop, "IconName") == 0)
-        return g_variant_new_string(SNI_ICON);
+        return g_variant_new_string(g_tray && g_tray->is_animating() ? "" : SNI_ICON);
     if (g_strcmp0(prop, "OverlayIconName") == 0)
         return g_variant_new_string("");
     if (g_strcmp0(prop, "AttentionIconName") == 0)
         return g_variant_new_string(SNI_ICON);
     if (g_strcmp0(prop, "AttentionMovieName") == 0)
         return g_variant_new_string("");
-    if (g_strcmp0(prop, "IconPixmap") == 0 ||
-        g_strcmp0(prop, "OverlayIconPixmap") == 0 ||
+    if (g_strcmp0(prop, "IconPixmap") == 0) {
+        if (g_tray && g_tray->is_animating())
+            return g_tray->frame_pixmap();
+        return g_variant_new("a(iiay)", nullptr);
+    }
+    if (g_strcmp0(prop, "OverlayIconPixmap") == 0 ||
         g_strcmp0(prop, "AttentionIconPixmap") == 0)
         return g_variant_new("a(iiay)", nullptr);
     if (g_strcmp0(prop, "ItemIsMenu") == 0)
@@ -444,6 +452,7 @@ namespace saddle {
 
 TrayIcon::TrayIcon() {
     g_tray = this;
+    build_frames();
 
     m_owner_id = g_bus_own_name(
         G_BUS_TYPE_SESSION,
@@ -476,6 +485,103 @@ void TrayIcon::set_tooltip(const std::string& text) {
     g_dbus_connection_emit_signal(m_connection, nullptr,
         SADDLE_SNI_PATH, SNI_IFACE, "NewToolTip", nullptr, &err);
     if (err) { g_warning("Tray: NewToolTip: %s", err->message); g_error_free(err); }
+}
+
+void TrayIcon::build_frames() {
+    for (int frame = 0; frame < ANIM_FRAMES; ++frame) {
+        auto* surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ICON_SIZE, ICON_SIZE);
+        auto* cr   = cairo_create(surf);
+        cairo_set_source_rgba(cr, 0, 0, 0, 0);
+        cairo_paint(cr);
+
+        for (int seg = 0; seg < ANIM_FRAMES; ++seg) {
+            int dist    = (frame - seg + ANIM_FRAMES) % ANIM_FRAMES;
+            double a    = 1.0 - dist * (0.85 / ANIM_FRAMES);
+            double angle = seg * (2.0 * M_PI / ANIM_FRAMES) - M_PI / 2.0;
+
+            cairo_save(cr);
+            cairo_translate(cr, ICON_SIZE / 2.0, ICON_SIZE / 2.0);
+            cairo_rotate(cr, angle);
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, a);
+            const double rx = -1.0, ry = 4.0, rw = 2.0, rh = 4.0, rc = 1.0;
+            cairo_new_path(cr);
+            cairo_arc(cr, rx+rc,    ry+rc,    rc,  M_PI,    -M_PI/2);
+            cairo_arc(cr, rx+rw-rc, ry+rc,    rc, -M_PI/2,  0);
+            cairo_arc(cr, rx+rw-rc, ry+rh-rc, rc,  0,       M_PI/2);
+            cairo_arc(cr, rx+rc,    ry+rh-rc, rc,  M_PI/2,  M_PI);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+            cairo_restore(cr);
+        }
+
+        cairo_surface_flush(surf);
+        unsigned char* px = cairo_image_surface_get_data(surf);
+        int stride        = cairo_image_surface_get_stride(surf);
+
+        m_frames[frame].resize(ICON_SIZE * ICON_SIZE * 4);
+        for (int y = 0; y < ICON_SIZE; ++y) {
+            for (int x = 0; x < ICON_SIZE; ++x) {
+                uint32_t p; std::memcpy(&p, px + y * stride + x * 4, 4);
+                int i = (y * ICON_SIZE + x) * 4;
+                m_frames[frame][i+0] = (p >> 24) & 0xFF; // A
+                m_frames[frame][i+1] = (p >> 16) & 0xFF; // R
+                m_frames[frame][i+2] = (p >>  8) & 0xFF; // G
+                m_frames[frame][i+3] = (p >>  0) & 0xFF; // B
+            }
+        }
+        cairo_destroy(cr);
+        cairo_surface_destroy(surf);
+    }
+}
+
+GVariant* TrayIcon::frame_pixmap() const {
+    GVariantBuilder b;
+    g_variant_builder_init(&b, G_VARIANT_TYPE("a(iiay)"));
+    g_variant_builder_open(&b, G_VARIANT_TYPE("(iiay)"));
+    g_variant_builder_add(&b, "i", ICON_SIZE);
+    g_variant_builder_add(&b, "i", ICON_SIZE);
+    GVariantBuilder bytes;
+    g_variant_builder_init(&bytes, G_VARIANT_TYPE("ay"));
+    for (uint8_t byte : m_frames[m_anim_frame])
+        g_variant_builder_add(&bytes, "y", byte);
+    g_variant_builder_add_value(&b, g_variant_builder_end(&bytes));
+    g_variant_builder_close(&b);
+    return g_variant_builder_end(&b);
+}
+
+void TrayIcon::start_animation() {
+    if (m_animating) return;
+    m_animating  = true;
+    m_anim_frame = 0;
+    m_anim_timer = Glib::signal_timeout().connect([this]() -> bool {
+        m_anim_frame = (m_anim_frame + 1) % ANIM_FRAMES;
+        if (m_connection) {
+            GError* err = nullptr;
+            g_dbus_connection_emit_signal(m_connection, nullptr,
+                SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+            if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
+        }
+        return true;
+    }, ANIM_INTERVAL_MS);
+    if (m_connection) {
+        GError* err = nullptr;
+        g_dbus_connection_emit_signal(m_connection, nullptr,
+            SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+        if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
+    }
+}
+
+void TrayIcon::stop_animation() {
+    if (!m_animating) return;
+    m_anim_timer.disconnect();
+    m_animating  = false;
+    m_anim_frame = 0;
+    if (m_connection) {
+        GError* err = nullptr;
+        g_dbus_connection_emit_signal(m_connection, nullptr,
+            SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+        if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
+    }
 }
 
 void TrayIcon::set_attention(bool attention) {

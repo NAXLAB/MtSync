@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.24 — Animated Tray Icon
+- Tray icon now shows a rotating spinner while any job is in progress
+- Animation stops and the static icon is restored when all job activity has finished
+- Uses Cairo-rendered 8-frame spinner delivered via SNI `IconPixmap`
+
 ## 0.3.23 — Job Dialog Auto-resize
 - Job add/edit dialog now shrinks correctly when switching to Mount type (which hides several fields)
 - Dialog also shrinks when the Advanced Options expander is collapsed

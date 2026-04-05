@@ -22,6 +22,8 @@
 #include <gio/gio.h>
 #include <sigc++/sigc++.h>
 #include <string>
+#include <array>
+#include <vector>
 
 namespace saddle {
 
@@ -33,14 +35,30 @@ public:
     void set_tooltip(const std::string& text);
     void set_attention(bool attention);
 
+    void start_animation();
+    void stop_animation();
+    bool is_animating() const { return m_animating; }
+    GVariant* frame_pixmap() const;
+
     sigc::signal<void()>& signal_show_window() { return m_signal_show_window; }
     sigc::signal<void()>& signal_quit() { return m_signal_quit; }
 
 private:
+    static constexpr int   ANIM_FRAMES      = 8;
+    static constexpr int   ICON_SIZE        = 22;
+    static constexpr guint ANIM_INTERVAL_MS = 100;
+
+    void build_frames();
+
     guint m_owner_id = 0;
 
     sigc::signal<void()> m_signal_show_window;
     sigc::signal<void()> m_signal_quit;
+
+    int              m_anim_frame = 0;
+    bool             m_animating  = false;
+    sigc::connection m_anim_timer;
+    std::array<std::vector<uint8_t>, ANIM_FRAMES> m_frames;
 
 public:
     GDBusConnection* m_connection = nullptr;
