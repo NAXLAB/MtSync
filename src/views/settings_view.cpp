@@ -116,6 +116,12 @@ void SettingsView::setup_ui() {
         std::format("{}", m_settings.parallel_transfers).c_str());
     adw::preferences_group_add(transfers_group, m_transfers_row);
 
+    m_retries_row = adw::entry_row();
+    adw::preferences_row_set_title(m_retries_row, "Retries on failure");
+    adw::entry_row_set_text(m_retries_row,
+        std::format("{}", m_settings.retries).c_str());
+    adw::preferences_group_add(transfers_group, m_retries_row);
+
     // ── rclone ────────────────────────────────────────────────────────────────
     auto* rclone_group = adw::preferences_group();
     adw::preferences_group_set_title(rclone_group, "rclone");
@@ -184,6 +190,16 @@ void SettingsView::setup_ui() {
             try {
                 int v = std::stoi(adw::entry_row_get_text(self->m_transfers_row));
                 if (v > 0) self->m_settings.parallel_transfers = v;
+            } catch (...) {}
+            self->save();
+        }), this);
+
+    g_signal_connect(m_retries_row->gobj(), "changed",
+        G_CALLBACK(+[](GtkEditable*, gpointer data) {
+            auto* self = static_cast<SettingsView*>(data);
+            try {
+                int v = std::stoi(adw::entry_row_get_text(self->m_retries_row));
+                if (v >= 0) self->m_settings.retries = v;
             } catch (...) {}
             self->save();
         }), this);

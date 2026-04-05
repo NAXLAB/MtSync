@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.22 — Job Retry Support
+- New **Retries on failure** setting in Settings → Transfers (default 0)
+- Failed jobs are automatically retried up to the configured number of times before being marked as failed
+- Each retry attempt is recorded in the activity log as `RETRYING … attempt k/N`
+- Per-job retry count can be overridden in the job add/edit dialog under **Advanced Options**; defaults to the global setting
+
 ## 0.3.21 — Concurrent Job Protection
 - Scheduled jobs now skip execution if the previous instance of the same job is still running
 - Skipped attempts are recorded in the activity log as `SKIPPED … previous instance still running`

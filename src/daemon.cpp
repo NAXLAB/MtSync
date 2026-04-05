@@ -458,9 +458,26 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
         m_job_ids[index] = -1;
     }
 
+    if (!success && index < m_jobs.size()) {
+        int max_retries = (m_jobs[index].retries >= 0)
+            ? m_jobs[index].retries
+            : load_settings().retries;
+        if (index >= m_retry_counts.size()) m_retry_counts.resize(index + 1, 0);
+        if (m_retry_counts[index] < max_retries) {
+            m_retry_counts[index]++;
+            append_log(std::format("RETRYING  {} [{}] attempt {}/{}",
+                m_jobs[index].id, type_str(m_jobs[index].type),
+                m_retry_counts[index], max_retries));
+            on_run_job(index);
+            return;
+        }
+        m_retry_counts[index] = 0;
+    }
+
     auto now = Glib::DateTime::create_now_local().format_iso8601();
     if (index < m_jobs.size()) {
         auto& job = m_jobs[index];
+        if (index < m_retry_counts.size()) m_retry_counts[index] = 0;
         job.active = false;
         job.last_status = success ? "success" : "error";
         job.last_run = now;

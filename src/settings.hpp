@@ -35,13 +35,14 @@ struct Settings {
     std::string default_bandwidth     = "";
     bool        verify_checksums      = false;
     int         parallel_transfers    = 4;
+    int         retries               = 0;
     // rclone
     std::string rclone_path           = "";
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings,
     start_daemon_on_login, start_minimized, shutdown_daemon_on_close,
-    default_bandwidth, verify_checksums, parallel_transfers,
+    default_bandwidth, verify_checksums, parallel_transfers, retries,
     rclone_path)
 
 inline std::filesystem::path settings_file_path() {

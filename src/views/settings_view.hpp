@@ -38,6 +38,7 @@ private:
     Gtk::Widget* m_bandwidth_row   = nullptr;
     Gtk::Widget* m_checksums_row   = nullptr;
     Gtk::Widget* m_transfers_row   = nullptr;
+    Gtk::Widget* m_retries_row     = nullptr;
     // rclone
     Gtk::Widget* m_rclone_path_row = nullptr;
 

@@ -185,6 +185,14 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         adw::entry_row_set_text(m_parallel_transfers_entry,
             std::format("{}", pt_val).c_str());
         adw::expander_row_add_row(m_advanced_row, m_parallel_transfers_entry);
+
+        int r_val = (m_editing && m_editing->retries >= 0)
+                    ? m_editing->retries
+                    : settings.retries;
+        m_retries_entry = adw::entry_row();
+        adw::preferences_row_set_title(m_retries_entry, "Retries on Failure");
+        adw::entry_row_set_text(m_retries_entry, std::format("{}", r_val).c_str());
+        adw::expander_row_add_row(m_advanced_row, m_retries_entry);
     }
 
     // Mount at Start-up (only visible when type is Mount)
@@ -338,6 +346,8 @@ void JobEditDialog::on_commit() {
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
     try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
     catch (...) { job.parallel_transfers = -1; }
+    try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
+    catch (...) { job.retries = -1; }
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
     job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
@@ -377,6 +387,8 @@ void JobEditDialog::on_save() {
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
     try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
     catch (...) { job.parallel_transfers = -1; }
+    try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
+    catch (...) { job.retries = -1; }
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
     job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
