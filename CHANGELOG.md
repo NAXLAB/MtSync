@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.23 — Job Dialog Auto-resize
+- Job add/edit dialog now shrinks correctly when switching to Mount type (which hides several fields)
+- Dialog also shrinks when the Advanced Options expander is collapsed
+
 ## 0.3.22 — Job Retry Support
 - New **Retries on failure** setting in Settings → Transfers (default 0)
 - Failed jobs are automatically retried up to the configured number of times before being marked as failed

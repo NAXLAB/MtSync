@@ -288,6 +288,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             self->m_dry_run_switch->set_visible(sel != 3);            // Not for Mount
             self->m_enable_checksum_switch->set_visible(sel != 3);    // Not for Mount
             self->m_advanced_row->set_visible(sel != 3);              // Not for Mount
+            self->set_default_size(460, 1);
         }), this);
 
     // Toggle cron group visibility + button state when switch changes
@@ -301,6 +302,14 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             self->m_save_btn->set_visible(!on);
             if (!on) self->set_default_size(460, 1);
             self->update_summary();
+        }), this);
+
+    // Shrink window when Advanced Options expander is collapsed
+    g_signal_connect(m_advanced_row->gobj(), "notify::expanded",
+        G_CALLBACK(+[](GObject* obj, GParamSpec*, gpointer data) {
+            gboolean expanded = false;
+            g_object_get(obj, "expanded", &expanded, nullptr);
+            if (!expanded) static_cast<JobEditDialog*>(data)->set_default_size(460, 1);
         }), this);
 
     // Update summary when any cron field changes
