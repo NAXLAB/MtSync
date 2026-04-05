@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.20 — Activity Log Newest-First
+- Activity log on the Jobs tab now displays entries newest-first, so the latest messages are always visible without scrolling
+
 ## 0.3.19 — Job Dialog Defaults & UI Tweaks
 - Default window width increased to 1250px
 - File Filters field renamed to **File Include Filters** for clarity

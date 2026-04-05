@@ -492,11 +492,14 @@ void JobView::refresh_log() {
         m_log_buffer->set_text("(no log entries yet)");
         return;
     }
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(f, line))
+        lines.push_back(std::move(line));
     std::ostringstream ss;
-    ss << f.rdbuf();
+    for (auto it = lines.rbegin(); it != lines.rend(); ++it)
+        ss << *it << '\n';
     m_log_buffer->set_text(ss.str());
-    m_log_buffer->place_cursor(m_log_buffer->end());
-    m_log_view->scroll_to(m_log_buffer->get_insert());
 }
 
 void JobView::on_daemon_message(const nlohmann::json& msg) {
