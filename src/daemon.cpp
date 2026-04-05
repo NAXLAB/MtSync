@@ -325,6 +325,16 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
 
+    // Skip if a previous instance is still running
+    bool already_running = job.type == rclone::JobType::Mount
+        ? job.active
+        : (index < m_job_ids.size() && m_job_ids[index] >= 0);
+    if (already_running) {
+        append_log(std::format("SKIPPED   {} [{}] previous instance still running",
+            job.id, type_str(job.type)));
+        return;
+    }
+
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.21 — Concurrent Job Protection
+- Scheduled jobs now skip execution if the previous instance of the same job is still running
+- Skipped attempts are recorded in the activity log as `SKIPPED … previous instance still running`
+
 ## 0.3.20 — Activity Log Newest-First
 - Activity log on the Jobs tab now displays entries newest-first, so the latest messages are always visible without scrolling
 

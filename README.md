@@ -21,7 +21,8 @@ desktop application backed by a persistent daemon.
   copy empty directories, and file include-pattern filters; Mount jobs show active state, can be
   stopped/unmounted, and expose only mount-relevant options (irrelevant fields such as Dry Run,
   Enable Checksum, Bandwidth Limit, and File Filters are hidden); checksum verification disabled
-  by default; Save button to store job without running; activity log panel displays newest entries first
+  by default; Save button to store job without running; scheduled jobs skip execution if the previous
+  instance is still running; activity log panel displays newest entries first
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
