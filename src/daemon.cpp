@@ -409,11 +409,16 @@ void SaddleDaemon::on_run_job(size_t index) {
         m_poll_timers[index] = Glib::signal_timeout().connect(
             [this, index]() -> bool {
                 if (index >= m_job_ids.size() || m_job_ids[index] < 0) return false;
-                m_manager.rc().job_status(m_job_ids[index], [this, index](auto status) {
+
+                int64_t current_job_id = m_job_ids[index];
+                // Check job status first; if finished, stop polling immediately
+                m_manager.rc().job_status(current_job_id, [this, index](auto status) {
                     if (status.has_value() && status->finished) {
                         on_job_completed(index, status->success);
                         return;
                     }
+                    // Job still running — if job_id was cleared between check and callback, bail out
+                    if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                 });
                 m_manager.rc().get_stats([this, index](auto result) {
                     if (!result.has_value()) return;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.26 — Performance Improvements
+- Removed unnecessary 10-second job polling in Jobs tab; updates now arrive exclusively via daemon broadcast messages
+- Optimised activity log loading to tail only the last 100 lines instead of reading the entire file
+- Fixed race condition in daemon poll timer where `m_job_ids[index]` could be cleared between the status check and the async callback
+- Added type-safe index parsing throughout daemon message handler to prevent implicit integer conversion
+
 ## 0.3.25 — Tray Spinner Fix
 - Fixed animated tray spinner not appearing on the second and subsequent jobs
 - After a successful job the tray entered `NeedsAttention` state; starting a new job now resets the status to `Active` before beginning animation so the system tray displays the spinner instead of the static attention icon

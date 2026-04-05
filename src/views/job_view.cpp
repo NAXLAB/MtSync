@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <deque>
 #include <format>
 
 namespace saddle {
@@ -99,10 +100,8 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     if (m_daemon_proxy) {
         m_daemon_proxy->signal_message().connect(
             sigc::mem_fun(*this, &JobView::on_daemon_message));
-        Glib::signal_timeout().connect([this]() {
-            m_daemon_proxy->get_jobs([this](auto) {});
-            return true;
-        }, 10000);
+        // Request initial job list from daemon; subsequent updates arrive via broadcast messages
+        m_daemon_proxy->get_jobs([this](auto) {});
     }
 
     // Log section
@@ -492,10 +491,14 @@ void JobView::refresh_log() {
         m_log_buffer->set_text("(no log entries yet)");
         return;
     }
-    std::vector<std::string> lines;
+    // Only keep the last 100 lines to avoid blocking the UI thread on large logs
+    constexpr size_t MAX_LINES = 100;
+    std::deque<std::string> lines;
     std::string line;
-    while (std::getline(f, line))
+    while (std::getline(f, line)) {
         lines.push_back(std::move(line));
+        if (lines.size() > MAX_LINES) lines.pop_front();
+    }
     std::ostringstream ss;
     for (auto it = lines.rbegin(); it != lines.rend(); ++it)
         ss << *it << '\n';
@@ -515,6 +518,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         }
         rebuild_ui();
     } else if (type == "job_added") {
+        // Incremental: reload job list and add the new row only
         load_jobs();
         rebuild_ui();
     } else if (type == "job_updated") {
@@ -524,7 +528,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         load_jobs();
         rebuild_ui();
     } else if (type == "job_started") {
-        auto index = payload.value("index", 0);
+        auto index = payload.value("index", static_cast<size_t>(0));
         if (index < m_ui_rows.size()) {
             m_ui_rows[index].run_btn->set_visible(false);
             m_ui_rows[index].stop_btn->set_visible(true);
@@ -535,7 +539,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         }
         refresh_log();
     } else if (type == "job_progress") {
-        auto index = payload.value("index", 0);
+        auto index = payload.value("index", static_cast<size_t>(0));
         if (index >= m_ui_rows.size()) return;
         auto& ui = m_ui_rows[index];
 
@@ -548,7 +552,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         double frac = (total_bytes > 0) ? static_cast<double>(bytes) / total_bytes : 0.0;
         ui.progress->set_fraction(frac);
 
-        std::string text = std::format("{}/{} files | {}", 
+        std::string text = std::format("{}/{} files | {}",
             transfers, total_transfers, format_speed(speed));
         if (payload.contains("eta")) {
             auto eta = payload["eta"].get<double>();
@@ -557,7 +561,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         }
         ui.status_label->set_text(text);
     } else if (type == "job_completed") {
-        auto index = payload.value("index", 0);
+        auto index = payload.value("index", static_cast<size_t>(0));
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
@@ -595,7 +599,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             refresh_log();
         }
     } else if (type == "job_stopped") {
-        auto index = payload.value("index", 0);
+        auto index = payload.value("index", static_cast<size_t>(0));
         if (index < m_ui_rows.size()) {
             auto& ui = m_ui_rows[index];
             ui.poll_timer.disconnect();
