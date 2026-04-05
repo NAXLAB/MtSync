@@ -19,6 +19,7 @@
 #include "daemon.hpp"
 #include "rclone/cron_utils.hpp"
 #include "ipc/protocol.hpp"
+#include "settings.hpp"
 #include <format>
 #include <iostream>
 #include <glibmm.h>
@@ -361,6 +362,12 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (job.dry_run) opts["_config"] = {{"DryRun", true}};
     if (!job.bandwidth.empty()) opts["_config"]["BwLimit"] = job.bandwidth;
     if (job.ignore_checksum) opts["_config"]["IgnoreChecksum"] = true;
+    {
+        int pt = job.parallel_transfers > 0
+                 ? job.parallel_transfers
+                 : load_settings().parallel_transfers;
+        if (pt > 0) opts["_config"]["Transfers"] = pt;
+    }
     if (job.type == rclone::JobType::Sync) {
         opts["createEmptySrcDirs"] = true;
     }
@@ -436,6 +443,9 @@ void SaddleDaemon::on_run_job(size_t index) {
 void SaddleDaemon::on_job_completed(size_t index, bool success) {
     if (index < m_poll_timers.size()) {
         m_poll_timers[index].disconnect();
+    }
+    if (index < m_job_ids.size()) {
+        m_job_ids[index] = -1;
     }
 
     auto now = Glib::DateTime::create_now_local().format_iso8601();

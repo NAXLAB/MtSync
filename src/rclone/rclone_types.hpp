@@ -123,13 +123,14 @@ struct Job {
     std::string last_run;
     std::string last_status;
     std::vector<std::string> includes;  // Files to include; empty = entire directory
+    int         parallel_transfers = -1; // -1 = use global settings default
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bisync, ignore_checksum, bandwidth,
     schedule_enabled, mount_at_startup, active,
     cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
-    last_run, last_status, includes)
+    last_run, last_status, includes, parallel_transfers)
 
 // Async callback type used throughout
 template <typename T>

@@ -18,8 +18,10 @@
 
 #include "views/job_edit_dialog.hpp"
 #include "rclone/cron_utils.hpp"
+#include "settings.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
+#include <format>
 #include <random>
 #include <sstream>
 
@@ -125,7 +127,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     // File filters
     m_includes_entry = adw::entry_row();
-    adw::preferences_row_set_title(m_includes_entry, "File Filters (space-separated patterns)");
+    adw::preferences_row_set_title(m_includes_entry, "File Include Filters (space-separated patterns)");
     gtk_text_set_placeholder_text(
         GTK_TEXT(gtk_editable_get_delegate(GTK_EDITABLE(m_includes_entry->gobj()))),
         "All files");
@@ -143,7 +145,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Dry Run
     m_dry_run_switch = adw::switch_row();
     adw::preferences_row_set_title(m_dry_run_switch, "Dry Run");
-    if (m_editing) adw::switch_row_set_active(m_dry_run_switch, m_editing->dry_run);
+    adw::switch_row_set_active(m_dry_run_switch, m_editing ? m_editing->dry_run : true);
     m_dry_run_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_dry_run_switch);
 
@@ -161,13 +163,29 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     m_enable_checksum_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_enable_checksum_switch);
 
-    // Bandwidth limit
+    // Advanced Options expander (Bandwidth + Parallel Transfers)
+    m_advanced_row = adw::expander_row();
+    adw::preferences_row_set_title(m_advanced_row, "Advanced Options");
+    m_advanced_row->set_visible(initial_type != rclone::JobType::Mount);
+    adw::preferences_group_add(group, m_advanced_row);
+
     m_bandwidth_entry = adw::entry_row();
     adw::preferences_row_set_title(m_bandwidth_entry, "Bandwidth Limit (e.g. 10M)");
     if (m_editing && !m_editing->bandwidth.empty())
         adw::entry_row_set_text(m_bandwidth_entry, m_editing->bandwidth.c_str());
-    m_bandwidth_entry->set_visible(initial_type != rclone::JobType::Mount);
-    adw::preferences_group_add(group, m_bandwidth_entry);
+    adw::expander_row_add_row(m_advanced_row, m_bandwidth_entry);
+
+    {
+        auto settings = load_settings();
+        int pt_val = (m_editing && m_editing->parallel_transfers > 0)
+                     ? m_editing->parallel_transfers
+                     : settings.parallel_transfers;
+        m_parallel_transfers_entry = adw::entry_row();
+        adw::preferences_row_set_title(m_parallel_transfers_entry, "Parallel Transfers");
+        adw::entry_row_set_text(m_parallel_transfers_entry,
+            std::format("{}", pt_val).c_str());
+        adw::expander_row_add_row(m_advanced_row, m_parallel_transfers_entry);
+    }
 
     // Mount at Start-up (only visible when type is Mount)
     m_mount_startup_switch = adw::switch_row();
@@ -261,7 +279,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             self->m_includes_entry->set_visible(sel != 3);            // Not for Mount
             self->m_dry_run_switch->set_visible(sel != 3);            // Not for Mount
             self->m_enable_checksum_switch->set_visible(sel != 3);    // Not for Mount
-            self->m_bandwidth_entry->set_visible(sel != 3);           // Not for Mount
+            self->m_advanced_row->set_visible(sel != 3);              // Not for Mount
         }), this);
 
     // Toggle cron group visibility + button state when switch changes
@@ -318,6 +336,8 @@ void JobEditDialog::on_commit() {
                         && adw::switch_row_get_active(m_bisync_switch);
     job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
+    try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
+    catch (...) { job.parallel_transfers = -1; }
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
     job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
@@ -355,6 +375,8 @@ void JobEditDialog::on_save() {
                         && adw::switch_row_get_active(m_bisync_switch);
     job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
     job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
+    try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
+    catch (...) { job.parallel_transfers = -1; }
     job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
     job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
     job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);

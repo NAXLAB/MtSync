@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.19 — Job Dialog Defaults & UI Tweaks
+- Default window width increased to 1250px
+- File Filters field renamed to **File Include Filters** for clarity
+- Dry Run is now enabled by default when creating a new job
+- Job dialog now includes a **Parallel Transfers** field; defaults to the value set in Settings, but can be overridden per-job
+- Bandwidth Limit and Parallel Transfers are now grouped under a collapsed **Advanced Options** expander row
+- Fixed: completed jobs were being logged repeatedly — poll timer now stops immediately when a job finishes by resetting the internal job ID to -1
+
 ## 0.3.18 — Mount Job Dialog Cleanup (continued)
 - Dry Run, Enable Checksum, and Bandwidth Limit options are now hidden when the job type is Mount
 
