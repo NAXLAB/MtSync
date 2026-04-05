@@ -338,6 +338,7 @@ void SaddleDaemon::on_run_job(size_t index) {
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 
+    m_tray->set_attention(false);
     m_tray->start_animation();
 
     if (job.type == rclone::JobType::Mount) {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.25 — Tray Spinner Fix
+- Fixed animated tray spinner not appearing on the second and subsequent jobs
+- After a successful job the tray entered `NeedsAttention` state; starting a new job now resets the status to `Active` before beginning animation so the system tray displays the spinner instead of the static attention icon
+
 ## 0.3.24 — Animated Tray Icon
 - Tray icon now shows a rotating spinner while any job is in progress
 - Animation stops and the static icon is restored when all job activity has finished
