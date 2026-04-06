@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.6 — About Tagline Update
+- About tab description updated to "Mount network storage in comfort."
+
+## 0.4.5 — VFS Cache Mode for Mount Jobs & Job Start Time
+- Mount jobs now include a **Cache Mode** dropdown (off, minimal, writes, full) that maps to rclone's `--vfs-cache-mode` option
+- Cache mode is passed to the rclone RC `mount/mount` endpoint via `vfsOpt.CacheMode`
+- Jobs now track `last_start` (when a job was invoked) separately from `last_run` (when it completed)
+
 ## 0.4.4 — Improved Log Timestamp Format
 - Activity log timestamps now use a cleaner `YYYY-MM-DD HH:MM:SS` format instead of ISO 8601
 - Log entries are now more readable at a glance (e.g. `[2026-04-07 14:32:01] COMPLETED ...`)

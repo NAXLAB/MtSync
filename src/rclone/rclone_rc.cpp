@@ -170,7 +170,23 @@ void RcloneRc::stop_daemon() {
 
 void RcloneRc::mount_async(const std::string& src, const std::string& mountpoint,
                             AsyncCallback<std::monostate> callback) {
-    rc_post("mount/mount", {{"fs", src}, {"mountPoint", mountpoint}},
+    mount_async(src, mountpoint, "", std::move(callback));
+}
+
+void RcloneRc::mount_async(const std::string& src, const std::string& mountpoint,
+                            const std::string& vfs_cache_mode,
+                            AsyncCallback<std::monostate> callback) {
+    json body = {{"fs", src}, {"mountPoint", mountpoint}};
+    if (!vfs_cache_mode.empty()) {
+        // rclone RC mount/mount accepts vfsOpt.CacheMode as integer:
+        // 0=off, 1=minimal, 2=writes, 3=full
+        int cache_mode = 0;
+        if (vfs_cache_mode == "minimal") cache_mode = 1;
+        else if (vfs_cache_mode == "writes") cache_mode = 2;
+        else if (vfs_cache_mode == "full") cache_mode = 3;
+        body["vfsOpt"]["CacheMode"] = cache_mode;
+    }
+    rc_post("mount/mount", body,
         [callback = std::move(callback)](auto result) {
             if (result.has_value()) callback(std::monostate{});
             else                    callback(std::unexpected(result.error()));

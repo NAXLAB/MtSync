@@ -56,6 +56,7 @@ private:
     Gtk::Widget* m_parallel_transfers_entry = nullptr;
     Gtk::Widget* m_retries_entry            = nullptr;
     Gtk::Widget* m_mount_startup_switch = nullptr;
+    Gtk::Widget* m_cache_mode_row       = nullptr;
     Gtk::Widget* m_schedule_switch    = nullptr;
     Gtk::Widget* m_cron_fields_group  = nullptr;
     Gtk::Widget* m_cron_minute_entry  = nullptr;

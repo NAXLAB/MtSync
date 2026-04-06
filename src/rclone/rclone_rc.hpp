@@ -39,6 +39,9 @@ public:
     // Async RC API calls
     void mount_async  (const std::string& src, const std::string& mountpoint,
                        AsyncCallback<std::monostate> callback);
+    void mount_async  (const std::string& src, const std::string& mountpoint,
+                       const std::string& vfs_cache_mode,
+                       AsyncCallback<std::monostate> callback);
     void unmount_async(const std::string& mountpoint,
                        AsyncCallback<std::monostate> callback);
 

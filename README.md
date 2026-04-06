@@ -1,5 +1,7 @@
 # Saddle
 
+Mount network storage in comfort.
+
 A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote
 file systems, and manage sync/copy/move/mount jobs with live progress — all from a native GNOME
 desktop application backed by a persistent daemon.

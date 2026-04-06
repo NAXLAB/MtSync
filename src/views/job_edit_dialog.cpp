@@ -202,6 +202,28 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     if (m_editing) adw::switch_row_set_active(m_mount_startup_switch, m_editing->mount_at_startup);
     adw::preferences_group_add(group, m_mount_startup_switch);
 
+    // VFS Cache Mode (only visible when type is Mount)
+    auto* cache_list = gtk_string_list_new(nullptr);
+    gtk_string_list_append(cache_list, "off");
+    gtk_string_list_append(cache_list, "minimal");
+    gtk_string_list_append(cache_list, "writes");
+    gtk_string_list_append(cache_list, "full");
+    m_cache_mode_row = adw::combo_row();
+    adw::preferences_row_set_title(m_cache_mode_row, "Cache Mode");
+    adw::combo_row_set_string_list_model(m_cache_mode_row, cache_list);
+    g_object_unref(cache_list);
+    m_cache_mode_row->set_visible(initial_type == rclone::JobType::Mount);
+    if (m_editing && !m_editing->vfs_cache_mode.empty()) {
+        const char* modes[] = {"off", "minimal", "writes", "full"};
+        for (int i = 0; i < 4; i++) {
+            if (m_editing->vfs_cache_mode == modes[i]) {
+                adw_combo_row_set_selected(ADW_COMBO_ROW(m_cache_mode_row->gobj()), i);
+                break;
+            }
+        }
+    }
+    adw::preferences_group_add(group, m_cache_mode_row);
+
     // Enable Schedule switch (in same group, after bandwidth)
     m_schedule_switch = adw::switch_row();
     adw::preferences_row_set_title(m_schedule_switch, "Enable Schedule");
@@ -284,6 +306,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             guint sel = adw::combo_row_get_selected(self->m_type_combo);
             self->m_bisync_switch->set_visible(sel == 0);             // Sync only
             self->m_mount_startup_switch->set_visible(sel == 3);      // Mount only
+            self->m_cache_mode_row->set_visible(sel == 3);            // Mount only
             self->m_includes_entry->set_visible(sel != 3);            // Not for Mount
             self->m_dry_run_switch->set_visible(sel != 3);            // Not for Mount
             self->m_enable_checksum_switch->set_visible(sel != 3);    // Not for Mount
@@ -365,6 +388,14 @@ void JobEditDialog::on_commit() {
     job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
     job.mount_at_startup = m_mount_startup_switch->get_visible()
                         && adw::switch_row_get_active(m_mount_startup_switch);
+    if (m_cache_mode_row->get_visible()) {
+        guint idx = adw::combo_row_get_selected(m_cache_mode_row);
+        const char* modes[] = {"off", "minimal", "writes", "full"};
+        job.vfs_cache_mode = idx < 4 ? modes[idx] : "off";
+    } else {
+        job.vfs_cache_mode = "";
+    }
+    job.last_start       = m_editing ? m_editing->last_start  : "";
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
     {
@@ -406,6 +437,14 @@ void JobEditDialog::on_save() {
     job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
     job.mount_at_startup = m_mount_startup_switch->get_visible()
                         && adw::switch_row_get_active(m_mount_startup_switch);
+    if (m_cache_mode_row->get_visible()) {
+        guint idx = adw::combo_row_get_selected(m_cache_mode_row);
+        const char* modes[] = {"off", "minimal", "writes", "full"};
+        job.vfs_cache_mode = idx < 4 ? modes[idx] : "off";
+    } else {
+        job.vfs_cache_mode = "";
+    }
+    job.last_start       = m_editing ? m_editing->last_start  : "";
     job.last_run         = m_editing ? m_editing->last_run    : "";
     job.last_status      = m_editing ? m_editing->last_status : "";
     {

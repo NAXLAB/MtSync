@@ -358,6 +358,10 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (index >= m_job_submitting.size()) m_job_submitting.resize(index + 1);
     m_job_submitting[index] = true;
 
+    auto start_time = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
+    if (index < m_jobs.size()) m_jobs[index].last_start = start_time;
+    save_jobs();
+
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 
@@ -368,7 +372,7 @@ void SaddleDaemon::on_run_job(size_t index) {
         m_jobs[index].active = true;
         json response_payload = {{"index", index}};
         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
-        m_manager.rc().mount_async(job.source, job.destination,
+        m_manager.rc().mount_async(job.source, job.destination, job.vfs_cache_mode,
             [this, index](auto result) {
                 if (index < m_job_submitting.size()) m_job_submitting[index] = false;
                 json response_payload = {{"index", index}};

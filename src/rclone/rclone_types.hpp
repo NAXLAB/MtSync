@@ -124,11 +124,13 @@ struct Job {
     bool        schedule_enabled  = false;
     bool        mount_at_startup  = false;
     bool        active            = false;
+    std::string vfs_cache_mode;   // off|minimal|writes|full (mount jobs only)
     std::string cron_minute      = "*";
     std::string cron_hour        = "*";
     std::string cron_day         = "*";
     std::string cron_month       = "*";
     std::string cron_weekday     = "*";
+    std::string last_start;
     std::string last_run;
     std::string last_status;
     std::vector<std::string> includes;  // Files to include; empty = entire directory
@@ -138,9 +140,9 @@ struct Job {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bisync, ignore_checksum, bandwidth,
-    schedule_enabled, mount_at_startup, active,
+    schedule_enabled, mount_at_startup, active, vfs_cache_mode,
     cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
-    last_run, last_status, includes, parallel_transfers, retries)
+    last_start, last_run, last_status, includes, parallel_transfers, retries)
 
 // Async callback type used throughout
 template <typename T>
