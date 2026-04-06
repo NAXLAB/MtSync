@@ -64,6 +64,17 @@ std::string format_speed(double bps) {
     return std::format("{:.1f} GB/s", bps / (1024.0 * 1024 * 1024));
 }
 
+std::string format_duration(double seconds) {
+    auto total_secs = static_cast<int64_t>(seconds);
+    if (total_secs < 60) return std::format("{}s", total_secs);
+    auto mins = total_secs / 60;
+    auto secs = total_secs % 60;
+    if (mins < 60) return std::format("{}m {}s", mins, secs);
+    auto hrs = mins / 60;
+    auto rem_mins = mins % 60;
+    return std::format("{}h {}m {}s", hrs, rem_mins, secs);
+}
+
 void append_log(const std::string& line) {
     auto dir = fs::path(g_get_user_state_dir()) / "saddle";
     fs::create_directories(dir);
@@ -438,7 +449,7 @@ void SaddleDaemon::on_run_job(size_t index) {
                         return;
                     }
                 });
-                m_manager.rc().get_stats([this, index](auto result) {
+                m_manager.rc().get_stats(current_job_id, [this, index](auto result) {
                     if (!result.has_value()) return;
                     auto& stats = result.value();
                     if (index < m_last_stats.size()) m_last_stats[index] = stats;
@@ -518,8 +529,9 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
         if (index < m_last_stats.size()) {
             auto& s = m_last_stats[index];
             std::string detail = success
-                ? std::format("SUCCESS -- {} files, {}, {}",
-                    s.transfers, format_bytes(s.bytes), format_speed(s.speed))
+                ? std::format("SUCCESS -- {} files, {}, {}, ran for {}",
+                    s.transfers, format_bytes(s.bytes), format_speed(s.speed),
+                    format_duration(s.elapsed_time))
                 : "FAILED";
             append_log(std::format("COMPLETED {} [{}] {}",
                 job.id, type_str(job.type), detail));

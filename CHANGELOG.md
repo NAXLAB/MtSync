@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 — Job Duration in Activity Log
+- Completed job log entries now include total run time (e.g. `ran for 2m 15s`)
+- Duration is displayed in human-readable format: seconds, minutes+seconds, or hours+minutes+seconds as appropriate
+
+## 0.4.2 — Per-Job Stats in Activity Log
+- Fixed activity log showing incorrect (cumulative) transfer stats for sync/copy/move jobs
+- Stats are now queried per-job via rclone RC `core/stats` with the `group` parameter, so each job reports only its own bytes transferred, file count, and speed
+- Sync jobs that find nothing to transfer now correctly log `0 files, 0 B, 0 B/s`
+
 ## 0.4.1 — Remote Capacity Display & Browser Action Buttons
 - Remotes tab now shows used/free capacity for each configured remote
 - Capacity is fetched asynchronously via the rclone RC `operations/about` endpoint

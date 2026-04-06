@@ -306,6 +306,31 @@ void RcloneRc::get_stats(AsyncCallback<SyncStats> callback) {
     });
 }
 
+void RcloneRc::get_stats(int64_t jobid, AsyncCallback<SyncStats> callback) {
+    rc_post("core/stats", {{"group", "job/" + std::to_string(jobid)}},
+        [callback = std::move(callback)](auto result) {
+            if (!result.has_value()) {
+                callback(std::unexpected(result.error()));
+                return;
+            }
+            auto& j = result.value();
+            SyncStats stats;
+            stats.bytes = j.value("bytes", int64_t{0});
+            stats.total_bytes = j.value("totalBytes", int64_t{0});
+            stats.transfers = j.value("transfers", 0);
+            stats.total_transfers = j.value("totalTransfers", 0);
+            stats.checks = j.value("checks", 0);
+            stats.total_checks = j.value("totalChecks", 0);
+            stats.errors = j.value("errors", 0);
+            stats.speed = j.value("speed", 0.0);
+            stats.elapsed_time = j.value("elapsedTime", 0.0);
+            if (j.contains("eta") && !j["eta"].is_null())
+                stats.eta = j["eta"].template get<double>();
+            stats.fatal_error = j.value("fatalError", false);
+            callback(std::move(stats));
+        });
+}
+
 void RcloneRc::get_about(const std::string& remote, AsyncCallback<AboutInfo> callback) {
     rc_post("operations/about", {{"fs", remote}}, [callback = std::move(callback)](auto result) {
         if (!result.has_value()) {
