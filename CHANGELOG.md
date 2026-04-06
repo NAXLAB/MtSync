@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4 — Improved Log Timestamp Format
+- Activity log timestamps now use a cleaner `YYYY-MM-DD HH:MM:SS` format instead of ISO 8601
+- Log entries are now more readable at a glance (e.g. `[2026-04-07 14:32:01] COMPLETED ...`)
+
 ## 0.4.3 — Job Duration in Activity Log
 - Completed job log entries now include total run time (e.g. `ran for 2m 15s`)
 - Duration is displayed in human-readable format: seconds, minutes+seconds, or hours+minutes+seconds as appropriate

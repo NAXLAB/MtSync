@@ -80,7 +80,7 @@ void append_log(const std::string& line) {
     fs::create_directories(dir);
     std::ofstream f(dir / "saddle.log", std::ios::app);
     if (!f) return;
-    auto ts = Glib::DateTime::create_now_local().format_iso8601();
+    auto ts = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
     f << "[" << ts.raw() << "] " << line << "\n";
 }
 
