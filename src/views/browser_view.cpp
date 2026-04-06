@@ -32,7 +32,10 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // CSS for active-pane indicator (top accent stripe)
     auto css = Gtk::CssProvider::create();
     css->load_from_string(
-        ".browser-pane-active { box-shadow: inset 0 3px 0 @accent_color; }");
+        ".browser-pane-active { box-shadow: inset 0 3px 0 @accent_color; }\n"
+        ".action-green { background-color: #528a6f; color: white; }\n"
+        ".action-green:hover { background-color: #5e9a7d; }\n"
+    );
     Gtk::StyleContext::add_provider_for_display(
         Gdk::Display::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
@@ -54,33 +57,45 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // ── Transfer action bar ──────────────────────────────────────────────
     auto* action_bar = Gtk::make_managed<Gtk::ActionBar>();
 
+    auto make_icon_btn = [](const char* icon_name, const char* label_text) {
+        auto* btn = Gtk::make_managed<Gtk::Button>();
+        auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
+        auto* img = Gtk::make_managed<Gtk::Image>();
+        img->set_from_icon_name(icon_name);
+        auto* lbl = Gtk::make_managed<Gtk::Label>(label_text);
+        box->append(*img);
+        box->append(*lbl);
+        btn->set_child(*box);
+        return btn;
+    };
+
     // Copy button
-    auto* copy_btn = Gtk::make_managed<Gtk::Button>("Copy");
-    copy_btn->set_icon_name("edit-copy-symbolic");
+    auto* copy_btn = make_icon_btn("edit-copy-symbolic", "Copy");
+    copy_btn->add_css_class("action-green");
     copy_btn->set_tooltip_text("Copy from source to destination");
     copy_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Copy);
     });
 
     // Move button
-    auto* move_btn = Gtk::make_managed<Gtk::Button>("Move");
-    move_btn->set_icon_name("document-send-symbolic");
+    auto* move_btn = make_icon_btn("document-send-symbolic", "Move");
+    move_btn->add_css_class("action-green");
     move_btn->set_tooltip_text("Move from source to destination");
     move_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Move);
     });
 
     // Sync button
-    auto* sync_btn = Gtk::make_managed<Gtk::Button>("Sync");
-    sync_btn->set_icon_name("emblem-synchronizing-symbolic");
+    auto* sync_btn = make_icon_btn("emblem-synchronizing-symbolic", "Sync");
+    sync_btn->add_css_class("action-green");
     sync_btn->set_tooltip_text("Sync source to destination");
     sync_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Sync);
     });
 
     // Mount button
-    auto* mount_btn = Gtk::make_managed<Gtk::Button>("Mount");
-    mount_btn->set_icon_name("drive-harddisk-symbolic");
+    auto* mount_btn = make_icon_btn("drive-harddisk-symbolic", "Mount");
+    mount_btn->add_css_class("action-green");
     mount_btn->set_tooltip_text("Mount source at destination");
     mount_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Mount);
@@ -94,7 +109,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     });
 
     // Left box for Copy/Move/Sync/Mount buttons
-    auto* left_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+    auto* left_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
     left_box->append(*copy_btn);
     left_box->append(*move_btn);
     left_box->append(*sync_btn);

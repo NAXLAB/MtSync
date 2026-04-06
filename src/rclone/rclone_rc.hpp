@@ -56,6 +56,7 @@ public:
                       AsyncCallback<int64_t> callback);
 
     void get_stats(AsyncCallback<SyncStats> callback);
+    void get_about(const std::string& remote, AsyncCallback<AboutInfo> callback);
     void job_status(int64_t jobid, AsyncCallback<JobStatus> callback);
     void job_stop(int64_t jobid, AsyncCallback<std::monostate> callback);
 

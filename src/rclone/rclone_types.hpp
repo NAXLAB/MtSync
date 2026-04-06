@@ -86,6 +86,15 @@ struct SyncStats {
     bool fatal_error = false;
 };
 
+struct AboutInfo {
+    std::optional<int64_t> total;
+    std::optional<int64_t> used;
+    std::optional<int64_t> free;
+    std::optional<int64_t> trashed;
+    std::optional<int64_t> other;
+    std::optional<int64_t> objects;
+};
+
 struct JobStatus {
     int64_t id;
     bool finished = false;

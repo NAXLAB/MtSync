@@ -19,6 +19,8 @@
 #include "views/backends_view.hpp"
 #include "views/backend_edit_view.hpp"
 #include "widgets/adw_wrapper.hpp"
+#include <sstream>
+#include <iomanip>
 
 namespace saddle {
 
@@ -64,6 +66,40 @@ static Gtk::Image* make_remote_icon(const std::string& type) {
     img->set_pixel_size(20);
     img->set_valign(Gtk::Align::CENTER);
     return img;
+}
+
+static std::string format_bytes(int64_t bytes) {
+    const char* units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
+    int unit_idx = 0;
+    double value = static_cast<double>(bytes);
+    while (value >= 1024.0 && unit_idx < 5) {
+        value /= 1024.0;
+        ++unit_idx;
+    }
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(value >= 100 ? 0 : (value >= 10 ? 1 : 1))
+        << value << " " << units[unit_idx];
+    return oss.str();
+}
+
+static std::string format_capacity(const rclone::AboutInfo& about) {
+    // Show "X used of Y" or "X free" or similar, depending on what's available
+    if (about.used && about.total) {
+        return format_bytes(*about.used) + " of " + format_bytes(*about.total);
+    }
+    if (about.free && about.total) {
+        return format_bytes(*about.free) + " free of " + format_bytes(*about.total);
+    }
+    if (about.used) {
+        return format_bytes(*about.used) + " used";
+    }
+    if (about.free) {
+        return format_bytes(*about.free) + " free";
+    }
+    if (about.total) {
+        return format_bytes(*about.total) + " total";
+    }
+    return "";
 }
 
 } // namespace
@@ -161,6 +197,15 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         RemoteRow rr;
         rr.row = row;
 
+        // Capacity label (dimmed style)
+        rr.capacity_label = Gtk::make_managed<Gtk::Label>();
+        rr.capacity_label->set_halign(Gtk::Align::END);
+        rr.capacity_label->set_valign(Gtk::Align::CENTER);
+        rr.capacity_label->add_css_class("dim-label");
+        rr.capacity_label->set_margin_end(6);
+        rr.capacity_label->set_text(""); // initially empty
+        adw::action_row_add_suffix(row, rr.capacity_label);
+
         // Edit button
         rr.edit_btn = std::make_unique<Gtk::Button>();
         rr.edit_btn->set_icon_name("document-edit-symbolic");
@@ -188,6 +233,22 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         adw::preferences_group_add(m_prefs_group, row);
 
         m_rows.push_back(std::move(rr));
+
+        // Fetch about info asynchronously for this remote
+        // Capture raw row pointer since m_rows may be reallocated
+        auto* cap_label = m_rows.back().capacity_label;
+        std::string fs_name = remote.name + ":";
+        m_manager.rc().get_about(fs_name, [cap_label](auto result) {
+            if (result.has_value()) {
+                auto text = format_capacity(result.value());
+                if (!text.empty()) {
+                    Glib::signal_idle().connect_once([cap_label, text]() {
+                        cap_label->set_text(text);
+                    });
+                }
+            }
+            // If about fails, label stays empty — no error shown
+        });
     }
 }
 

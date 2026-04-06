@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — Remote Capacity Display & Browser Action Buttons
+- Remotes tab now shows used/free capacity for each configured remote
+- Capacity is fetched asynchronously via the rclone RC `operations/about` endpoint
+- Backends that don't report usage gracefully show no capacity text
+- Copy, Move, Sync, and Mount buttons on the browser tab now show both icon and text label
+- Action buttons styled with a muted green background to match the destructive-action Delete button
+
 ## 0.4.0 — Updated Application & Tray Icons
 - New application icon replacing the previous one
 - Updated AppIndicator/tray icon for improved visibility and consistency

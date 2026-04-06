@@ -9,7 +9,9 @@ desktop application backed by a persistent daemon.
 - **Backend configuration** — Create, edit, and delete rclone remotes via dynamically generated
   forms derived from rclone's own provider option metadata; each remote row shows a type-appropriate
   provider icon (Google Drive, Dropbox, Backblaze B2, MEGA, Box, Google Cloud Storage, Proton Drive,
-  and more) with automatic light/dark variants; unknown providers fall back to symbolic icons
+  and more) with automatic light/dark variants; unknown providers fall back to symbolic icons;
+  each remote also displays its used/free capacity (total, used, free) queried asynchronously via
+  the rclone RC `operations/about` endpoint
 - **Dual-pane file browser** — Two independent browser panes with column view, breadcrumb
   navigation, back history, MIME-type icons, sortable columns, and a status bar showing file/folder
   counts and total size; hidden files toggled per-pane; compact navigation bar with provider icon

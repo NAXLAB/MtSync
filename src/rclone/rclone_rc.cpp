@@ -306,6 +306,30 @@ void RcloneRc::get_stats(AsyncCallback<SyncStats> callback) {
     });
 }
 
+void RcloneRc::get_about(const std::string& remote, AsyncCallback<AboutInfo> callback) {
+    rc_post("operations/about", {{"fs", remote}}, [callback = std::move(callback)](auto result) {
+        if (!result.has_value()) {
+            callback(std::unexpected(result.error()));
+            return;
+        }
+        auto& j = result.value();
+        AboutInfo info;
+        if (j.contains("total") && !j["total"].is_null())
+            info.total = j["total"].template get<int64_t>();
+        if (j.contains("used") && !j["used"].is_null())
+            info.used = j["used"].template get<int64_t>();
+        if (j.contains("free") && !j["free"].is_null())
+            info.free = j["free"].template get<int64_t>();
+        if (j.contains("trashed") && !j["trashed"].is_null())
+            info.trashed = j["trashed"].template get<int64_t>();
+        if (j.contains("other") && !j["other"].is_null())
+            info.other = j["other"].template get<int64_t>();
+        if (j.contains("objects") && !j["objects"].is_null())
+            info.objects = j["objects"].template get<int64_t>();
+        callback(std::move(info));
+    });
+}
+
 void RcloneRc::job_status(int64_t jobid, AsyncCallback<JobStatus> callback) {
     rc_post("job/status", {{"jobid", jobid}},
         [callback = std::move(callback)](auto result) {
