@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 — Updated Application & Tray Icons
+- New application icon replacing the previous one
+- Updated AppIndicator/tray icon for improved visibility and consistency
+
 ## 0.3.27 — Tray Spinner Fix
 - Fixed tray spinner stopping when multiple jobs ran concurrently and one finished before the others
 - Replaced `any_job_running()` scan with a `m_running_job_count` counter so the spinner reflects the actual number of active transfers
