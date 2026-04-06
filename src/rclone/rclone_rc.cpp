@@ -19,6 +19,8 @@
 #include "rclone_rc.hpp"
 #include <glibmm.h>
 #include <format>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace saddle::rclone {
 
@@ -99,7 +101,7 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         return;
     }
 
-    // Spawn rclone rcd
+    // Spawn rclone rcd, silencing its console output
     GError* error = nullptr;
     auto rclone_path = Glib::find_program_in_path("rclone");
     if (rclone_path.empty()) {
@@ -115,8 +117,20 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         nullptr
     };
 
+    // Redirect rclone's stdout/stderr to /dev/null so it doesn't pollute the console
+    gint dev_null = open("/dev/null", O_RDWR);
+
     gboolean ok = g_spawn_async(nullptr, argv, nullptr,
-        G_SPAWN_DO_NOT_REAP_CHILD, nullptr, nullptr,
+        G_SPAWN_DO_NOT_REAP_CHILD,
+        dev_null >= 0 ? [](gpointer data) {
+            int fd = GPOINTER_TO_INT(data);
+            if (fd >= 0) {
+                dup2(fd, STDOUT_FILENO);
+                dup2(fd, STDERR_FILENO);
+                close(fd);
+            }
+        } : nullptr,
+        dev_null >= 0 ? GINT_TO_POINTER(dev_null) : nullptr,
         &m_daemon_pid, &error);
 
     if (!ok) {

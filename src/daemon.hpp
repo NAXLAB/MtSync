@@ -48,7 +48,6 @@ private:
     void schedule_job(size_t index);
     void on_run_job(size_t index);
     void on_job_completed(size_t index, bool success);
-    bool any_job_running() const;
 
     rclone::RcloneManager m_manager;
     std::vector<rclone::Job> m_jobs;
@@ -60,8 +59,12 @@ private:
     std::vector<sigc::connection> m_poll_timers;
     std::vector<sigc::connection> m_sched_timers;
     std::vector<int64_t> m_job_ids;
+    std::vector<bool>    m_job_submitting; // Guard: on_run_job called but rclone RC hasn't returned ID yet
     std::vector<int>     m_retry_counts;
     std::vector<rclone::SyncStats> m_last_stats;
+    int m_running_job_count = 0;
+
+    void update_tray_animation();
 
     bool m_running = true;
 };

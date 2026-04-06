@@ -88,6 +88,12 @@ Single executable (saddle) with two modes:
    ├── TrayIcon (StatusNotifierItem via D-Bus)
    ├── IpcServer (Unix socket at ~/.cache/saddle/socket)
    └── JobScheduler (cron-based scheduling)
+
+**Tray animation system**: `SaddleDaemon` tracks active transfers via `m_running_job_count`
+(counter, not a scan). Mount jobs are excluded — they're persistent state, not active transfers.
+A `m_job_submitting` guard prevents duplicate counter increments from rapid repeated calls
+(e.g. scheduler firing multiple times in the same millisecond). `set_attention()` is only
+called when count reaches zero to avoid GNOME AppIndicator resetting its property cache mid-run.
 ```
 
 **IPC Protocol** (`src/ipc/protocol.hpp`):
@@ -116,7 +122,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 - `lsjson()` → `rclone lsjson <remote:path>` → `vector<FileEntry>`
 
 ### RC API (`RcloneRc`) — for jobs with progress
-- `ensure_daemon()`: spawn `rclone rcd --rc-addr localhost:5572 --rc-no-auth`, verify with `core/version`
+- `ensure_daemon()`: spawn `rclone rcd --rc-addr localhost:5571 --rc-no-auth` with stdout/stderr redirected to `/dev/null` so rclone's log output doesn't clutter the console, verify with `core/version`
 - `sync_async()` / `copy_async()` / `move_async()`: POST `/sync/{sync,copy,move}` with `_async: true` → jobid
 - `mount_async()`: POST `mount/mount`; `unmount()`: POST `mount/unmount`
 - `get_stats()`: POST `/core/stats` → `SyncStats` (bytes, speed, ETA, transfers)
@@ -136,7 +142,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 - New Folder popover; Delete via `AdwAlertDialog` confirmation
 
 ### Tab 2: Jobs
-- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`)
+- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`). Jobs are loaded from the daemon on initial map; subsequent updates arrive via IPC broadcast messages (no polling).
 - Each job row shows: type icon (symbolic), `SourceDir → DestDir` display name derived from the last path component of source and destination, source/destination full paths, progress bar (visible while running), footer with UUID left and last status right
 - Activity log panel at the bottom of the tab (auto-scrolling, persisted to `~/.local/state/saddle/saddle.log`)
 - Run/Stop per job; live progress (bytes, speed, ETA) via polling `core/stats` + `job/status`
@@ -169,7 +175,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.3.11 LANGUAGES C CXX)
+project(Saddle VERSION 0.3.27 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

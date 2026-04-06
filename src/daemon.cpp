@@ -141,10 +141,11 @@ SaddleDaemon::SaddleDaemon() {
                         if (i < vec.size()) vec.erase(vec.begin() + i);
                     };
                     m_jobs.erase(m_jobs.begin() + index);
-                    erase_at(m_job_ids,      index);
-                    erase_at(m_poll_timers,  index);
-                    erase_at(m_last_stats,   index);
-                    erase_at(m_sched_timers, index);
+                    erase_at(m_job_ids,        index);
+                    erase_at(m_job_submitting, index);
+                    erase_at(m_poll_timers,    index);
+                    erase_at(m_last_stats,     index);
+                    erase_at(m_sched_timers,   index);
                     save_jobs();
                     json response_payload = {{"index", index}};
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobDeleted, response_payload, msg));
@@ -168,9 +169,14 @@ SaddleDaemon::SaddleDaemon() {
                     });
                 } else if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
                     m_manager.rc().job_stop(m_job_ids[index], [this, index, msg](auto) {
+                        if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                         if (index < m_poll_timers.size()) {
                             m_poll_timers[index].disconnect();
                         }
+                        m_job_ids[index] = -1;
+                        m_running_job_count--;
+                        if (m_running_job_count < 0) m_running_job_count = 0;
+                        update_tray_animation();
                         json response_payload = {{"index", index}};
                         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStopped, response_payload, msg));
                     });
@@ -325,28 +331,35 @@ void SaddleDaemon::on_run_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
 
-    // Skip if a previous instance is still running
+    // Skip if a previous instance is still running or we're still waiting
+    // for rclone to acknowledge a start request (prevents duplicate increments
+    // to m_running_job_count from rapid scheduler / IPC calls)
     bool already_running = job.type == rclone::JobType::Mount
-        ? job.active
-        : (index < m_job_ids.size() && m_job_ids[index] >= 0);
+        ? (job.active || (index < m_job_submitting.size() && m_job_submitting[index]))
+        : ((index < m_job_ids.size() && m_job_ids[index] >= 0)
+           || (index < m_job_submitting.size() && m_job_submitting[index]));
     if (already_running) {
         append_log(std::format("SKIPPED   {} [{}] previous instance still running",
             job.id, type_str(job.type)));
         return;
     }
 
+    if (index >= m_job_submitting.size()) m_job_submitting.resize(index + 1);
+    m_job_submitting[index] = true;
+
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 
     m_tray->set_attention(false);
-    m_tray->start_animation();
 
     if (job.type == rclone::JobType::Mount) {
+        // Mount jobs are persistent state, not active transfers — don't count them
         m_jobs[index].active = true;
         json response_payload = {{"index", index}};
         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
         m_manager.rc().mount_async(job.source, job.destination,
             [this, index](auto result) {
+                if (index < m_job_submitting.size()) m_job_submitting[index] = false;
                 json response_payload = {{"index", index}};
                 if (result.has_value()) {
                     response_payload["success"] = true;
@@ -367,6 +380,10 @@ void SaddleDaemon::on_run_job(size_t index) {
             });
         return;
     }
+
+    // Sync/Copy/Move jobs are active transfers — track them for tray animation
+    m_running_job_count++;
+    update_tray_animation();
 
     json response_payload = {{"index", index}};
     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
@@ -393,6 +410,7 @@ void SaddleDaemon::on_run_job(size_t index) {
     }
 
     auto done_cb = [this, index](auto result) {
+        if (index < m_job_submitting.size()) m_job_submitting[index] = false;
         if (!result.has_value()) {
             g_warning("Job %zu failed: %s", index, result.error().c_str());
             on_job_completed(index, false);
@@ -413,12 +431,12 @@ void SaddleDaemon::on_run_job(size_t index) {
                 int64_t current_job_id = m_job_ids[index];
                 // Check job status first; if finished, stop polling immediately
                 m_manager.rc().job_status(current_job_id, [this, index](auto status) {
+                    // Guard against duplicate completion callbacks from overlapping poll cycles
+                    if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                     if (status.has_value() && status->finished) {
                         on_job_completed(index, status->success);
                         return;
                     }
-                    // Job still running — if job_id was cleared between check and callback, bail out
-                    if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                 });
                 m_manager.rc().get_stats([this, index](auto result) {
                     if (!result.has_value()) return;
@@ -459,11 +477,14 @@ void SaddleDaemon::on_run_job(size_t index) {
 }
 
 void SaddleDaemon::on_job_completed(size_t index, bool success) {
+    // Atomically claim ownership: if the job_id is already cleared, another
+    // completion path beat us here (duplicate from overlapping poll cycles).
+    if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
+    // Clear the job_id FIRST so subsequent callbacks see it as done
+    m_job_ids[index] = -1;
+
     if (index < m_poll_timers.size()) {
         m_poll_timers[index].disconnect();
-    }
-    if (index < m_job_ids.size()) {
-        m_job_ids[index] = -1;
     }
 
     if (!success && index < m_jobs.size()) {
@@ -513,20 +534,23 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
         }
     }
 
-    m_tray->set_attention(success);
+    m_running_job_count--;
+    if (m_running_job_count < 0) m_running_job_count = 0;
+    update_tray_animation();
 
-    if (!any_job_running())
-        m_tray->stop_animation();
+    // Only update attention state when all jobs are truly done.
+    // Calling set_attention() mid-run emits NewStatus which can cause
+    // some desktop environments (GNOME AppIndicator extension) to reset
+    // and re-cache the icon, breaking the spinner display.
+    if (m_running_job_count == 0)
+        m_tray->set_attention(success);
 }
 
-bool SaddleDaemon::any_job_running() const {
-    for (size_t i = 0; i < m_jobs.size(); ++i) {
-        if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].active)
-            return true;
-        if (i < m_job_ids.size() && m_job_ids[i] >= 0)
-            return true;
-    }
-    return false;
+void SaddleDaemon::update_tray_animation() {
+    if (m_running_job_count > 0)
+        m_tray->start_animation();
+    else
+        m_tray->stop_animation();
 }
 
 } // namespace saddle

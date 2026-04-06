@@ -7,3 +7,4 @@ Saddle.code-workspace
 cmake-build*/
 notes.md
 .claude/
+.qwen/

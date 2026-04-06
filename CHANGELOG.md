@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.27 — Tray Spinner Fix
+- Fixed tray spinner stopping when multiple jobs ran concurrently and one finished before the others
+- Replaced `any_job_running()` scan with a `m_running_job_count` counter so the spinner reflects the actual number of active transfers
+- Fixed race condition where rapid duplicate job starts (e.g. from the scheduler) incremented the counter multiple times; added a `m_job_submitting` guard to prevent duplicate increments
+- Fixed duplicate completion callbacks from overlapping poll cycles double-decrementing the counter
+- Fixed `set_attention()` emitting `NewStatus` mid-run, which caused GNOME AppIndicator to reset its property cache and fall back to the static icon
+- Suppressed rclone `rcd` daemon output so its notices and warnings no longer clutter the console
+
 ## 0.3.26 — Performance Improvements
 - Removed unnecessary 10-second job polling in Jobs tab; updates now arrive exclusively via daemon broadcast messages
 - Optimised activity log loading to tail only the last 100 lines instead of reading the entire file
