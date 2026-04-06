@@ -20,7 +20,9 @@
 
 #include "daemon_proxy.hpp"
 #include "rclone/rclone_types.hpp"
+#include "widgets/file_row.hpp"
 #include <adwaita.h>
+#include <giomm.h>
 #include <gtkmm.h>
 #include <memory>
 #include <vector>
@@ -43,9 +45,9 @@ private:
     Gtk::ScrolledWindow m_scroll;
     Gtk::Widget*        m_prefs_group    = nullptr;
 
-    Gtk::ScrolledWindow              m_log_scroll;
-    Gtk::TextView*                   m_log_view   = nullptr;
-    Glib::RefPtr<Gtk::TextBuffer>    m_log_buffer;
+    Gtk::ScrolledWindow                        m_log_scroll;
+    Gtk::ColumnView*                           m_log_column_view = nullptr;
+    Glib::RefPtr<Gio::ListStore<LogEntry>>     m_log_store;
 
     std::vector<rclone::Job> m_jobs;
     std::string              m_config_path;

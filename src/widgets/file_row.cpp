@@ -42,4 +42,20 @@ Glib::RefPtr<FileObject> FileObject::create(const rclone::FileEntry& entry) {
     return obj;
 }
 
+LogEntry::LogEntry() : Glib::ObjectBase("SaddleLogEntry") {}
+
+Glib::RefPtr<LogEntry> LogEntry::create(
+    const std::string& time, const std::string& state,
+    const std::string& job_id, const std::string& job_type,
+    const std::string& contents)
+{
+    auto obj = Glib::make_refptr_for_instance(new LogEntry());
+    obj->property_time.set_value(time);
+    obj->property_state.set_value(state);
+    obj->property_job_id.set_value(job_id);
+    obj->property_job_type.set_value(job_type);
+    obj->property_contents.set_value(contents);
+    return obj;
+}
+
 } // namespace saddle

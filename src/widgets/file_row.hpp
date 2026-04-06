@@ -51,4 +51,24 @@ protected:
     FileObject();
 };
 
+// GObject wrapper for a parsed activity log line
+class LogEntry : public Glib::Object {
+public:
+    static Glib::RefPtr<LogEntry> create(
+        const std::string& time,
+        const std::string& state,
+        const std::string& job_id,
+        const std::string& job_type,
+        const std::string& contents);
+
+    Glib::Property<Glib::ustring> property_time    {*this, "time"};
+    Glib::Property<Glib::ustring> property_state   {*this, "state"};
+    Glib::Property<Glib::ustring> property_job_id  {*this, "job-id"};
+    Glib::Property<Glib::ustring> property_job_type{*this, "job-type"};
+    Glib::Property<Glib::ustring> property_contents{*this, "contents"};
+
+protected:
+    LogEntry();
+};
+
 } // namespace saddle

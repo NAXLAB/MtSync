@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.7 — Activity Log Column View
+- Activity log now displays as a structured column view with five columns: Time, State, Job ID, Type, and Contents
+- State column is colour-coded: blue for STARTED, green for COMPLETED, orange for SKIPPED/RETRYING
+- Log lines are parsed from the existing log file format; unparsed lines fall back to the Contents column
+
 ## 0.4.6 — About Tagline Update
 - About tab description updated to "Mount network storage in comfort."
 

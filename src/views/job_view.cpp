@@ -26,6 +26,7 @@
 #include <sstream>
 #include <deque>
 #include <format>
+#include <regex>
 
 namespace saddle {
 
@@ -119,28 +120,125 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     log_header->set_margin_bottom(4);
     log_box->append(*log_header);
 
-    m_log_buffer = Gtk::TextBuffer::create();
-    m_log_view = Gtk::make_managed<Gtk::TextView>(m_log_buffer);
-    m_log_view->set_editable(false);
-    m_log_view->set_cursor_visible(false);
-    m_log_view->set_wrap_mode(Gtk::WrapMode::NONE);
-    m_log_view->add_css_class("monospace");
-    m_log_view->add_css_class("job-log");
+    m_log_store = Gio::ListStore<LogEntry>::create();
+    auto no_sel = Gtk::NoSelection::create(m_log_store);
 
-    static bool css_installed = false;
-    if (!css_installed) {
-        css_installed = true;
+    m_log_column_view = Gtk::make_managed<Gtk::ColumnView>(no_sel);
+    m_log_column_view->add_css_class("data-table");
+    m_log_column_view->add_css_class("job-log");
+    m_log_column_view->set_show_row_separators(true);
+
+    // --- Time column ---
+    auto time_factory = Gtk::SignalListItemFactory::create();
+    time_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_xalign(0.0f);
+        lbl->add_css_class("monospace");
+        item->set_child(*lbl);
+    });
+    time_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
+        if (!obj) return;
+        dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_time.get_value());
+    });
+    auto time_col = Gtk::ColumnViewColumn::create("Time", time_factory);
+    time_col->set_fixed_width(175);
+    m_log_column_view->append_column(time_col);
+
+    // --- State column ---
+    auto state_factory = Gtk::SignalListItemFactory::create();
+    state_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_xalign(0.0f);
+        item->set_child(*lbl);
+    });
+    state_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
+        if (!obj) return;
+        auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
+        auto state = std::string(obj->property_state.get_value());
+        lbl->set_text(state);
+        for (auto cls : {"log-started","log-completed","log-skipped","log-retrying"})
+            lbl->remove_css_class(cls);
+        if      (state == "STARTED")   lbl->add_css_class("log-started");
+        else if (state == "COMPLETED") lbl->add_css_class("log-completed");
+        else if (state == "SKIPPED")   lbl->add_css_class("log-skipped");
+        else if (state == "RETRYING")  lbl->add_css_class("log-retrying");
+    });
+    auto state_col = Gtk::ColumnViewColumn::create("State", state_factory);
+    state_col->set_fixed_width(110);
+    m_log_column_view->append_column(state_col);
+
+    // --- Job ID column ---
+    auto id_factory = Gtk::SignalListItemFactory::create();
+    id_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_xalign(0.0f);
+        lbl->add_css_class("monospace");
+        lbl->set_ellipsize(Pango::EllipsizeMode::END);
+        item->set_child(*lbl);
+    });
+    id_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
+        if (!obj) return;
+        dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_job_id.get_value());
+    });
+    auto id_col = Gtk::ColumnViewColumn::create("Job ID", id_factory);
+    id_col->set_fixed_width(290);
+    m_log_column_view->append_column(id_col);
+
+    // --- Type column ---
+    auto type_factory = Gtk::SignalListItemFactory::create();
+    type_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_xalign(0.0f);
+        item->set_child(*lbl);
+    });
+    type_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
+        if (!obj) return;
+        dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_job_type.get_value());
+    });
+    auto type_col = Gtk::ColumnViewColumn::create("Type", type_factory);
+    type_col->set_fixed_width(75);
+    m_log_column_view->append_column(type_col);
+
+    // --- Contents column (expands) ---
+    auto contents_factory = Gtk::SignalListItemFactory::create();
+    contents_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* lbl = Gtk::make_managed<Gtk::Label>();
+        lbl->set_xalign(0.0f);
+        lbl->set_hexpand(true);
+        lbl->set_ellipsize(Pango::EllipsizeMode::END);
+        item->set_child(*lbl);
+    });
+    contents_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
+        if (!obj) return;
+        dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_contents.get_value());
+    });
+    auto contents_col = Gtk::ColumnViewColumn::create("Contents", contents_factory);
+    contents_col->set_expand(true);
+    m_log_column_view->append_column(contents_col);
+
+    static bool log_css_installed = false;
+    if (!log_css_installed) {
+        log_css_installed = true;
         auto css = Gtk::CssProvider::create();
-        css->load_from_string("textview.job-log { font-size: 0.8em; }\n");
+        css->load_from_string(
+            "columnview.job-log { font-size: 0.8em; }\n"
+            "columnview.job-log label.monospace { font-size: 0.90em; }\n"
+            ".log-started   { color: @blue_3;  }\n"
+            ".log-completed { color: @green_4; }\n"
+            ".log-skipped   { color: @orange_3; }\n"
+            ".log-retrying  { color: @orange_3; }\n"
+        );
         Gtk::StyleContext::add_provider_for_display(
             Gdk::Display::get_default(), css,
             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
-    m_log_view->set_margin_start(6);
-    m_log_view->set_margin_end(6);
-    m_log_view->set_margin_bottom(6);
 
-    m_log_scroll.set_child(*m_log_view);
+    m_log_scroll.set_child(*m_log_column_view);
     m_log_scroll.set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
     m_log_scroll.set_size_request(-1, 160);
     log_box->append(m_log_scroll);
@@ -487,10 +585,9 @@ std::string JobView::format_speed(double bytes_per_sec) {
 void JobView::refresh_log() {
     auto path = fs::path(g_get_user_state_dir()) / "saddle" / "saddle.log";
     std::ifstream f(path);
-    if (!f) {
-        m_log_buffer->set_text("(no log entries yet)");
-        return;
-    }
+    m_log_store->remove_all();
+    if (!f) return;
+
     // Only keep the last 100 lines to avoid blocking the UI thread on large logs
     constexpr size_t MAX_LINES = 100;
     std::deque<std::string> lines;
@@ -499,10 +596,25 @@ void JobView::refresh_log() {
         lines.push_back(std::move(line));
         if (lines.size() > MAX_LINES) lines.pop_front();
     }
-    std::ostringstream ss;
-    for (auto it = lines.rbegin(); it != lines.rend(); ++it)
-        ss << *it << '\n';
-    m_log_buffer->set_text(ss.str());
+
+    // Pattern: [YYYY-MM-DD HH:MM:SS] STATE   UUID [TYPE] contents
+    static const std::regex re(
+        R"(\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] (\w+)\s+(\S+) \[(\w+)\] (.*))");
+
+    // Newest first: iterate in reverse
+    for (auto it = lines.rbegin(); it != lines.rend(); ++it) {
+        std::smatch m;
+        if (std::regex_match(*it, m, re)) {
+            m_log_store->append(LogEntry::create(
+                m[1].str(), m[2].str(), m[3].str(), m[4].str(), m[5].str()));
+        } else if (!it->empty()) {
+            m_log_store->append(LogEntry::create("", "", "", "", *it));
+        }
+    }
+
+    // Scroll to top (newest entry)
+    auto vadj = m_log_scroll.get_vadjustment();
+    if (vadj) vadj->set_value(0.0);
 }
 
 void JobView::on_daemon_message(const nlohmann::json& msg) {
