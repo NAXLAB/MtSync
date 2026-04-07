@@ -68,7 +68,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.5.1");
+    adw::action_row_set_subtitle(version_row, "0.5.2");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
@@ -80,6 +80,21 @@ void AboutView::setup_ui() {
     adw::preferences_row_set_title(copyright_row, "Copyright");
     adw::action_row_set_subtitle(copyright_row, "© 2026 Gavin Graham");
     adw::preferences_group_add(info_group, copyright_row);
+
+    // ── Lyric quote ──────────────────────────────────────────────────────────
+    auto* quote_label = Gtk::make_managed<Gtk::Label>(
+        "I have been stripped of a layer of meaning, I\n"
+        "Fell through the floor watched you fly through the ceiling\n"
+        "And I find, you're finer than porcelain\n"
+        "Or bromine on silver gelatine\n"
+        "In blue sky, she's carried by seraphim\n"
+        "Aptly named valium\n"
+        "Into the arms of the night\n"
+        "The arms of the night");
+    quote_label->set_wrap(true);
+    quote_label->set_xalign(0.5);
+    quote_label->set_css_classes({"dim-label"});
+    vbox->append(*quote_label);
 }
 
 } // namespace saddle

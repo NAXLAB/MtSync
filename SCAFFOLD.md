@@ -94,6 +94,15 @@ Single executable (saddle) with two modes:
 A `m_job_submitting` guard prevents duplicate counter increments from rapid repeated calls
 (e.g. scheduler firing multiple times in the same millisecond). `set_attention()` is only
 called when count reaches zero to avoid GNOME AppIndicator resetting its property cache mid-run.
+
+**Idle tray icon**: The system systray idle icon (`network-server-symbolic`) is replaced with
+a custom Saddle-branded icon loaded from the GLib resource `/io/github/saddle/icons/idle.png`.
+The PNG is loaded via `cairo_image_surface_create_from_png_stream()` (no gdk-pixbuf dependency),
+scaled to 22×22 to match animation frame dimensions, and converted to ARGB32 pixel data.
+When animation stops, `stop_animation()` emits both the standard D-Bus `PropertiesChanged`
+signal (with the new `IconPixmap` value) and the SNI `NewIcon` signal to force tray
+implementations to refresh. This solved the issue where some trays cached the last animation
+frame and did not update on `NewIcon` alone.
 ```
 
 **IPC Protocol** (`src/ipc/protocol.hpp`):

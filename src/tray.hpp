@@ -39,6 +39,10 @@ public:
     void stop_animation();
     bool is_animating() const { return m_animating; }
     GVariant* frame_pixmap() const;
+    
+    // Idle icon accessors
+    bool has_idle_icon() const { return !m_idle_icon.empty(); }
+    GVariant* get_idle_icon_pixmap() const { return idle_icon_pixmap(); }
 
     sigc::signal<void()>& signal_show_window() { return m_signal_show_window; }
     sigc::signal<void()>& signal_quit() { return m_signal_quit; }
@@ -49,6 +53,8 @@ private:
     static constexpr guint ANIM_INTERVAL_MS = 100;
 
     void build_frames();
+    void load_idle_icon();
+    GVariant* idle_icon_pixmap() const;
 
     guint m_owner_id = 0;
 
@@ -59,6 +65,7 @@ private:
     bool             m_animating  = false;
     sigc::connection m_anim_timer;
     std::array<std::vector<uint8_t>, ANIM_FRAMES> m_frames;
+    std::vector<uint8_t> m_idle_icon;
 
 public:
     GDBusConnection* m_connection = nullptr;

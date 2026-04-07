@@ -24,6 +24,23 @@
 
 namespace {
 
+// Helper for reading PNG from memory via cairo stream
+struct PngReadClosure {
+    const guint8* data;
+    gsize size;
+    gsize offset;
+};
+
+static cairo_status_t png_read_func(void* closure, unsigned char* data, unsigned int length) {
+    auto* c = static_cast<PngReadClosure*>(closure);
+    if (c->offset + length > c->size) {
+        length = c->size - c->offset;
+    }
+    std::memcpy(data, c->data + c->offset, length);
+    c->offset += length;
+    return CAIRO_STATUS_SUCCESS;
+}
+
 const gchar SADDLE_SERVICE[]    = "com.saddle.Daemon";
 const gchar SADDLE_PATH[]       = "/com/saddle/Daemon";
 const gchar SADDLE_IFACE[]      = "com.saddle.Daemon";
@@ -34,7 +51,7 @@ const gchar SNI_WATCHER_SVC[]   = "org.kde.StatusNotifierWatcher";
 const gchar SNI_WATCHER_OBJ[]   = "/StatusNotifierWatcher";
 const gchar SNI_WATCHER_IFACE[] = "org.kde.StatusNotifierWatcher";
 
-const gchar SNI_ICON[]          = "network-server-symbolic";
+const gchar IDLE_ICON_RESOURCE[] = "/io/github/saddle/icons/idle.png";
 
 const gchar SADDLE_MENU_PATH[]  = "/com/saddle/Daemon/Menu";
 
@@ -98,16 +115,18 @@ static GVariant* handle_get_prop_sni(GDBusConnection*, const gchar*, const gchar
     if (g_strcmp0(prop, "WindowId") == 0)
         return g_variant_new_uint32(0);
     if (g_strcmp0(prop, "IconName") == 0)
-        return g_variant_new_string(g_tray && g_tray->is_animating() ? "" : SNI_ICON);
+        return g_variant_new_string("");
     if (g_strcmp0(prop, "OverlayIconName") == 0)
         return g_variant_new_string("");
     if (g_strcmp0(prop, "AttentionIconName") == 0)
-        return g_variant_new_string(SNI_ICON);
+        return g_variant_new_string("");
     if (g_strcmp0(prop, "AttentionMovieName") == 0)
         return g_variant_new_string("");
     if (g_strcmp0(prop, "IconPixmap") == 0) {
         if (g_tray && g_tray->is_animating())
             return g_tray->frame_pixmap();
+        if (g_tray && g_tray->has_idle_icon())
+            return g_tray->get_idle_icon_pixmap();
         return g_variant_new("a(iiay)", nullptr);
     }
     if (g_strcmp0(prop, "OverlayIconPixmap") == 0 ||
@@ -473,6 +492,7 @@ namespace saddle {
 TrayIcon::TrayIcon() {
     g_tray = this;
     build_frames();
+    load_idle_icon();
 
     m_owner_id = g_bus_own_name(
         G_BUS_TYPE_SESSION,
@@ -554,6 +574,97 @@ void TrayIcon::build_frames() {
     }
 }
 
+void TrayIcon::load_idle_icon() {
+    g_message("Tray: attempting to load idle icon from resource");
+    GError* error = nullptr;
+    GBytes* data = g_resources_lookup_data("/io/github/saddle/icons/idle.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+    if (!data) {
+        g_warning("Tray: failed to lookup idle icon resource: %s", error ? error->message : "unknown");
+        if (error) g_error_free(error);
+        return;
+    }
+
+    gsize size;
+    const guint8* bytes = reinterpret_cast<const guint8*>(g_bytes_get_data(data, &size));
+    g_message("Tray: resource found, %zu bytes", size);
+
+    PngReadClosure closure = { bytes, size, 0 };
+    cairo_surface_t* src_surface = cairo_image_surface_create_from_png_stream(png_read_func, &closure);
+    g_bytes_unref(data);
+
+    if (!src_surface || cairo_surface_status(src_surface) != CAIRO_STATUS_SUCCESS) {
+        g_warning("Tray: failed to parse idle icon PNG: %s",
+                  src_surface ? cairo_status_to_string(cairo_surface_status(src_surface)) : "null surface");
+        if (src_surface) cairo_surface_destroy(src_surface);
+        return;
+    }
+
+    int src_width = cairo_image_surface_get_width(src_surface);
+    int src_height = cairo_image_surface_get_height(src_surface);
+    g_message("Tray: source icon size %dx%d", src_width, src_height);
+
+    // Create destination surface at ICON_SIZE x ICON_SIZE to match animation frames
+    cairo_surface_t* dst_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ICON_SIZE, ICON_SIZE);
+    cairo_t* cr = cairo_create(dst_surface);
+
+    // Scale the source image to fit ICON_SIZE x ICON_SIZE
+    double scale_x = (double)ICON_SIZE / src_width;
+    double scale_y = (double)ICON_SIZE / src_height;
+    double scale = std::min(scale_x, scale_y);
+
+    double scaled_w = src_width * scale;
+    double scaled_h = src_height * scale;
+    double offset_x = (ICON_SIZE - scaled_w) / 2.0;
+    double offset_y = (ICON_SIZE - scaled_h) / 2.0;
+
+    cairo_translate(cr, offset_x, offset_y);
+    cairo_scale(cr, scale, scale);
+    cairo_set_source_surface(cr, src_surface, 0, 0);
+    cairo_paint(cr);
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(src_surface);
+
+    cairo_surface_flush(dst_surface);
+    unsigned char* px = cairo_image_surface_get_data(dst_surface);
+    int stride = cairo_image_surface_get_stride(dst_surface);
+
+    // Convert to ARGB32 format matching animation frames
+    m_idle_icon.resize(ICON_SIZE * ICON_SIZE * 4);
+    for (int y = 0; y < ICON_SIZE; ++y) {
+        for (int x = 0; x < ICON_SIZE; ++x) {
+            uint32_t p;
+            std::memcpy(&p, px + y * stride + x * 4, 4);
+            int i = (y * ICON_SIZE + x) * 4;
+            m_idle_icon[i+0] = (p >> 24) & 0xFF; // A
+            m_idle_icon[i+1] = (p >> 16) & 0xFF; // R
+            m_idle_icon[i+2] = (p >>  8) & 0xFF; // G
+            m_idle_icon[i+3] = (p >>  0) & 0xFF; // B
+        }
+    }
+    cairo_surface_destroy(dst_surface);
+    g_message("Tray: loaded idle icon %dx%d -> scaled to %dx%d ARGB32 (%zu bytes)",
+              src_width, src_height, ICON_SIZE, ICON_SIZE, m_idle_icon.size());
+}
+
+GVariant* TrayIcon::idle_icon_pixmap() const {
+    size_t total_pixels = m_idle_icon.size() / 4;
+    int size = static_cast<int>(std::sqrt(total_pixels));
+
+    GVariantBuilder b;
+    g_variant_builder_init(&b, G_VARIANT_TYPE("a(iiay)"));
+    g_variant_builder_open(&b, G_VARIANT_TYPE("(iiay)"));
+    g_variant_builder_add(&b, "i", size);
+    g_variant_builder_add(&b, "i", size);
+    GVariantBuilder bytes;
+    g_variant_builder_init(&bytes, G_VARIANT_TYPE("ay"));
+    for (uint8_t byte : m_idle_icon)
+        g_variant_builder_add(&bytes, "y", byte);
+    g_variant_builder_add_value(&b, g_variant_builder_end(&bytes));
+    g_variant_builder_close(&b);
+    return g_variant_builder_end(&b);
+}
+
 GVariant* TrayIcon::frame_pixmap() const {
     GVariantBuilder b;
     g_variant_builder_init(&b, G_VARIANT_TYPE("a(iiay)"));
@@ -598,9 +709,30 @@ void TrayIcon::stop_animation() {
     m_anim_frame = 0;
     if (m_connection) {
         GError* err = nullptr;
+
+        // Emit PropertiesChanged signal for IconPixmap (standard D-Bus way)
+        GVariantBuilder changed, invalidated;
+        g_variant_builder_init(&changed, G_VARIANT_TYPE("a{sv}"));
+        g_variant_builder_init(&invalidated, G_VARIANT_TYPE("as"));
+        // Add the new IconPixmap value to changed properties
+        g_variant_builder_add(&changed, "{sv}", "IconPixmap", get_idle_icon_pixmap());
+        err = nullptr;
+        g_dbus_connection_emit_signal(m_connection, nullptr,
+            SADDLE_SNI_PATH, "org.freedesktop.DBus.Properties",
+            "PropertiesChanged",
+            g_variant_new("(sa{sv}as)", SNI_IFACE, &changed, &invalidated), &err);
+        if (err) {
+            g_warning("Tray: PropertiesChanged: %s", err->message);
+            g_error_free(err);
+        }
+
+        // Also emit NewIcon as fallback
+        err = nullptr;
         g_dbus_connection_emit_signal(m_connection, nullptr,
             SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
-        if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
+        if (err) { g_warning("Tray: NewIcon on stop: %s", err->message); g_error_free(err); }
+
+        g_message("Tray: animation stopped, emitted PropertiesChanged + NewIcon");
     }
 }
 

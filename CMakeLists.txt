@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.5.1 LANGUAGES C CXX)
+project(Saddle VERSION 0.5.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,11 +46,13 @@ add_custom_command(
         "--target=${RESOURCE_C}"
         "--generate-source"
         "--sourcedir=${CMAKE_SOURCE_DIR}/assets/icons/application"
+        "--sourcedir=${CMAKE_SOURCE_DIR}/assets/icons/ui"
         "--sourcedir=${PROVIDER_ICON_DIR}"
         "${RESOURCE_XML}"
     DEPENDS
         "${RESOURCE_XML}"
         "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
+        "${CMAKE_SOURCE_DIR}/assets/icons/ui/Saddle App Indicator Icon 1.png"
         ${PROVIDER_ICONS}
     COMMENT "Compiling GLib resources"
 )

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2 — Custom Idle Tray Icon
+- Replaced the system systray idle icon (`network-server-symbolic`) with a custom Saddle-branded icon
+- Custom icon is bundled as a GLib resource and rendered via Cairo (no external icon dependencies)
+- Idle icon is scaled to 22×22 ARGB32 to match the busy animation frame dimensions
+- Fixed tray icon not updating when animation stopped by emitting the standard D-Bus `PropertiesChanged` signal alongside `NewIcon`
+- Icon now correctly transitions from busy spinner back to idle state
+
 ## 0.5.1 — Tab Styling Update
 - Main navigation tabs (Browse, Jobs, Remotes, Settings, About) now show a deep blue background when selected
 - Selected tab hover state uses a slightly lighter blue for visual feedback

@@ -2,6 +2,7 @@
 <gresources>
   <gresource prefix="/io/github/saddle">
     <file alias="icons/application.png">Saddle App Icon 1.png</file>
+    <file alias="icons/idle.png">Saddle App Indicator Icon 1.png</file>
   </gresource>
   <gresource prefix="/io/github/saddle/provider-icons">
     <file preprocess="xml-stripblanks">drive.svg</file>

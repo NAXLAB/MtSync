@@ -14,6 +14,7 @@
 - [x] Provider icons (Simple Icons SVGs, light/dark variants)
 - [x] Remote capacity display (used/free via rclone RC `operations/about`)
 - [x] Animated tray spinner during active transfers
+- [x] Custom idle tray icon (Cairo-rendered, bundled as GLib resource)
 - [x] Cron scheduling with human-readable summary
 - [x] Concurrent job protection (skip if previous instance still running)
 - [x] Job retry support (configurable per-job and global)

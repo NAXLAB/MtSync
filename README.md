@@ -40,7 +40,8 @@ desktop application backed by a persistent daemon.
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
-  GUI if it is not running; animated spinner shown while any job is active
+  GUI if it is not running; animated spinner shown while any job is active; custom Saddle-branded
+  idle icon rendered via Cairo and bundled as a GLib resource
 - **Desktop notifications** — Optional notifications via `notify-send` or `kdialog`; independently
   configurable for job start, successful completion, and completion with errors/warnings
 - **Settings** — Startup & shutdown behaviour (autostart, tray), notification toggles, transfer
