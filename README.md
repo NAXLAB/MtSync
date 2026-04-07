@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/gavindi/Saddle/main/assets/icons/application/Saddle%20App%20Icon%201.svg" alt="Saddle Logo" width="128">
+</p>
+
 # Saddle
 
 Mount network storage in comfort.
+
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
 A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote
 file systems, and manage sync/copy/move/mount jobs with live progress — all from a native GNOME
