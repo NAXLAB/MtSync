@@ -508,6 +508,7 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
     // Atomically claim ownership: if the job_id is already cleared, another
     // completion path beat us here (duplicate from overlapping poll cycles).
     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
+    int64_t job_id = m_job_ids[index];
     // Clear the job_id FIRST so subsequent callbacks see it as done
     m_job_ids[index] = -1;
 
@@ -531,53 +532,70 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
         m_retry_counts[index] = 0;
     }
 
-    auto now = Glib::DateTime::create_now_local().format_iso8601();
-    if (index < m_jobs.size()) {
-        auto& job = m_jobs[index];
-        if (index < m_retry_counts.size()) m_retry_counts[index] = 0;
-        job.active = false;
-        job.running = false;
-        job.last_status = success ? "success" : "error";
-        job.last_run = now;
-        save_jobs();
+    // Fetch final stats from rclone to ensure the log has the most up-to-date
+    // transfer count (the cached m_last_stats may be from a previous poll cycle).
+    m_manager.rc().get_stats(job_id, [this, index, success, job_id](auto result) {
+        if (result.has_value() && index < m_last_stats.size())
+            m_last_stats[index] = result.value();
 
-        json response_payload = {{"index", index}, {"success", success}};
-        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+        auto now = Glib::DateTime::create_now_local().format_iso8601();
+        if (index < m_jobs.size()) {
+            auto& job = m_jobs[index];
+            if (index < m_retry_counts.size()) m_retry_counts[index] = 0;
+            job.active = false;
+            job.running = false;
+            job.last_status = success ? "success" : "error";
+            job.last_run = now;
+            save_jobs();
 
-        if (index < m_last_stats.size()) {
-            auto& s = m_last_stats[index];
-            std::string detail = success
-                ? std::format("SUCCESS -- {} files, {}, {}, ran for {}",
-                    s.transfers, format_bytes(s.bytes), format_speed(s.speed),
-                    format_duration(s.elapsed_time))
-                : "FAILED";
-            append_log(std::format("COMPLETED {} [{}] {}",
-                job.id, type_str(job.type), detail));
+            json response_payload = {{"index", index}, {"success", success}};
+
+            // Include stats text for GUI display
+            if (index < m_last_stats.size()) {
+                auto& s = m_last_stats[index];
+                if (success) {
+                    response_payload["stats_text"] = std::format("{} files, {}, {}",
+                        s.transfers, format_bytes(s.bytes), format_speed(s.speed));
+                }
+            }
+
+            m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
+
+            if (index < m_last_stats.size()) {
+                auto& s = m_last_stats[index];
+                std::string detail = success
+                    ? std::format("SUCCESS -- {} files, {}, {}, ran for {}",
+                        s.transfers, format_bytes(s.bytes), format_speed(s.speed),
+                        format_duration(s.elapsed_time))
+                    : "FAILED";
+                append_log(std::format("COMPLETED {} [{}] {}",
+                    job.id, type_str(job.type), detail));
+            }
+
+            if (success) {
+                if (load_settings().notify_on_completion)
+                    send_notification("Sync Complete", job.source + " → " + job.destination);
+            } else {
+                if (load_settings().notify_on_errors)
+                    send_notification("Sync Failed", job.source + " → " + job.destination);
+            }
+
+            if (job.schedule_enabled) {
+                schedule_job(index);
+            }
         }
 
-        if (success) {
-            if (load_settings().notify_on_completion)
-                send_notification("Sync Complete", job.source + " → " + job.destination);
-        } else {
-            if (load_settings().notify_on_errors)
-                send_notification("Sync Failed", job.source + " → " + job.destination);
-        }
+        m_running_job_count--;
+        if (m_running_job_count < 0) m_running_job_count = 0;
+        update_tray_animation();
 
-        if (job.schedule_enabled) {
-            schedule_job(index);
-        }
-    }
-
-    m_running_job_count--;
-    if (m_running_job_count < 0) m_running_job_count = 0;
-    update_tray_animation();
-
-    // Only update attention state when all jobs are truly done.
-    // Calling set_attention() mid-run emits NewStatus which can cause
-    // some desktop environments (GNOME AppIndicator extension) to reset
-    // and re-cache the icon, breaking the spinner display.
-    if (m_running_job_count == 0)
-        m_tray->set_attention(success);
+        // Only update attention state when all jobs are truly done.
+        // Calling set_attention() mid-run emits NewStatus which can cause
+        // some desktop environments (GNOME AppIndicator extension) to reset
+        // and re-cache the icon, breaking the spinner display.
+        if (m_running_job_count == 0)
+            m_tray->set_attention(success);
+    });
 }
 
 void SaddleDaemon::update_tray_animation() {

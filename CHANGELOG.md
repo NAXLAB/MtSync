@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.7 — Activity Log & Job List Improvements
+- Fixed activity log reporting stale transfer counts on job completion — daemon now does a final `core/stats` query right before logging to capture the most up-to-date file count
+- Resolved race condition where cached stats from the previous 500ms poll cycle missed the final batch of completed transfers
+- Activity log column header renamed from "Contents" to "Activity"
+- Job list footer now shows "Last run: status" left-aligned and transfer stats (files, size, speed) right-aligned on the same line
+- Job UUID moved above the source/destination line for better visual hierarchy
+- Source and destination paths combined into a single `source → destination` line
+
 ## 0.5.6 — Mount Job UI Improvements
 - Mount jobs no longer show a progress bar — they display a stop button and "Mounted" status instead
 - Progress bar and "Running..." status are now exclusive to non-mount jobs (Sync, Copy, Move)

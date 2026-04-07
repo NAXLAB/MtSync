@@ -60,6 +60,7 @@ private:
         std::unique_ptr<Gtk::Button>      del_btn;
         std::unique_ptr<Gtk::ProgressBar> progress;
         std::unique_ptr<Gtk::Label>       status_label;
+        std::unique_ptr<Gtk::Label>       stats_label;
         int64_t                           jobid        = -1;
         sigc::connection                  poll_timer;
     };

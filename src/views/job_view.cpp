@@ -216,7 +216,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         if (!obj) return;
         dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_contents.get_value());
     });
-    auto contents_col = Gtk::ColumnViewColumn::create("Contents", contents_factory);
+    auto contents_col = Gtk::ColumnViewColumn::create("Activity", contents_factory);
     contents_col->set_expand(true);
     m_log_column_view->append_column(contents_col);
 
@@ -356,18 +356,20 @@ void JobView::rebuild_ui() {
         header->append(*btn_box);
         outer->append(*header);
 
-        // Source and destination labels
-        auto* src_label = Gtk::make_managed<Gtk::Label>("Source: " + job.source);
-        src_label->set_halign(Gtk::Align::START);
-        src_label->add_css_class("caption");
-        src_label->add_css_class("dim-label");
-        outer->append(*src_label);
+        // UUID label
+        auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
+        uuid_label->set_halign(Gtk::Align::START);
+        uuid_label->set_hexpand(true);
+        uuid_label->add_css_class("caption");
+        uuid_label->add_css_class("dim-label");
+        outer->append(*uuid_label);
 
-        auto* dst_label = Gtk::make_managed<Gtk::Label>("Destination: " + job.destination);
-        dst_label->set_halign(Gtk::Align::START);
-        dst_label->add_css_class("caption");
-        dst_label->add_css_class("dim-label");
-        outer->append(*dst_label);
+        // Source → Destination (combined line)
+        auto* path_label = Gtk::make_managed<Gtk::Label>(job.source + " → " + job.destination);
+        path_label->set_halign(Gtk::Align::START);
+        path_label->add_css_class("caption");
+        path_label->add_css_class("dim-label");
+        outer->append(*path_label);
 
         // Progress bar — only visible while a non-mount job is running
         ui.progress = std::make_unique<Gtk::ProgressBar>();
@@ -376,18 +378,11 @@ void JobView::rebuild_ui() {
         ui.progress->set_visible(false);
         outer->append(*ui.progress);
 
-        // Footer row: UUID (left) | status (right)
+        // Footer row: status (left) | stats (right)
         auto* footer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
 
-        auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
-        uuid_label->set_halign(Gtk::Align::START);
-        uuid_label->set_hexpand(true);
-        uuid_label->add_css_class("caption");
-        uuid_label->add_css_class("dim-label");
-        footer->append(*uuid_label);
-
         ui.status_label = std::make_unique<Gtk::Label>();
-        ui.status_label->set_halign(Gtk::Align::END);
+        ui.status_label->set_halign(Gtk::Align::START);
         ui.status_label->add_css_class("caption");
         ui.status_label->add_css_class("dim-label");
         if (!job.last_status.empty()) {
@@ -397,6 +392,18 @@ void JobView::rebuild_ui() {
             ui.status_label->set_visible(false);
         }
         footer->append(*ui.status_label);
+
+        auto* spacer = Gtk::make_managed<Gtk::Label>();
+        spacer->set_hexpand(true);
+        footer->append(*spacer);
+
+        ui.stats_label = std::make_unique<Gtk::Label>();
+        ui.stats_label->set_halign(Gtk::Align::END);
+        ui.stats_label->add_css_class("caption");
+        ui.stats_label->add_css_class("dim-label");
+        ui.stats_label->set_visible(false);
+        footer->append(*ui.stats_label);
+
         outer->append(*footer);
 
         // Restore UI state for running or mounted jobs
@@ -699,11 +706,12 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
 
             auto now = Glib::DateTime::create_now_local().format_iso8601();
             auto success = payload.value("success", false);
+            auto stats_text = payload.value("stats_text", "");
 
             bool is_mount = (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount);
 
             if (success) {
-                ui.status_label->set_text(is_mount ? "Mounted" : "Complete");
+                ui.status_label->set_text("Last run: success");
                 if (index < m_jobs.size()) {
                     m_jobs[index].last_status = "success";
                     m_jobs[index].last_run = now;
@@ -716,7 +724,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
                     ui.stop_btn->set_visible(false);
                 }
             } else {
-                ui.status_label->set_text(is_mount ? "Mount failed" : "Failed");
+                ui.status_label->set_text("Last run: error");
                 if (index < m_jobs.size()) {
                     m_jobs[index].last_status = "error";
                     m_jobs[index].last_run = now;
@@ -724,6 +732,16 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
                 ui.run_btn->set_visible(true);
                 ui.stop_btn->set_visible(false);
             }
+            ui.status_label->set_visible(true);
+
+            // Show stats on the right
+            if (!stats_text.empty()) {
+                ui.stats_label->set_text(stats_text);
+                ui.stats_label->set_visible(true);
+            } else {
+                ui.stats_label->set_visible(false);
+            }
+
             save_jobs();
             refresh_log();
         }
@@ -739,6 +757,7 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             ui.status_label->set_text(is_mount ? "Unmounted" : "Stopped");
             ui.run_btn->set_visible(true);
             ui.stop_btn->set_visible(false);
+            ui.stats_label->set_visible(false);
 
             // Update job state
             if (index < m_jobs.size()) {
