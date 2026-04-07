@@ -369,7 +369,7 @@ void JobView::rebuild_ui() {
         dst_label->add_css_class("dim-label");
         outer->append(*dst_label);
 
-        // Progress bar — only visible while a job is running
+        // Progress bar — only visible while a non-mount job is running
         ui.progress = std::make_unique<Gtk::ProgressBar>();
         ui.progress->set_fraction(0.0);
         ui.progress->set_hexpand(true);
@@ -400,7 +400,13 @@ void JobView::rebuild_ui() {
         outer->append(*footer);
 
         // Restore UI state for running or mounted jobs
-        if (job.running) {
+        if (job.type == rclone::JobType::Mount && job.running) {
+            ui.run_btn->set_visible(false);
+            ui.stop_btn->set_visible(true);
+            ui.progress->set_visible(false);
+            ui.status_label->set_text("Mounted");
+            ui.status_label->set_visible(true);
+        } else if (job.running) {
             ui.run_btn->set_visible(false);
             ui.stop_btn->set_visible(true);
             ui.progress->set_visible(true);
@@ -496,11 +502,15 @@ void JobView::add_job_no_run(rclone::Job job) {
 void JobView::on_run_job(size_t index) {
     if (index >= m_jobs.size() || index >= m_ui_rows.size()) return;
     auto& ui = m_ui_rows[index];
+    auto type = m_jobs[index].type;
 
     ui.run_btn->set_visible(false);
     ui.stop_btn->set_visible(true);
-    ui.progress->set_fraction(0.0);
-    ui.progress->set_visible(true);
+    // Mount jobs never show progress bar
+    if (type != rclone::JobType::Mount) {
+        ui.progress->set_fraction(0.0);
+        ui.progress->set_visible(true);
+    }
     ui.status_label->set_visible(true);
     ui.status_label->set_text("Starting...");
 
@@ -510,7 +520,6 @@ void JobView::on_run_job(size_t index) {
     auto dry_run  = m_jobs[index].dry_run;
     auto bisync   = m_jobs[index].bisync;
     auto bw       = m_jobs[index].bandwidth;
-    auto type     = m_jobs[index].type;
     auto includes = m_jobs[index].includes;
 
     if (!m_daemon_proxy || !m_daemon_proxy->is_connected()) {
@@ -522,7 +531,7 @@ void JobView::on_run_job(size_t index) {
         return;
     }
 
-    m_daemon_proxy->run_job(index, [this, index](auto result) {
+    m_daemon_proxy->run_job(index, [this, index, type](auto result) {
         if (!result.has_value()) {
             if (index < m_ui_rows.size()) {
                 m_ui_rows[index].status_label->set_text("Error: " + result.error());
@@ -532,7 +541,7 @@ void JobView::on_run_job(size_t index) {
             return;
         }
         if (index < m_ui_rows.size()) {
-            m_ui_rows[index].status_label->set_text("Running...");
+            m_ui_rows[index].status_label->set_text(type == rclone::JobType::Mount ? "Mounted" : "Running...");
         }
     });
 }
@@ -649,8 +658,11 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         if (index < m_ui_rows.size()) {
             m_ui_rows[index].run_btn->set_visible(false);
             m_ui_rows[index].stop_btn->set_visible(true);
-            m_ui_rows[index].progress->set_fraction(0.0);
-            m_ui_rows[index].progress->set_visible(true);
+            // Mount jobs never show progress bar
+            if (index < m_jobs.size() && m_jobs[index].type != rclone::JobType::Mount) {
+                m_ui_rows[index].progress->set_fraction(0.0);
+                m_ui_rows[index].progress->set_visible(true);
+            }
             m_ui_rows[index].status_label->set_visible(true);
             m_ui_rows[index].status_label->set_text("Starting...");
         }

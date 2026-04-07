@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.6 — Mount Job UI Improvements
+- Mount jobs no longer show a progress bar — they display a stop button and "Mounted" status instead
+- Progress bar and "Running..." status are now exclusive to non-mount jobs (Sync, Copy, Move)
+
 ## 0.5.5 — Activity Log Font Consistency
 - Activity log columns now use a uniform monospace font at 0.8em across all fields (Time, State, Job ID, Type, Contents)
 
