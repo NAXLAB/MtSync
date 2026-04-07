@@ -1,0 +1,154 @@
+name: Build Packages
+
+on:
+  push:
+    branches:
+      - build
+
+jobs:
+  # ── DEB ────────────────────────────────────────────────────────────────────
+  build-deb:
+    name: Build DEB
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake g++ pkg-config \
+            libgtkmm-4.0-dev \
+            libadwaita-1-dev \
+            libsoup-3.0-dev \
+            libcairo2-dev \
+            nlohmann-json3-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Package
+        run: cd build && cpack -G DEB
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saddle-deb
+          path: build/*.deb
+
+  # ── RPM ────────────────────────────────────────────────────────────────────
+  build-rpm:
+    name: Build RPM
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:41
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            cmake gcc-c++ pkg-config \
+            gtkmm40-devel \
+            libadwaita-devel \
+            libsoup3-devel \
+            cairo-devel \
+            nlohmann-json-devel \
+            rpm-build
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Package
+        run: cd build && cpack -G RPM
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saddle-rpm
+          path: build/*.rpm
+
+  # ── AppImage ───────────────────────────────────────────────────────────────
+  build-appimage:
+    name: Build AppImage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake g++ pkg-config \
+            libgtkmm-4.0-dev \
+            libadwaita-1-dev \
+            libsoup-3.0-dev \
+            libcairo2-dev \
+            nlohmann-json3-dev \
+            libfuse2
+
+      - name: Configure and build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel $(nproc)
+
+      - name: Install to AppDir
+        run: DESTDIR=$(pwd)/AppDir cmake --install build
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q -O linuxdeploy \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q -O linuxdeploy-plugin-gtk.sh \
+            https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
+          chmod +x linuxdeploy linuxdeploy-plugin-gtk.sh
+
+      - name: Create AppImage
+        env:
+          DEPLOY_GTK_VERSION: 4
+        run: |
+          ./linuxdeploy \
+            --appdir AppDir \
+            --plugin gtk \
+            --output appimage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saddle-appimage
+          path: "*.AppImage"
+
+  # ── Flatpak ────────────────────────────────────────────────────────────────
+  build-flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: saddle.flatpak
+          manifest-path: packaging/com.saddle.Saddle.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saddle-flatpak
+          path: saddle.flatpak
+
+  # ── Snap ───────────────────────────────────────────────────────────────────
+  build-snap:
+    name: Build Snap
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: snapcore/action-build@v1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saddle-snap
+          path: "*.snap"

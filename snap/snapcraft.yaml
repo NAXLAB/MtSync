@@ -1,0 +1,49 @@
+name: saddle
+version: '0.5.0'
+summary: GTK4 frontend to rclone
+description: |
+  Mount network storage in comfort. Saddle is a GTK4/libadwaita
+  frontend to rclone for managing remote storage, sync jobs,
+  and mounts from a native GNOME desktop application.
+
+base: core24
+grade: devel
+confinement: strict
+
+parts:
+  saddle:
+    plugin: cmake
+    source: .
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-packages:
+      - libgtkmm-4.0-dev
+      - libadwaita-1-dev
+      - libsoup-3.0-dev
+      - libcairo2-dev
+      - nlohmann-json3-dev
+      - pkg-config
+
+  rclone:
+    plugin: dump
+    source: https://github.com/rclone/rclone/releases/download/v1.68.2/rclone-v1.68.2-linux-amd64.zip
+    source-type: zip
+    organize:
+      rclone-v1.68.2-linux-amd64/rclone: usr/bin/rclone
+    filesets:
+      rclone: [usr/bin/rclone]
+    prime:
+      - $rclone
+
+apps:
+  saddle:
+    command: usr/bin/saddle
+    extensions: [gnome]
+    plugs:
+      - network
+      - home
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11

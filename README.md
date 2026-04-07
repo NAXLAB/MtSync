@@ -8,6 +8,8 @@ Mount network storage in comfort.
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P21M7MBS)
+
 A C++ GTK4/libadwaita frontend to [rclone](https://rclone.org/). Configure backends, browse remote
 file systems, and manage sync/copy/move/mount jobs with live progress — all from a native GNOME
 desktop application backed by a persistent daemon.

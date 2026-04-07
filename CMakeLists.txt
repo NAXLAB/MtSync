@@ -82,3 +82,31 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/data/com.saddle.Saddle.desktop"
     DESTINATION share/applications
 )
+
+# ── Packaging (CPack) ──────────────────────────────────────────────────────
+set(CPACK_PACKAGE_NAME             "saddle")
+set(CPACK_PACKAGE_VENDOR           "Saddle")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GTK4 frontend to rclone")
+set(CPACK_PACKAGE_CONTACT          "https://github.com/gavindi/Saddle")
+set(CPACK_RESOURCE_FILE_LICENSE    "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_FILE_NAME
+    "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
+set(CPACK_STRIP_FILES TRUE)
+
+# DEB
+set(CPACK_DEBIAN_PACKAGE_SECTION  "utils")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libgtkmm-4.0-1v5 (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2, rclone")
+
+# RPM
+set(CPACK_RPM_PACKAGE_LICENSE  "GPL-2.0-only")
+set(CPACK_RPM_PACKAGE_GROUP    "Applications/Internet")
+set(CPACK_RPM_PACKAGE_REQUIRES "gtkmm40, libadwaita, libsoup3, rclone")
+set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+    "/usr/share/applications"
+    "/usr/share/icons"
+    "/usr/share/icons/hicolor"
+    "/usr/share/icons/hicolor/256x256"
+    "/usr/share/icons/hicolor/256x256/apps")
+
+include(CPack)
