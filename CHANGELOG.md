@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1 — Compare Dialog Refinements
+- Results are now grouped by subdirectory, with a bold accent-coloured directory header row before each group
+- Files within each group are sorted alphabetically by path
+- Status symbols replaced with Unicode glyphs: `←` missing from destination, `→` extra in destination, `≠` different content, `!` error, `=` identical
+- File size and modified date are shown only on the side where the file exists
+- Size and date columns render at a smaller font size for visual hierarchy
+
 ## 0.6.0 — Compare Button & Dialog
 - Added **Compare** button to the Browse tab action bar, to the left of Delete
 - Clicking Compare opens a child window showing the differences between the left pane (source) and right pane (destination) via `rclone check --combined -`

@@ -40,6 +40,7 @@ static void install_compare_css() {
         "label.compare-error     { color: #e05555; font-weight: bold; }\n"
         "label.compare-status    { font-family: monospace; font-weight: bold; }\n"
         "label.compare-meta      { font-size: 0.82em; }\n"
+        "label.compare-dir-header { font-weight: bold; color: @accent_color; }\n"
     );
     Gtk::StyleContext::add_provider_for_display(
         Gdk::Display::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -206,6 +207,10 @@ void CompareDialog::build_column_view() {
             auto obj = std::dynamic_pointer_cast<CompareRowObject>(item->get_item());
             auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
             if (!obj || !lbl) return;
+            auto st = obj->property_status.get_value();
+            bool is_hdr = !st.empty() && static_cast<char>(st[0]) == '/';
+            is_hdr ? lbl->add_css_class("compare-dir-header")
+                   : lbl->remove_css_class("compare-dir-header");
             gchar* val = nullptr;
             g_object_get(obj->gobj(), prop, &val, nullptr);
             lbl->set_text(val ? val : "");
@@ -232,6 +237,8 @@ void CompareDialog::build_column_view() {
             auto obj = std::dynamic_pointer_cast<CompareRowObject>(item->get_item());
             auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
             if (!obj || !lbl) return;
+            auto st = obj->property_status.get_value();
+            if (!st.empty() && static_cast<char>(st[0]) == '/') { lbl->set_text(""); return; }
             gint64 val = 0;
             g_object_get(obj->gobj(), prop, &val, nullptr);
             lbl->set_text(format_size(val));
@@ -254,6 +261,8 @@ void CompareDialog::build_column_view() {
             auto obj = std::dynamic_pointer_cast<CompareRowObject>(item->get_item());
             auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
             if (!obj || !lbl) return;
+            auto st = obj->property_status.get_value();
+            if (!st.empty() && static_cast<char>(st[0]) == '/') { lbl->set_text(""); return; }
             gchar* val = nullptr;
             g_object_get(obj->gobj(), prop, &val, nullptr);
             lbl->set_text(format_date(val ? val : ""));
@@ -280,10 +289,19 @@ void CompareDialog::build_column_view() {
         auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
         if (!obj || !lbl) return;
         auto status_ustr = obj->property_status.get_value();
-        lbl->set_text(status_ustr);
         char s = status_ustr.empty() ? '=' : static_cast<char>(status_ustr[0]);
         for (auto* cls : k_status_classes)
             lbl->remove_css_class(cls);
+        if (s == '/') { lbl->set_text(""); return; }
+        const char* sym;
+        switch (s) {
+            case '-': sym = "←"; break;
+            case '+': sym = "→"; break;
+            case '*': sym = "≠"; break;
+            case '!': sym = "!"; break;
+            default:  sym = "="; break;
+        }
+        lbl->set_text(sym);
         lbl->add_css_class(status_css_class(s));
     });
     auto status_col = Gtk::ColumnViewColumn::create("", status_factory);
@@ -349,15 +367,33 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
         auto pos = p.rfind('/');
         return pos == std::string::npos ? p : p.substr(pos + 1);
     };
+    auto dirpart = [](const std::string& p) -> std::string {
+        auto pos = p.rfind('/');
+        return pos == std::string::npos ? "" : p.substr(0, pos);
+    };
+
+    // Sort by path so same-directory files are contiguous
+    std::vector<rclone::CheckEntry> sorted = checks;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const auto& a, const auto& b) { return a.path < b.path; });
 
     m_all_rows.clear();
-    m_all_rows.reserve(checks.size());
+    m_all_rows.reserve(sorted.size() + 32);
 
-    for (auto& ce : checks) {
+    std::string last_dir = "\x01"; // sentinel — never matches a real path
+    for (auto& ce : sorted) {
         const rclone::FileEntry* src_fe = nullptr;
         const rclone::FileEntry* dst_fe = nullptr;
         if (auto it = src_map.find(ce.path); it != src_map.end()) src_fe = it->second;
         if (auto it = dst_map.find(ce.path); it != dst_map.end()) dst_fe = it->second;
+
+        // Insert a directory header row when the directory changes
+        std::string dir = dirpart(ce.path);
+        if (dir != last_dir) {
+            std::string header = dir.empty() ? "/" : dir + "/";
+            m_all_rows.push_back(CompareRowObject::create('/', header, -1, "", "", -1, ""));
+            last_dir = dir;
+        }
 
         std::string bn = basename(ce.path);
 
