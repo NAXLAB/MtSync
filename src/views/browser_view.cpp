@@ -120,7 +120,15 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     swap_center->set_center_widget(*swap_btn);
 
     // Delete button
-    auto* delete_btn = Gtk::make_managed<Gtk::Button>("Delete");
+    auto* delete_btn = Gtk::make_managed<Gtk::Button>();
+    auto* delete_icon = Gtk::make_managed<Gtk::Image>();
+    delete_icon->set_from_icon_name("user-trash-symbolic");
+    delete_icon->set_icon_size(Gtk::IconSize::NORMAL);
+    auto* delete_label = Gtk::make_managed<Gtk::Label>("Delete");
+    auto* delete_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
+    delete_box->append(*delete_icon);
+    delete_box->append(*delete_label);
+    delete_btn->set_child(*delete_box);
     delete_btn->add_css_class("destructive-action");
     delete_btn->set_tooltip_text("Delete selection in active pane");
     delete_btn->signal_clicked().connect(sigc::mem_fun(*this, &BrowserView::on_delete_confirm));
@@ -132,7 +140,14 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     auto* folder_entry = Gtk::make_managed<Gtk::Entry>();
     auto* create_btn   = Gtk::make_managed<Gtk::Button>("Create");
 
-    mkdir_btn->set_label("New Folder");
+    auto* mkdir_icon = Gtk::make_managed<Gtk::Image>();
+    mkdir_icon->set_from_icon_name("folder-new-symbolic");
+    mkdir_icon->set_icon_size(Gtk::IconSize::NORMAL);
+    auto* mkdir_label = Gtk::make_managed<Gtk::Label>("New Folder");
+    auto* mkdir_label_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
+    mkdir_label_box->append(*mkdir_icon);
+    mkdir_label_box->append(*mkdir_label);
+    mkdir_btn->set_child(*mkdir_label_box);
     mkdir_btn->set_tooltip_text("Create a new folder in the active pane");
 
     pop_box->set_margin(12);

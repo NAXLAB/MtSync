@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4 — Job Cancel Fix & Browse Button Icons
+- Fixed cancelled jobs not clearing `running` state — daemon and GUI now set `running = false` and `last_status = "stopped"` when a job is stopped
+- Delete and New Folder buttons on the Browse tab now show icons to the left of their labels
+
 ## 0.5.3 — Job View Refresh Fix & About Tab Update
 - Fixed job list not reflecting running state when switching back to the Jobs tab — stop button, progress bar, and status label now correctly restore from persisted `running` flag
 - Jobs now track `running` state in `jobs.json`, set by daemon on start and cleared on completion
