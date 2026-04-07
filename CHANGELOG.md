@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.5 — Activity Log Font Consistency
+- Activity log columns now use a uniform monospace font at 0.8em across all fields (Time, State, Job ID, Type, Contents)
+
 ## 0.5.4 — Job Cancel Fix & Browse Button Icons
 - Fixed cancelled jobs not clearing `running` state — daemon and GUI now set `running = false` and `last_status = "stopped"` when a job is stopped
 - Delete and New Folder buttons on the Browse tab now show icons to the left of their labels

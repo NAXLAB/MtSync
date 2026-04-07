@@ -133,7 +133,6 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     time_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
         auto* lbl = Gtk::make_managed<Gtk::Label>();
         lbl->set_xalign(0.0f);
-        lbl->add_css_class("monospace");
         item->set_child(*lbl);
     });
     time_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
@@ -226,7 +225,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         log_css_installed = true;
         auto css = Gtk::CssProvider::create();
         css->load_from_string(
-            "columnview.job-log { font-size: 0.8em; }\n"
+            "columnview.job-log label { font-family: monospace; font-size: 0.8em; }\n"
             "columnview.job-log label.monospace { font-size: 0.8em; }\n"
             ".log-started   { color: @blue_3;  }\n"
             ".log-completed { color: @green_4; }\n"
