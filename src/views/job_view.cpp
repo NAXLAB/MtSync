@@ -227,7 +227,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         auto css = Gtk::CssProvider::create();
         css->load_from_string(
             "columnview.job-log { font-size: 0.8em; }\n"
-            "columnview.job-log label.monospace { font-size: 0.90em; }\n"
+            "columnview.job-log label.monospace { font-size: 0.8em; }\n"
             ".log-started   { color: @blue_3;  }\n"
             ".log-completed { color: @green_4; }\n"
             ".log-skipped   { color: @orange_3; }\n"

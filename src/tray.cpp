@@ -155,12 +155,32 @@ static GVariant* make_menu_item(int id, const char* label) {
     return g_variant_new("(ia{sv}av)", id, &props, &children);
 }
 
+static GVariant* make_separator_item(int id) {
+    GVariantBuilder props;
+    g_variant_builder_init(&props, G_VARIANT_TYPE("a{sv}"));
+    g_variant_builder_add(&props, "{sv}", "type",    g_variant_new_string("separator"));
+    g_variant_builder_add(&props, "{sv}", "visible", g_variant_new_boolean(TRUE));
+    GVariantBuilder children;
+    g_variant_builder_init(&children, G_VARIANT_TYPE("av"));
+    return g_variant_new("(ia{sv}av)", id, &props, &children);
+}
+
 static GVariant* make_menu_layout() {
     GVariantBuilder props;
     g_variant_builder_init(&props, G_VARIANT_TYPE("a{sv}"));
     g_variant_builder_add(&props, "{sv}", "children-display", g_variant_new_string("submenu"));
     GVariantBuilder children;
     g_variant_builder_init(&children, G_VARIANT_TYPE("av"));
+    // Title item (non-clickable)
+    GVariantBuilder title_props;
+    g_variant_builder_init(&title_props, G_VARIANT_TYPE("a{sv}"));
+    g_variant_builder_add(&title_props, "{sv}", "label",   g_variant_new_string("Saddle"));
+    g_variant_builder_add(&title_props, "{sv}", "enabled", g_variant_new_boolean(FALSE));
+    g_variant_builder_add(&title_props, "{sv}", "visible", g_variant_new_boolean(TRUE));
+    GVariantBuilder title_children;
+    g_variant_builder_init(&title_children, G_VARIANT_TYPE("av"));
+    g_variant_builder_add(&children, "v", g_variant_new("(ia{sv}av)", 3, &title_props, &title_children));
+    g_variant_builder_add(&children, "v", make_separator_item(4));
     g_variant_builder_add(&children, "v", make_menu_item(1, "Open"));
     g_variant_builder_add(&children, "v", make_menu_item(2, "Quit"));
     return g_variant_new("(ia{sv}av)", 0, &props, &children);

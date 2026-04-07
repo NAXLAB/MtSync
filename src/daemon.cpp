@@ -282,6 +282,11 @@ void SaddleDaemon::load_jobs() {
             g_warning("Failed to load jobs: %s", e.what());
         }
     }
+    // Mount active state is not valid across daemon restarts — any mounts
+    // from a previous session are gone, so reset the flag unconditionally.
+    for (auto& job : m_jobs)
+        if (job.type == rclone::JobType::Mount)
+            job.active = false;
 }
 
 void SaddleDaemon::save_jobs() {
@@ -364,6 +369,9 @@ void SaddleDaemon::on_run_job(size_t index) {
 
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
+
+    if (load_settings().notify_on_start)
+        send_notification("Job Started", job.source + " → " + job.destination);
 
     m_tray->set_attention(false);
 
@@ -541,9 +549,13 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
                 job.id, type_str(job.type), detail));
         }
 
-        std::string title = success ? "Sync Complete" : "Sync Failed";
-        std::string body = job.source + " → " + job.destination;
-        send_notification(title, body);
+        if (success) {
+            if (load_settings().notify_on_completion)
+                send_notification("Sync Complete", job.source + " → " + job.destination);
+        } else {
+            if (load_settings().notify_on_errors)
+                send_notification("Sync Failed", job.source + " → " + job.destination);
+        }
 
         if (job.schedule_enabled) {
             schedule_job(index);

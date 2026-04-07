@@ -4,15 +4,20 @@
 - [x] Bisync
 - [x] Mount
 - [x] Daemon
-- [ ] Internal rclone
 - [x] App indicator icon
 - [x] About tab/screen
 - [x] Settings tab/screen
 - [x] Better file manager design/component
 - [x] Dual pane mode
-
-## Next
-
 - [x] Job progress real-time updates
 - [x] Mount active state tracking
-- [x] Periodic job list refresh
+- [x] Provider icons (Simple Icons SVGs, light/dark variants)
+- [x] Remote capacity display (used/free via rclone RC `operations/about`)
+- [x] Animated tray spinner during active transfers
+- [x] Cron scheduling with human-readable summary
+- [x] Concurrent job protection (skip if previous instance still running)
+- [x] Job retry support (configurable per-job and global)
+- [x] Activity log (structured column view — Time, State, Job ID, Type, Contents)
+- [x] Desktop notifications (configurable per event via Settings)
+- [x] VFS cache mode for mount jobs
+- [ ] Internal rclone embedding

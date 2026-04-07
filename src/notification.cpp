@@ -28,7 +28,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
         try {
             Glib::spawn_sync(
                 {},
-                {"notify-send", "-a", "Saddle", "-i", "drive", title, body}
+                {exe, "-a", "Saddle", "-i", "drive", title, body}
             );
             return true;
         } catch (...) {}
@@ -39,7 +39,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
         try {
             Glib::spawn_sync(
                 {},
-                {"kdialog", "--passivepopup", body, "5", "--title", title}
+                {exe, "--passivepopup", body, "5", "--title", title}
             );
             return true;
         } catch (...) {}

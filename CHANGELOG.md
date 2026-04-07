@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 — Notification Settings & Tray Menu Title
+- Added **Notifications** section to the Settings tab with three independent toggles: On Job Start, On Completion, On Completion with Errors/Warnings
+- All three default to off
+- Settings tab general section renamed to **Start Up &amp; Shut Down** and moved below Notifications
+- Notification toggles are applied at the daemon level via `load_settings()` at the point of dispatch
+- System tray right-click menu now shows "Saddle" as a non-clickable title above a separator, followed by Open and Quit
+
+## 0.4.8 — Notification Fix
+- Fixed desktop notifications falling back to a console `g_message` instead of displaying via `notify-send`
+- `Glib::spawn_sync` now receives the resolved full executable path instead of the bare command name
+
 ## 0.4.7 — Activity Log Column View
 - Activity log now displays as a structured column view with five columns: Time, State, Job ID, Type, and Contents
 - State column is colour-coded: blue for STARTED, green for COMPLETED, orange for SKIPPED/RETRYING

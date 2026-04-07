@@ -27,15 +27,17 @@ desktop application backed by a persistent daemon.
   Enable Checksum, Bandwidth Limit, and File Filters are hidden); checksum verification disabled
   by default; Save button to store job without running; scheduled jobs skip execution if the previous
   instance is still running; failed jobs are automatically retried up to a configurable count before
-  being marked as failed; activity log panel displays newest entries first
+  being marked as failed; activity log panel shows the last 100 entries in a structured column
+  view (Time, State, Job ID, Type, Contents) with colour-coded state labels, newest first
 - **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
-  GUI if it is not running
-- **Desktop notifications** — Notified on job completion via `notify-send` or `kdialog`
-- **Settings** — General app settings (autostart, tray behaviour), transfer defaults (bandwidth
-  limit, checksums, parallel transfers, retries on failure), rclone binary path override; persisted
-  to `~/.config/saddle/settings.json`
+  GUI if it is not running; animated spinner shown while any job is active
+- **Desktop notifications** — Optional notifications via `notify-send` or `kdialog`; independently
+  configurable for job start, successful completion, and completion with errors/warnings
+- **Settings** — Startup & shutdown behaviour (autostart, tray), notification toggles, transfer
+  defaults (bandwidth limit, checksums, parallel transfers, retries on failure), rclone binary path
+  override; persisted to `~/.config/saddle/settings.json`
 
 ## Dependencies
 

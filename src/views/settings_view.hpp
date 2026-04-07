@@ -40,7 +40,11 @@ private:
     Gtk::Widget* m_transfers_row   = nullptr;
     Gtk::Widget* m_retries_row     = nullptr;
     // rclone
-    Gtk::Widget* m_rclone_path_row = nullptr;
+    Gtk::Widget* m_rclone_path_row       = nullptr;
+    // Notifications
+    Gtk::Widget* m_notify_start_row      = nullptr;
+    Gtk::Widget* m_notify_completion_row = nullptr;
+    Gtk::Widget* m_notify_errors_row     = nullptr;
 
     void setup_ui();
     void save();

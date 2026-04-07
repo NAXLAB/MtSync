@@ -74,9 +74,29 @@ void SettingsView::setup_ui() {
     auto* vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 18);
     adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), GTK_WIDGET(vbox->gobj()));
 
-    // ── General ──────────────────────────────────────────────────────────────
+    // ── Notifications ─────────────────────────────────────────────────────────
+    auto* notif_group = adw::preferences_group();
+    adw::preferences_group_set_title(notif_group, "Notifications");
+    vbox->append(*notif_group);
+
+    m_notify_start_row = adw::switch_row();
+    adw::preferences_row_set_title(m_notify_start_row, "On Job Start");
+    adw::switch_row_set_active(m_notify_start_row, m_settings.notify_on_start);
+    adw::preferences_group_add(notif_group, m_notify_start_row);
+
+    m_notify_completion_row = adw::switch_row();
+    adw::preferences_row_set_title(m_notify_completion_row, "On Completion");
+    adw::switch_row_set_active(m_notify_completion_row, m_settings.notify_on_completion);
+    adw::preferences_group_add(notif_group, m_notify_completion_row);
+
+    m_notify_errors_row = adw::switch_row();
+    adw::preferences_row_set_title(m_notify_errors_row, "On Completion with Errors/Warnings");
+    adw::switch_row_set_active(m_notify_errors_row, m_settings.notify_on_errors);
+    adw::preferences_group_add(notif_group, m_notify_errors_row);
+
+    // ── Start Up & Shut Down ──────────────────────────────────────────────────
     auto* general_group = adw::preferences_group();
-    adw::preferences_group_set_title(general_group, "General");
+    adw::preferences_group_set_title(general_group, "Start Up &amp; Shut Down");
     vbox->append(*general_group);
 
     m_autostart_row = adw::switch_row();
@@ -209,6 +229,30 @@ void SettingsView::setup_ui() {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.rclone_path =
                 adw::entry_row_get_text(self->m_rclone_path_row);
+            self->save();
+        }), this);
+
+    g_signal_connect(m_notify_start_row->gobj(), "notify::active",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<SettingsView*>(data);
+            self->m_settings.notify_on_start =
+                adw::switch_row_get_active(self->m_notify_start_row);
+            self->save();
+        }), this);
+
+    g_signal_connect(m_notify_completion_row->gobj(), "notify::active",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<SettingsView*>(data);
+            self->m_settings.notify_on_completion =
+                adw::switch_row_get_active(self->m_notify_completion_row);
+            self->save();
+        }), this);
+
+    g_signal_connect(m_notify_errors_row->gobj(), "notify::active",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<SettingsView*>(data);
+            self->m_settings.notify_on_errors =
+                adw::switch_row_get_active(self->m_notify_errors_row);
             self->save();
         }), this);
 }

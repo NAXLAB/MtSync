@@ -1,0 +1,103 @@
+# Saddle — Your Network Storage Mounting Experience
+
+> **Mount network storage in comfort.**
+
+Saddle is a native GNOME desktop application that puts the full power of [rclone](https://rclone.org/) behind a polished GTK4 interface. Whether you're mounting a remote drive, scheduling nightly syncs, or browsing files across a dozen cloud providers — Saddle handles it quietly in the background while you get on with your work.
+
+---
+
+## Works With Everything rclone Supports
+
+rclone connects to over 40 storage providers. Saddle gives all of them a native desktop home.
+
+**Cloud storage** — Google Drive, Dropbox, Backblaze B2, MEGA, Box, Amazon S3, Google Cloud Storage, Proton Drive, Wasabi, Cloudflare R2, DigitalOcean Spaces, Hetzner, and more.
+
+**Self-hosted & network** — SFTP, SMB/CIFS, WebDAV, FTP, OpenStack Swift, and others.
+
+**Local & encrypted** — Local filesystem access and encrypted remote overlays via rclone crypt.
+
+Each provider is shown with its own icon — Google Drive looks like Google Drive, Dropbox looks like Dropbox. Light and dark variants switch automatically with your desktop theme.
+
+---
+
+## Mount. Browse. Sync. All in One Place.
+
+### Mount Network Storage as a Local Drive
+Mount any remote as a local filesystem with a single click. Saddle passes your VFS cache mode preference (`off`, `minimal`, `writes`, or `full`) directly to rclone so performance matches your workflow. Mounted drives appear as active jobs and can be unmounted just as easily. Mount jobs can be configured to start automatically when the daemon launches.
+
+### Dual-Pane File Browser
+A side-by-side browser lets you navigate two locations simultaneously — any combination of local disk and remote storage. Sortable columns, MIME-type icons, breadcrumb navigation, back history, and per-pane hidden file toggles make it feel like a native file manager. A status bar shows file and folder counts with total size. The swap button exchanges the two panes with a single click.
+
+### Copy, Move & Sync
+Copy or move selected files between any two locations — local or remote, same provider or different. Sync entire directories with rclone's fast delta transfers. Bi-directional sync (rclone bisync) keeps two locations in agreement without overwriting newer files. File include-filter patterns let you narrow transfers to exactly the files you want.
+
+### Scheduled Jobs
+Set any job to run on a cron schedule. The built-in schedule editor takes five familiar fields (minute, hour, day, month, weekday) and shows a plain-English summary of when the job will next run. Jobs re-arm automatically after each completion. If a scheduled instance is still running when the next trigger fires, it is skipped safely — no pile-ups.
+
+---
+
+## A Daemon That Never Sleeps
+
+Saddle separates the GUI from the work. The background daemon manages all job execution, scheduling, and rclone RC lifecycle independently. Close the window — your syncs keep running. Reopen it tomorrow — your job history is right there. The GUI reconnects automatically and picks up where it left off.
+
+The system tray icon keeps you informed at a glance:
+- **Spinner** — a job is actively transferring
+- **Static icon** — everything is idle
+- **Right-click menu** — Open or Quit from anywhere on the desktop
+
+---
+
+## Live Progress. Full Visibility.
+
+While a job runs, the job row shows a live progress bar with bytes transferred, current speed, and estimated time remaining — queried directly from rclone's RC API so the numbers are accurate and per-job, not cumulative.
+
+The **Activity Log** at the bottom of the Jobs tab records every event in a structured column view:
+
+| Time | State | Job ID | Type | Contents |
+|------|-------|--------|------|----------|
+| 2026-04-07 11:15:00 | COMPLETED | 32930fb5… | SYNC | SUCCESS — 142 files, 1.2 GB, 45.3 MB/s, ran for 27s |
+| 2026-04-07 11:14:59 | STARTED | 32930fb5… | SYNC | /home/user/Documents → Storinator:backups |
+
+State labels are colour-coded at a glance. The log shows the last 100 entries newest-first so the latest activity is always visible without scrolling.
+
+---
+
+## Reliability Built In
+
+- **Automatic retries** — Failed jobs retry up to a configurable number of times before being marked as failed. Each attempt is recorded in the activity log.
+- **Concurrent job protection** — A scheduled job won't start a new instance if the previous one is still running.
+- **Per-job overrides** — Parallel transfers, bandwidth limits, and retry counts can be overridden per job, with global Settings values as the default.
+- **Dry run by default** — New jobs default to dry-run mode so you can confirm what will happen before committing.
+
+---
+
+## Notifications That Don't Nag
+
+Desktop notifications via `notify-send` — but only when you want them. Three independent toggles in Settings let you choose exactly when to be notified:
+
+- **On Job Start** — know when a transfer begins
+- **On Completion** — confirm successful transfers
+- **On Completion with Errors/Warnings** — catch failures without noise from routine successes
+
+All three default to off. Turn on only what matters to you.
+
+---
+
+## Settings That Stay Out of Your Way
+
+Everything persists automatically to `~/.config/saddle/settings.json`. No Apply button. No restart required for most settings.
+
+- **Start Up & Shut Down** — launch the daemon at login, start minimised to tray, shut down daemon when closing the window
+- **Notifications** — per-event notification toggles
+- **Transfers** — default bandwidth cap, checksum verification, parallel transfer count, retry limit
+- **rclone** — custom binary path for non-PATH installations
+
+---
+
+## Native. Fast. Yours.
+
+Saddle is built with C++23, GTK4, and libadwaita. It follows GNOME HIG conventions, respects your system theme (including dark mode), and integrates with your desktop notification service. No Electron. No runtime dependencies beyond the libraries it's built against. One binary, one daemon, done.
+
+---
+
+*Saddle is free software — GNU General Public License v2.0.*
