@@ -72,6 +72,13 @@ struct FileEntry {
     bool is_dir = false;
 };
 
+// One line of output from `rclone check --combined -`
+// status: '=' same | '-' missing from dest | '+' extra in dest | '*' different | '!' error
+struct CheckEntry {
+    char        status = '=';
+    std::string path;   // relative path (matches FileEntry::path from lsjson -R)
+};
+
 struct SyncStats {
     int64_t bytes = 0;
     int64_t total_bytes = 0;

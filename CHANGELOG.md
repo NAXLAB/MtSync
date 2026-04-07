@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — Compare Button & Dialog
+- Added **Compare** button to the Browse tab action bar, to the left of Delete
+- Clicking Compare opens a child window showing the differences between the left pane (source) and right pane (destination) via `rclone check --combined -`
+- Results are displayed in a 7-column view: Source Filename, Source Size, Source Modified, Status, Destination Filename, Destination Size, Destination Modified
+- Status column is colour-coded: `=` dim (identical), `-` red (missing from destination), `+` blue (extra in destination), `*` amber (different content), `!` bold red (check error)
+- File metadata (size and modified date) is fetched recursively via `rclone lsjson -R` on both sides and cross-referenced with the check output
+- Results are paginated at 50 items per page with Previous/Next navigation and a page count label
+- A loading spinner is shown while the three parallel async operations complete
+
 ## 0.5.7 — Activity Log & Job List Improvements
 - Fixed activity log reporting stale transfer counts on job completion — daemon now does a final `core/stats` query right before logging to capture the most up-to-date file count
 - Resolved race condition where cached stats from the previous 500ms poll cycle missed the final batch of completed transfers

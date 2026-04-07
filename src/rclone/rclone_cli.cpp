@@ -19,6 +19,7 @@
 #include "rclone_cli.hpp"
 #include <glibmm.h>
 #include <nlohmann/json.hpp>
+#include <sstream>
 
 namespace saddle::rclone {
 
@@ -280,6 +281,53 @@ void RcloneCli::mkdir(const std::string& path, AsyncCallback<std::monostate> cal
         else
             callback(std::monostate{});
     });
+}
+
+void RcloneCli::lsjson_r(const std::string& remote_path,
+                          AsyncCallback<std::vector<FileEntry>> callback) {
+    run_command({"lsjson", "-R", remote_path}, [callback = std::move(callback)](
+        const std::string& out, const std::string& err, int code) {
+        if (code != 0) {
+            callback(std::unexpected("lsjson -R failed: " + err));
+            return;
+        }
+        try {
+            auto j = json::parse(out);
+            std::vector<FileEntry> entries;
+            for (auto& item : j) {
+                FileEntry fe;
+                fe.name = item.value("Name", "");
+                fe.path = item.value("Path", "");
+                fe.size = item.value("Size", int64_t{0});
+                fe.mod_time = item.value("ModTime", "");
+                fe.mime_type = item.value("MimeType", "");
+                fe.is_dir = item.value("IsDir", false);
+                entries.push_back(std::move(fe));
+            }
+            callback(std::move(entries));
+        } catch (const json::exception& e) {
+            callback(std::unexpected(std::string("JSON parse error: ") + e.what()));
+        }
+    });
+}
+
+void RcloneCli::check(const std::string& src, const std::string& dst,
+                       AsyncCallback<std::vector<CheckEntry>> callback) {
+    // Exit code is intentionally ignored: non-zero means differences exist, not an error.
+    run_command({"check", src, dst, "--combined", "-"},
+        [callback = std::move(callback)](const std::string& out, const std::string&, int) {
+            std::vector<CheckEntry> entries;
+            std::istringstream ss(out);
+            std::string line;
+            while (std::getline(ss, line)) {
+                if (line.size() < 3) continue;
+                CheckEntry e;
+                e.status = line[0];   // line[1] is always a space
+                e.path   = line.substr(2);
+                entries.push_back(std::move(e));
+            }
+            callback(std::move(entries));
+        });
 }
 
 } // namespace saddle::rclone

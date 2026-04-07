@@ -17,6 +17,7 @@
  */
 
 #include "views/browser_view.hpp"
+#include "views/compare_dialog.hpp"
 #include "views/job_edit_dialog.hpp"
 
 namespace saddle {
@@ -133,6 +134,11 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     delete_btn->set_tooltip_text("Delete selection in active pane");
     delete_btn->signal_clicked().connect(sigc::mem_fun(*this, &BrowserView::on_delete_confirm));
 
+    // Compare button
+    auto* compare_btn = make_icon_btn("folder-visiting-symbolic", "Compare");
+    compare_btn->set_tooltip_text("Compare left pane (source) with right pane (destination)");
+    compare_btn->signal_clicked().connect(sigc::mem_fun(*this, &BrowserView::on_compare));
+
     // New Folder — MenuButton with a Popover containing a text entry
     auto* mkdir_btn    = Gtk::make_managed<Gtk::MenuButton>();
     auto* mkdir_popover = Gtk::make_managed<Gtk::Popover>();
@@ -180,6 +186,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     action_bar->set_center_widget(*swap_center);
     action_bar->pack_end(*mkdir_btn);
     action_bar->pack_end(*delete_btn);
+    action_bar->pack_end(*compare_btn);
 
     append(*action_bar);
 
@@ -226,6 +233,16 @@ void BrowserView::show_job_dialog(rclone::JobType type) {
     if (auto* win = dynamic_cast<Gtk::Window*>(get_root()))
         m_job_dialog->set_transient_for(*win);
     m_job_dialog->present();
+}
+
+void BrowserView::on_compare() {
+    auto src = m_left_pane->get_current_rclone_path();
+    auto dst = m_right_pane->get_current_rclone_path();
+    if (src.empty() || dst.empty()) return;
+    m_compare_dialog = std::make_unique<CompareDialog>(src, dst, m_manager);
+    if (auto* win = dynamic_cast<Gtk::Window*>(get_root()))
+        m_compare_dialog->set_transient_for(*win);
+    m_compare_dialog->present();
 }
 
 void BrowserView::on_delete_confirm() {

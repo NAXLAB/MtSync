@@ -57,6 +57,14 @@ public:
 
     void mkdir(const std::string& path, AsyncCallback<std::monostate> callback);
 
+    // Recursive lsjson — same as lsjson() but passes -R, returns all files recursively
+    void lsjson_r(const std::string& remote_path,
+                  AsyncCallback<std::vector<FileEntry>> callback);
+
+    // rclone check SRC DST --combined - ; non-zero exit = diffs found, not an error
+    void check(const std::string& src, const std::string& dst,
+               AsyncCallback<std::vector<CheckEntry>> callback);
+
 private:
     std::string m_rclone_path;
 

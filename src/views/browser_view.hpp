@@ -27,6 +27,7 @@
 namespace saddle {
 
 class JobEditDialog;
+class CompareDialog;
 
 class BrowserView : public Gtk::Box {
 public:
@@ -43,11 +44,13 @@ private:
     BrowserPane* m_right_pane  = nullptr;
     BrowserPane* m_active_pane = nullptr;
 
-    std::unique_ptr<JobEditDialog> m_job_dialog;
+    std::unique_ptr<JobEditDialog>  m_job_dialog;
+    std::unique_ptr<CompareDialog>  m_compare_dialog;
 
     void set_active_pane(BrowserPane* pane);
     void swap_source_destination();
     void show_job_dialog(rclone::JobType type);
+    void on_compare();
     void on_delete_confirm();
     void on_delete();
 };
