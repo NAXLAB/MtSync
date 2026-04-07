@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 — Tab Styling Update
+- Main navigation tabs (Browse, Jobs, Remotes, Settings, About) now show a deep blue background when selected
+- Selected tab hover state uses a slightly lighter blue for visual feedback
+
 ## 0.5.0 — Notification Settings & Tray Menu Title
 - Added **Notifications** section to the Settings tab with three independent toggles: On Job Start, On Completion, On Completion with Errors/Warnings
 - All three default to off

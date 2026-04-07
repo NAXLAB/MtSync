@@ -33,6 +33,19 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     set_default_size(1250, 900);
     set_icon_name("com.saddle.Saddle");
 
+    // CSS for view switcher tab styling
+    auto css = Gtk::CssProvider::create();
+    css->load_from_string(
+        "viewswitcher button:checked {\n"
+        "    background-color: #1a5276;\n"
+        "}\n"
+        "viewswitcher button:checked:hover {\n"
+        "    background-color: #216694;\n"
+        "}\n"
+    );
+    Gtk::StyleContext::add_provider_for_display(
+        Gdk::Display::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
     m_view_stack = adw::view_stack_new();
 
     auto* page1 = adw::view_stack_add_titled(
