@@ -60,7 +60,7 @@ const char* CompareDialog::status_css_class(char status) {
 }
 
 std::string CompareDialog::format_size(int64_t bytes) {
-    if (bytes < 0)   return "--";
+    if (bytes < 0)   return "";
     if (bytes < 1024) return std::format("{} B", bytes);
     if (bytes < 1024 * 1024) return std::format("{:.1f} KB", bytes / 1024.0);
     if (bytes < 1024 * 1024 * 1024) return std::format("{:.1f} MB", bytes / (1024.0 * 1024));
@@ -69,7 +69,7 @@ std::string CompareDialog::format_size(int64_t bytes) {
 
 std::string CompareDialog::format_date(const std::string& iso) {
     // ISO 8601: "2024-04-08T12:34:56.789Z" → "2024-04-08 12:34"
-    if (iso.size() < 16) return iso.empty() ? "--" : iso;
+    if (iso.size() < 16) return iso;
     std::string s = iso.substr(0, 16);
     if (s[10] == 'T') s[10] = ' ';
     return s;
@@ -397,9 +397,10 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
 
         std::string bn = basename(ce.path);
 
-        // Show name on the side where the file exists; blank where it doesn't
-        std::string src_name = (src_fe || ce.status != '+') ? bn : "";
-        std::string dst_name = (dst_fe || ce.status != '-') ? bn : "";
+        // Show name only on the side where the file exists
+        // rclone: '+' = in source only, '-' = in dest only
+        std::string src_name = (ce.status != '-') ? bn : "";
+        std::string dst_name = (ce.status != '+') ? bn : "";
         int64_t  src_size = src_fe ? src_fe->size    : -1;
         int64_t  dst_size = dst_fe ? dst_fe->size    : -1;
         std::string src_mod = src_fe ? src_fe->mod_time : "";

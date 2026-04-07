@@ -25,7 +25,10 @@ desktop application backed by a persistent daemon.
 - **Dual-pane file browser** — Two independent browser panes with column view, breadcrumb
   navigation, back history, MIME-type icons, sortable columns, and a status bar showing file/folder
   counts and total size; hidden files toggled per-pane; compact navigation bar with provider icon
-  in the remote dropdown; swap button physically exchanges remote and path between panes
+  in the remote dropdown; swap button physically exchanges remote and path between panes; **Compare**
+  button runs `rclone check` between the two panes and displays results in a paginated 7-column
+  dialog grouped by subdirectory — filename, size, and modified date shown only on the side where
+  the file exists; status glyphs `→` (source only) `←` (dest only) `≠` (differs) `=` (identical)
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer
