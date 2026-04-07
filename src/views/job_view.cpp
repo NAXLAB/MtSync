@@ -400,8 +400,14 @@ void JobView::rebuild_ui() {
         footer->append(*ui.status_label);
         outer->append(*footer);
 
-        // For mount jobs, reflect active state in UI
-        if (job.type == rclone::JobType::Mount && job.active) {
+        // Restore UI state for running or mounted jobs
+        if (job.running) {
+            ui.run_btn->set_visible(false);
+            ui.stop_btn->set_visible(true);
+            ui.progress->set_visible(true);
+            ui.status_label->set_text("Running...");
+            ui.status_label->set_visible(true);
+        } else if (job.type == rclone::JobType::Mount && job.active) {
             ui.run_btn->set_visible(false);
             ui.stop_btn->set_visible(true);
             ui.status_label->set_text("Mounted");
@@ -722,6 +728,13 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             ui.status_label->set_text(is_mount ? "Unmounted" : "Stopped");
             ui.run_btn->set_visible(true);
             ui.stop_btn->set_visible(false);
+
+            // Update job state
+            if (index < m_jobs.size()) {
+                m_jobs[index].running = false;
+                m_jobs[index].last_status = "stopped";
+            }
+            save_jobs();
             refresh_log();
         }
     }

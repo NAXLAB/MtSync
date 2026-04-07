@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 — Job View Refresh Fix & About Tab Update
+- Fixed job list not reflecting running state when switching back to the Jobs tab — stop button, progress bar, and status label now correctly restore from persisted `running` flag
+- Jobs now track `running` state in `jobs.json`, set by daemon on start and cleared on completion
+- About tab now includes a lyric quote below the copyright section
+
 ## 0.5.2 — Custom Idle Tray Icon
 - Replaced the system systray idle icon (`network-server-symbolic`) with a custom Saddle-branded icon
 - Custom icon is bundled as a GLib resource and rendered via Cairo (no external icon dependencies)

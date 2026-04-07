@@ -124,6 +124,7 @@ struct Job {
     bool        schedule_enabled  = false;
     bool        mount_at_startup  = false;
     bool        active            = false;
+    bool        running           = false;
     std::string vfs_cache_mode;   // off|minimal|writes|full (mount jobs only)
     std::string cron_minute      = "*";
     std::string cron_hour        = "*";
@@ -140,7 +141,7 @@ struct Job {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bisync, ignore_checksum, bandwidth,
-    schedule_enabled, mount_at_startup, active, vfs_cache_mode,
+    schedule_enabled, mount_at_startup, active, running, vfs_cache_mode,
     cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
     last_start, last_run, last_status, includes, parallel_transfers, retries)
 

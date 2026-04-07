@@ -185,6 +185,8 @@ SaddleDaemon::SaddleDaemon() {
                             m_poll_timers[index].disconnect();
                         }
                         m_job_ids[index] = -1;
+                        if (index < m_jobs.size()) m_jobs[index].running = false;
+                        save_jobs();
                         m_running_job_count--;
                         if (m_running_job_count < 0) m_running_job_count = 0;
                         update_tray_animation();
@@ -364,7 +366,10 @@ void SaddleDaemon::on_run_job(size_t index) {
     m_job_submitting[index] = true;
 
     auto start_time = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
-    if (index < m_jobs.size()) m_jobs[index].last_start = start_time;
+    if (index < m_jobs.size()) {
+        m_jobs[index].last_start = start_time;
+        m_jobs[index].running = true;
+    }
     save_jobs();
 
     append_log(std::format("STARTED   {} [{}] {} -> {}",
@@ -531,6 +536,7 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
         auto& job = m_jobs[index];
         if (index < m_retry_counts.size()) m_retry_counts[index] = 0;
         job.active = false;
+        job.running = false;
         job.last_status = success ? "success" : "error";
         job.last_run = now;
         save_jobs();
