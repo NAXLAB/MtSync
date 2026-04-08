@@ -120,16 +120,18 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
     // Redirect rclone's stdout/stderr to /dev/null so it doesn't pollute the console
     gint dev_null = open("/dev/null", O_RDWR);
 
+    GSpawnChildSetupFunc setup_func = dev_null >= 0 ? [](gpointer data) {
+        int fd = GPOINTER_TO_INT(data);
+        if (fd >= 0) {
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
+    } : nullptr;
+
     gboolean ok = g_spawn_async(nullptr, argv, nullptr,
         G_SPAWN_DO_NOT_REAP_CHILD,
-        dev_null >= 0 ? [](gpointer data) {
-            int fd = GPOINTER_TO_INT(data);
-            if (fd >= 0) {
-                dup2(fd, STDOUT_FILENO);
-                dup2(fd, STDERR_FILENO);
-                close(fd);
-            }
-        } : nullptr,
+        setup_func,
         dev_null >= 0 ? GINT_TO_POINTER(dev_null) : nullptr,
         &m_daemon_pid, &error);
 
