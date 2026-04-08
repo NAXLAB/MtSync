@@ -102,6 +102,13 @@ static std::string format_capacity(const rclone::AboutInfo& about) {
     return "";
 }
 
+static std::optional<double> compute_usage_percent(const rclone::AboutInfo& about) {
+    if (about.used && about.total && *about.total > 0) {
+        return (static_cast<double>(*about.used) / static_cast<double>(*about.total)) * 100.0;
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 BackendsView::~BackendsView() {
@@ -115,6 +122,22 @@ BackendsView::BackendsView(rclone::RcloneManager& manager)
 
     set_vexpand(true);
     set_hexpand(true);
+
+    // Apply CSS styling for the capacity progress bar
+    auto css = Gtk::CssProvider::create();
+    css->load_from_string(
+        ".capacity-bar trough {"
+        "    min-height: 6px;"
+        "    border-radius: 3px;"
+        "}"
+        ".capacity-bar progress {"
+        "    min-height: 6px;"
+        "    border-radius: 3px;"
+        "}"
+    );
+    Gtk::StyleContext::add_provider_for_display(
+        Gdk::Display::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
 
     // Navigation view for list <-> edit push/pop
     m_nav_view = adw::navigation_view();
@@ -197,14 +220,32 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         RemoteRow rr;
         rr.row = row;
 
+        // Capacity container: vertical box with progress bar above text
+        rr.capacity_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
+        rr.capacity_box->set_halign(Gtk::Align::END);
+        rr.capacity_box->set_valign(Gtk::Align::CENTER);
+        rr.capacity_box->set_margin_end(6);
+
+        // Capacity progress bar
+        rr.capacity_bar = Gtk::make_managed<Gtk::ProgressBar>();
+        rr.capacity_bar->set_halign(Gtk::Align::FILL);
+        rr.capacity_bar->set_valign(Gtk::Align::CENTER);
+        rr.capacity_bar->set_size_request(120, -1);
+        rr.capacity_bar->set_fraction(0.0);
+        rr.capacity_bar->set_visible(false); // hidden until we get data
+        rr.capacity_bar->add_css_class("capacity-bar");
+
         // Capacity label (dimmed style)
         rr.capacity_label = Gtk::make_managed<Gtk::Label>();
-        rr.capacity_label->set_halign(Gtk::Align::END);
+        rr.capacity_label->set_halign(Gtk::Align::CENTER);
         rr.capacity_label->set_valign(Gtk::Align::CENTER);
         rr.capacity_label->add_css_class("dim-label");
-        rr.capacity_label->set_margin_end(6);
         rr.capacity_label->set_text(""); // initially empty
-        adw::action_row_add_suffix(row, rr.capacity_label);
+
+        rr.capacity_box->append(*rr.capacity_bar);
+        rr.capacity_box->append(*rr.capacity_label);
+
+        adw::action_row_add_suffix(row, rr.capacity_box);
 
         // Edit button
         rr.edit_btn = std::make_unique<Gtk::Button>();
@@ -235,19 +276,27 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         m_rows.push_back(std::move(rr));
 
         // Fetch about info asynchronously for this remote
-        // Capture raw row pointer since m_rows may be reallocated
+        // Capture raw row pointers since m_rows may be reallocated
         auto* cap_label = m_rows.back().capacity_label;
+        auto* cap_bar = m_rows.back().capacity_bar;
         std::string fs_name = remote.name + ":";
-        m_manager.rc().get_about(fs_name, [cap_label](auto result) {
+        m_manager.rc().get_about(fs_name, [cap_label, cap_bar](auto result) {
             if (result.has_value()) {
                 auto text = format_capacity(result.value());
+                auto percent = compute_usage_percent(result.value());
                 if (!text.empty()) {
                     Glib::signal_idle().connect_once([cap_label, text]() {
                         cap_label->set_text(text);
                     });
                 }
+                if (percent.has_value()) {
+                    Glib::signal_idle().connect_once([cap_bar, pct = *percent]() {
+                        cap_bar->set_fraction(pct / 100.0);
+                        cap_bar->set_visible(true);
+                    });
+                }
             }
-            // If about fails, label stays empty — no error shown
+            // If about fails, label stays empty and bar stays hidden — no error shown
         });
     }
 }

@@ -732,7 +732,6 @@ void TrayIcon::stop_animation() {
             SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
         if (err) { g_warning("Tray: NewIcon on stop: %s", err->message); g_error_free(err); }
 
-        g_message("Tray: animation stopped, emitted PropertiesChanged + NewIcon");
     }
 }
 

@@ -50,6 +50,8 @@ private:
 
     struct RemoteRow {
         Gtk::Widget* row = nullptr;
+        Gtk::Box* capacity_box = nullptr;
+        Gtk::ProgressBar* capacity_bar = nullptr;
         Gtk::Label* capacity_label = nullptr;
         std::unique_ptr<Gtk::Button> edit_btn;
         std::unique_ptr<Gtk::Button> del_btn;

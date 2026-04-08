@@ -28,7 +28,9 @@ desktop application backed by a persistent daemon.
   in the remote dropdown; swap button physically exchanges remote and path between panes; **Compare**
   button runs `rclone check` between the two panes and displays results in a paginated 7-column
   dialog grouped by subdirectory — filename, size, and modified date shown only on the side where
-  the file exists; status glyphs `→` (source only) `←` (dest only) `≠` (differs) `=` (identical)
+  the file exists; status glyphs `→` (source only) `←` (dest only) `≠` (differs) `=` (identical);
+  all seven columns support interactive sorting and files stay grouped with their directory header
+  when any column sort is active
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer
@@ -65,10 +67,23 @@ sudo apt install \
 
 ## Building
 
+Create the build directory, then configure and build:
+
 ```bash
-cmake -B build
+mkdir build
+cmake \
+  -DCMAKE_BUILD_TYPE:STRING=Debug \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE \
+  -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/clang \
+  -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/clang++ \
+  --no-warn-unused-cli \
+  -S . -B build -G "Unix Makefiles"
 cmake --build build
 ```
+
+`CMAKE_EXPORT_COMPILE_COMMANDS` writes a `compile_commands.json` into the build directory, which
+IDEs and tools such as clangd use for accurate code intelligence. Use `Debug` for development;
+substitute `Release` for an optimised binary.
 
 ## Installing
 

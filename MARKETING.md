@@ -29,7 +29,7 @@ Mount any remote as a local filesystem with a single click. Saddle passes your V
 A side-by-side browser lets you navigate two locations simultaneously — any combination of local disk and remote storage. Sortable columns, MIME-type icons, breadcrumb navigation, back history, and per-pane hidden file toggles make it feel like a native file manager. A status bar shows file and folder counts with total size. The swap button exchanges the two panes with a single click.
 
 ### Compare Before You Commit
-Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Saddle runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical.
+Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Saddle runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical. Click any column header to sort — files stay grouped with their directory so the structure of your storage is always clear.
 
 Select one or more rows and act on them directly from the action bar — no need to leave the dialog:
 

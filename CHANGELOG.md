@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.8 — Remote Capacity Progress Bar
+- Remotes tab now shows a graphical progress bar indicating storage usage for each remote
+- Progress bar is positioned above the text usage stats (e.g. "4.9 GB of 20 GB")
+- Bar renders crisply at 6px height with rounded corners and accent colour fill
+- Capacity info is fetched asynchronously via `operations/about` endpoint; bar remains hidden if data unavailable
+
+## 0.6.7 — Compare Dialog Directory Grouping
+- Files in the Compare dialog now stay grouped with their directory header when sorting by any column
+- Previously, clicking a column header caused all directory headers to float above all file rows, breaking grouping
+- Sorting now orders by directory first, keeps the directory header above its files, then sorts within each group by the selected column
+
 ## 0.6.6 — Scalable Application Icon
 - Scalable SVG application icon now installed alongside the 256×256 PNG to `share/icons/hicolor/scalable/apps/com.saddle.Saddle.svg`
 - Icon renders crisply at any size in launchers and taskbars that prefer vector icons

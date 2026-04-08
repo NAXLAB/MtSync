@@ -50,6 +50,27 @@ static bool is_dir_header(GObject* obj) {
     return is_dir;
 }
 
+// Return the canonical directory path this row belongs to.
+// Used by column sorters to keep files grouped with their directory header.
+static std::string item_dir_str(GObject* obj) {
+    if (is_dir_header(obj)) {
+        // Header src-name is "subdir/" or "/" — strip trailing slash
+        gchar* val = nullptr;
+        g_object_get(obj, "src-name", &val, nullptr);
+        std::string s = val ? val : "";
+        g_free(val);
+        if (!s.empty() && s.back() == '/') s.pop_back();
+        return s; // "subdir" or "" for root
+    }
+    // Regular file: extract directory part from path property
+    gchar* val = nullptr;
+    g_object_get(obj, "path", &val, nullptr);
+    std::string path = val ? val : "";
+    g_free(val);
+    auto pos = path.rfind('/');
+    return pos == std::string::npos ? "" : path.substr(0, pos);
+}
+
 // ── Static CSS (installed once per display) ───────────────────────────────
 
 static void install_compare_css() {
@@ -313,17 +334,15 @@ void CompareDialog::build_column_view() {
             col->set_fixed_width(fixed_w);
         else
             col->set_expand(true);
-        // Add sorter: directory headers first, then by the specified property
+        // Add sorter: group by directory, header before its files, then by property
         col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
-            bool da = is_dir_header(a);
-            bool db = is_dir_header(b);
-            if (da != db) return da ? -1 : 1; // dir headers first
-            auto sa = get_str_prop(a, sort_prop);
-            auto sb = get_str_prop(b, sort_prop);
-            // For directory headers, sort by the path itself
-            if (da) return sa.compare(sb);
-            // For regular rows, case-insensitive comparison
-            return sa.lowercase().compare(sb.lowercase());
+            auto dir_a = item_dir_str(a), dir_b = item_dir_str(b);
+            if (dir_a != dir_b) return dir_a < dir_b ? -1 : 1;
+            bool da = is_dir_header(a), db = is_dir_header(b);
+            if (da != db) return da ? -1 : 1;
+            if (da && db) return 0;
+            return get_str_prop(a, sort_prop).lowercase()
+                       .compare(get_str_prop(b, sort_prop).lowercase());
         }));
         return col;
     };
@@ -349,14 +368,14 @@ void CompareDialog::build_column_view() {
         });
         auto col = Gtk::ColumnViewColumn::create(title, factory);
         col->set_fixed_width(90);
-        // Add sorter: directory headers first, then by size
+        // Add sorter: group by directory, header before its files, then by size
         col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
-            bool da = is_dir_header(a);
-            bool db = is_dir_header(b);
+            auto dir_a = item_dir_str(a), dir_b = item_dir_str(b);
+            if (dir_a != dir_b) return dir_a < dir_b ? -1 : 1;
+            bool da = is_dir_header(a), db = is_dir_header(b);
             if (da != db) return da ? -1 : 1;
-            auto sa = get_int64_prop(a, sort_prop);
-            auto sb = get_int64_prop(b, sort_prop);
-            // Treat -1 (missing) as less than any valid size
+            if (da && db) return 0;
+            auto sa = get_int64_prop(a, sort_prop), sb = get_int64_prop(b, sort_prop);
             if (sa < 0 && sb >= 0) return -1;
             if (sa >= 0 && sb < 0) return 1;
             return sa < sb ? -1 : (sa > sb ? 1 : 0);
@@ -386,14 +405,14 @@ void CompareDialog::build_column_view() {
         });
         auto col = Gtk::ColumnViewColumn::create(title, factory);
         col->set_fixed_width(120);
-        // Add sorter: directory headers first, then by date string
+        // Add sorter: group by directory, header before its files, then by date string
         col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
-            bool da = is_dir_header(a);
-            bool db = is_dir_header(b);
+            auto dir_a = item_dir_str(a), dir_b = item_dir_str(b);
+            if (dir_a != dir_b) return dir_a < dir_b ? -1 : 1;
+            bool da = is_dir_header(a), db = is_dir_header(b);
             if (da != db) return da ? -1 : 1;
-            auto sa = get_str_prop(a, sort_prop);
-            auto sb = get_str_prop(b, sort_prop);
-            // Empty dates sort before non-empty dates
+            if (da && db) return 0;
+            auto sa = get_str_prop(a, sort_prop), sb = get_str_prop(b, sort_prop);
             if (sa.empty() && !sb.empty()) return -1;
             if (!sa.empty() && sb.empty()) return 1;
             return sa.compare(sb);
@@ -434,14 +453,14 @@ void CompareDialog::build_column_view() {
     });
     auto status_col = Gtk::ColumnViewColumn::create("", status_factory);
     status_col->set_fixed_width(28);
-    // Add sorter for status column: directory headers first, then by status
+    // Add sorter for status column: group by directory, header before its files, then by status
     status_col->set_sorter(adw::make_sorter([](GObject* a, GObject* b) -> int {
-        bool da = is_dir_header(a);
-        bool db = is_dir_header(b);
+        auto dir_a = item_dir_str(a), dir_b = item_dir_str(b);
+        if (dir_a != dir_b) return dir_a < dir_b ? -1 : 1;
+        bool da = is_dir_header(a), db = is_dir_header(b);
         if (da != db) return da ? -1 : 1;
-        auto sa = get_str_prop(a, "status");
-        auto sb = get_str_prop(b, "status");
-        return sa.compare(sb);
+        if (da && db) return 0;
+        return get_str_prop(a, "status").compare(get_str_prop(b, "status"));
     }));
 
     // Add all 7 columns with sort properties
