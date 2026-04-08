@@ -58,12 +58,14 @@ public:
     void mkdir(const std::string& path, AsyncCallback<std::monostate> callback);
 
     // Recursive lsjson — same as lsjson() but passes -R, returns all files recursively
-    void lsjson_r(const std::string& remote_path,
-                  AsyncCallback<std::vector<FileEntry>> callback);
+    // Returns the Gio::Subprocess handle so callers can cancel if needed.
+    Glib::RefPtr<Gio::Subprocess> lsjson_r(const std::string& remote_path,
+                                            AsyncCallback<std::vector<FileEntry>> callback);
 
     // rclone check SRC DST --combined - ; non-zero exit = diffs found, not an error
-    void check(const std::string& src, const std::string& dst,
-               AsyncCallback<std::vector<CheckEntry>> callback);
+    // Returns the Gio::Subprocess handle so callers can cancel if needed.
+    Glib::RefPtr<Gio::Subprocess> check(const std::string& src, const std::string& dst,
+                                         AsyncCallback<std::vector<CheckEntry>> callback);
 
 private:
     std::string m_rclone_path;
@@ -71,7 +73,8 @@ private:
     using CompletionHandler = std::function<void(const std::string& stdout_data,
                                                   const std::string& stderr_data,
                                                   int exit_code)>;
-    void run_command(std::vector<std::string> args, CompletionHandler on_complete);
+    Glib::RefPtr<Gio::Subprocess> run_command(std::vector<std::string> args,
+                                               CompletionHandler on_complete);
 };
 
 } // namespace saddle::rclone

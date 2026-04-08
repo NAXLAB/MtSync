@@ -64,7 +64,11 @@ private:
         std::vector<rclone::CheckEntry> check_entries;
         int         done_count = 0;
         std::string error;
+        std::vector<Glib::RefPtr<Gio::Subprocess>> procs;
+        bool cancelled = false;
     };
+
+    std::shared_ptr<LoadState> m_load_state;
 
     void setup_ui();
     void build_column_view();

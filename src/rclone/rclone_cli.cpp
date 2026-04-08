@@ -30,7 +30,8 @@ RcloneCli::RcloneCli(std::string rclone_path) {
     m_rclone_path = resolved.empty() ? std::move(rclone_path) : std::move(resolved);
 }
 
-void RcloneCli::run_command(std::vector<std::string> args, CompletionHandler on_complete) {
+Glib::RefPtr<Gio::Subprocess> RcloneCli::run_command(std::vector<std::string> args,
+                                                       CompletionHandler on_complete) {
     std::vector<std::string> full_args;
     full_args.push_back(m_rclone_path);
     for (auto& a : args)
@@ -52,8 +53,10 @@ void RcloneCli::run_command(std::vector<std::string> args, CompletionHandler on_
                     on_complete("", e.what(), -1);
                 }
             });
+        return proc;
     } catch (const Glib::Error& e) {
         on_complete("", std::string("Failed to spawn rclone: ") + e.what(), -1);
+        return {};
     }
 }
 
@@ -283,9 +286,9 @@ void RcloneCli::mkdir(const std::string& path, AsyncCallback<std::monostate> cal
     });
 }
 
-void RcloneCli::lsjson_r(const std::string& remote_path,
-                          AsyncCallback<std::vector<FileEntry>> callback) {
-    run_command({"lsjson", "-R", remote_path}, [callback = std::move(callback)](
+Glib::RefPtr<Gio::Subprocess> RcloneCli::lsjson_r(const std::string& remote_path,
+                                                    AsyncCallback<std::vector<FileEntry>> callback) {
+    return run_command({"lsjson", "-R", remote_path}, [callback = std::move(callback)](
         const std::string& out, const std::string& err, int code) {
         if (code != 0) {
             callback(std::unexpected("lsjson -R failed: " + err));
@@ -311,10 +314,10 @@ void RcloneCli::lsjson_r(const std::string& remote_path,
     });
 }
 
-void RcloneCli::check(const std::string& src, const std::string& dst,
-                       AsyncCallback<std::vector<CheckEntry>> callback) {
+Glib::RefPtr<Gio::Subprocess> RcloneCli::check(const std::string& src, const std::string& dst,
+                                                 AsyncCallback<std::vector<CheckEntry>> callback) {
     // Exit code is intentionally ignored: non-zero means differences exist, not an error.
-    run_command({"check", src, dst, "--combined", "-"},
+    return run_command({"check", src, dst, "--combined", "-"},
         [callback = std::move(callback)](const std::string& out, const std::string&, int) {
             std::vector<CheckEntry> entries;
             std::istringstream ss(out);

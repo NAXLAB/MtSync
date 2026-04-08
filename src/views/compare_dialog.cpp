@@ -123,6 +123,25 @@ void CompareDialog::setup_ui() {
     auto* loading_lbl = Gtk::make_managed<Gtk::Label>("Comparing…");
     loading_lbl->add_css_class("dim-label");
     loading_box->append(*loading_lbl);
+
+    auto* hint_lbl = Gtk::make_managed<Gtk::Label>("Large scans can take a long time");
+    hint_lbl->add_css_class("dim-label");
+    hint_lbl->set_margin_top(4);
+    loading_box->append(*hint_lbl);
+
+    auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
+    cancel_btn->set_halign(Gtk::Align::CENTER);
+    cancel_btn->set_margin_top(12);
+    cancel_btn->signal_clicked().connect([this]() {
+        if (m_load_state) {
+            m_load_state->cancelled = true;
+            for (auto& proc : m_load_state->procs)
+                if (proc) proc->force_exit();
+        }
+        close();
+    });
+    loading_box->append(*cancel_btn);
+
     m_stack->add(*loading_box, "loading");
 
     // ── "results" page ───────────────────────────────────────────────────
@@ -308,11 +327,11 @@ void CompareDialog::build_column_view() {
     status_col->set_fixed_width(28);
 
     // Add all 7 columns
-    m_column_view->append_column(make_str_col("Source",   "src-name", 0.0f, 0, true));
+    m_column_view->append_column(make_str_col("Filename", "src-name", 0.0f, 0, true));
     m_column_view->append_column(make_size_col("Size",    "src-size"));
     m_column_view->append_column(make_date_col("Modified","src-mod"));
     m_column_view->append_column(status_col);
-    m_column_view->append_column(make_str_col("Destination","dst-name", 0.0f, 0, true));
+    m_column_view->append_column(make_str_col("Filename", "dst-name", 0.0f, 0, true));
     m_column_view->append_column(make_size_col("Size",    "dst-size"));
     m_column_view->append_column(make_date_col("Modified","dst-mod"));
 }
@@ -320,9 +339,11 @@ void CompareDialog::build_column_view() {
 // ── Async loading ─────────────────────────────────────────────────────────
 
 void CompareDialog::start_load(rclone::RcloneManager& manager) {
-    auto state = std::make_shared<LoadState>();
+    m_load_state = std::make_shared<LoadState>();
+    auto state = m_load_state;
 
     auto try_finish = [this, state]() {
+        if (state->cancelled) return;
         state->done_count++;
         if (state->done_count < 3) return;
         if (!state->error.empty()) {
@@ -334,23 +355,29 @@ void CompareDialog::start_load(rclone::RcloneManager& manager) {
         show_page(0);
     };
 
-    manager.cli().lsjson_r(m_src, [state, try_finish](auto result) {
-        if (result) state->src_entries = std::move(*result);
-        else if (state->error.empty()) state->error = result.error();
-        try_finish();
-    });
+    state->procs.push_back(
+        manager.cli().lsjson_r(m_src, [state, try_finish](auto result) {
+            if (state->cancelled) return;
+            if (result) state->src_entries = std::move(*result);
+            else if (state->error.empty()) state->error = result.error();
+            try_finish();
+        }));
 
-    manager.cli().lsjson_r(m_dst, [state, try_finish](auto result) {
-        if (result) state->dst_entries = std::move(*result);
-        else if (state->error.empty()) state->error = result.error();
-        try_finish();
-    });
+    state->procs.push_back(
+        manager.cli().lsjson_r(m_dst, [state, try_finish](auto result) {
+            if (state->cancelled) return;
+            if (result) state->dst_entries = std::move(*result);
+            else if (state->error.empty()) state->error = result.error();
+            try_finish();
+        }));
 
     // check() never returns an error value — non-zero exit means diffs, not failure
-    manager.cli().check(m_src, m_dst, [state, try_finish](auto result) {
-        if (result) state->check_entries = std::move(*result);
-        try_finish();
-    });
+    state->procs.push_back(
+        manager.cli().check(m_src, m_dst, [state, try_finish](auto result) {
+            if (state->cancelled) return;
+            if (result) state->check_entries = std::move(*result);
+            try_finish();
+        }));
 }
 
 // ── Merge results ─────────────────────────────────────────────────────────
@@ -372,10 +399,15 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
         return pos == std::string::npos ? "" : p.substr(0, pos);
     };
 
-    // Sort by path so same-directory files are contiguous
+    // Sort by directory first, then by path — raw path sort interleaves root-level
+    // files (dir="") with subdirectory entries, causing duplicate "/" headers.
     std::vector<rclone::CheckEntry> sorted = checks;
     std::sort(sorted.begin(), sorted.end(),
-              [](const auto& a, const auto& b) { return a.path < b.path; });
+              [&dirpart](const auto& a, const auto& b) {
+                  auto da = dirpart(a.path), db = dirpart(b.path);
+                  if (da != db) return da < db;
+                  return a.path < b.path;
+              });
 
     m_all_rows.clear();
     m_all_rows.reserve(sorted.size() + 32);

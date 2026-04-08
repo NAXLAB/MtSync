@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3 — Compare Dialog Improvements
+- Filename columns in the diff view now show "Filename" instead of "Source" / "Destination"
+- Fixed duplicate `"/"` directory header appearing when root-level files and subdirectory files were both present — results are now sorted by directory first, then by path, ensuring the root group is always contiguous
+- Loading page now shows a "Large scans can take a long time" hint below the spinner
+- Cancel button on the loading page kills all running rclone subprocesses and closes the dialog immediately
+
 ## 0.6.2 — Compare Dialog Polish
 - Corrected which side filename, size, and date are displayed on — `+` (rclone: in source only) now shows in the source column, `-` (in destination only) shows in the destination column
 - Empty size and date cells are now truly blank instead of showing `--`
