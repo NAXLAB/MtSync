@@ -125,7 +125,7 @@ BackendsView::BackendsView(rclone::RcloneManager& manager)
 
     // Apply CSS styling for the capacity progress bar
     auto css = Gtk::CssProvider::create();
-    css->load_from_string(
+    css->load_from_data(
         ".capacity-bar trough {"
         "    min-height: 6px;"
         "    border-radius: 3px;"

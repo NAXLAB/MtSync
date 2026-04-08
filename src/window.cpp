@@ -35,7 +35,7 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
 
     // CSS for view switcher tab styling
     auto css = Gtk::CssProvider::create();
-    css->load_from_string(
+    css->load_from_data(
         "viewswitcher button:checked {\n"
         "    background-color: #1a5276;\n"
         "}\n"

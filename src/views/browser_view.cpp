@@ -32,7 +32,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
 
     // CSS for active-pane indicator (top accent stripe)
     auto css = Gtk::CssProvider::create();
-    css->load_from_string(
+    css->load_from_data(
         ".browser-pane-active { box-shadow: inset 0 3px 0 @accent_color; }\n"
         ".action-green { background-color: #528a6f; color: white; }\n"
         ".action-green:hover { background-color: #5e9a7d; }\n"

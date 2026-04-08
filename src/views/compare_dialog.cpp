@@ -78,7 +78,7 @@ static void install_compare_css() {
     if (installed) return;
     installed = true;
     auto css = Gtk::CssProvider::create();
-    css->load_from_string(
+    css->load_from_data(
         "label.compare-same      { color: alpha(@window_fg_color, 0.45); }\n"
         "label.compare-missing   { color: #e05555; }\n"
         "label.compare-extra     { color: #4a90d9; }\n"

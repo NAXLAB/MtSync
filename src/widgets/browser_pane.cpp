@@ -69,7 +69,7 @@ static void install_mime_icon_css() {
     if (installed) return;
     installed = true;
     auto css = Gtk::CssProvider::create();
-    css->load_from_string(
+    css->load_from_data(
         "image.icon-folder       { color: #f5a623; }\n"
         "image.icon-image        { color: #4a90d9; }\n"
         "image.icon-video        { color: #9b59b6; }\n"
