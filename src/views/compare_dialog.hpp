@@ -59,9 +59,10 @@ private:
     Gtk::Button*     m_dst_copy_btn    = nullptr;  // copy dst → src
     Gtk::Button*     m_dst_delete_btn  = nullptr;  // delete from destination
 
-    // Holds only the current page's items; wrapped in MultiSelection for the ColumnView
-    Glib::RefPtr<Gio::ListStore<CompareRowObject>> m_page_store;
-    Glib::RefPtr<Gtk::MultiSelection>              m_file_selection;
+    // Holds only the current page's items; wrapped in SortListModel and MultiSelection for the ColumnView
+    Glib::RefPtr<Gio::ListStore<CompareRowObject>>   m_page_store;
+    Glib::RefPtr<Gtk::SortListModel>                 m_sort_model;
+    Glib::RefPtr<Gtk::MultiSelection>                m_file_selection;
 
     // Shared state for coordinating three parallel async operations
     struct LoadState {

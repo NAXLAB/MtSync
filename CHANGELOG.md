@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.5 — Compare Dialog Column Sorting
+- All seven columns in the Compare dialog now support interactive sorting by clicking column headers
+- Click a column header to sort ascending/descending; sort direction indicated by arrow glyphs
+- Directory header rows always sort to the top of their groups, preserving visual hierarchy
+- Filename columns sort case-insensitively, size columns handle missing values correctly
+
 ## 0.6.4 — Compare Dialog Actions
 - Action bar added below the source → destination path line; results list supports multi-select
 - Left side: **Delete** (icon, removes selected files from source) and **Copy →** (copies selected from source to destination)

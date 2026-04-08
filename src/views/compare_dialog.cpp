@@ -25,6 +25,31 @@
 
 namespace saddle {
 
+// Helper to extract string property from GObject for sorting
+static Glib::ustring get_str_prop(GObject* obj, const char* prop) {
+    gchar* val = nullptr;
+    g_object_get(obj, prop, &val, nullptr);
+    Glib::ustring result(val ? val : "");
+    g_free(val);
+    return result;
+}
+
+// Helper to extract int64 property from GObject for sorting
+static gint64 get_int64_prop(GObject* obj, const char* prop) {
+    gint64 val = 0;
+    g_object_get(obj, prop, &val, nullptr);
+    return val;
+}
+
+// Helper to extract boolean-like status from GObject
+static bool is_dir_header(GObject* obj) {
+    gchar* val = nullptr;
+    g_object_get(obj, "status", &val, nullptr);
+    bool is_dir = val && val[0] == '/';
+    g_free(val);
+    return is_dir;
+}
+
 // ── Static CSS (installed once per display) ───────────────────────────────
 
 static void install_compare_css() {
@@ -248,7 +273,9 @@ void CompareDialog::setup_ui() {
 // ── ColumnView ────────────────────────────────────────────────────────────
 
 void CompareDialog::build_column_view() {
-    m_file_selection = Gtk::MultiSelection::create(m_page_store);
+    // Wrap page store with SortListModel to enable column sorting
+    m_sort_model = Gtk::SortListModel::create(m_page_store, {});
+    m_file_selection = Gtk::MultiSelection::create(m_sort_model);
     m_file_selection->signal_selection_changed().connect(
         [this](guint, guint) { update_action_buttons(); });
     m_column_view = Gtk::make_managed<Gtk::ColumnView>(m_file_selection);
@@ -256,7 +283,7 @@ void CompareDialog::build_column_view() {
     m_column_view->add_css_class("data-table");
 
     // Helper: make a simple label column (string property, given xalign, optional fixed width)
-    auto make_str_col = [](const char* title, const char* prop, float xalign, int fixed_w = 0,
+    auto make_str_col = [this](const char* title, const char* prop, const char* sort_prop, float xalign, int fixed_w = 0,
                            bool ellipsize = false) {
         auto factory = Gtk::SignalListItemFactory::create();
         factory->signal_setup().connect([xalign, ellipsize](const Glib::RefPtr<Gtk::ListItem>& item) {
@@ -286,11 +313,23 @@ void CompareDialog::build_column_view() {
             col->set_fixed_width(fixed_w);
         else
             col->set_expand(true);
+        // Add sorter: directory headers first, then by the specified property
+        col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
+            bool da = is_dir_header(a);
+            bool db = is_dir_header(b);
+            if (da != db) return da ? -1 : 1; // dir headers first
+            auto sa = get_str_prop(a, sort_prop);
+            auto sb = get_str_prop(b, sort_prop);
+            // For directory headers, sort by the path itself
+            if (da) return sa.compare(sb);
+            // For regular rows, case-insensitive comparison
+            return sa.lowercase().compare(sb.lowercase());
+        }));
         return col;
     };
 
     // Helper: size column (gint64 property, rendered as human-readable or "--")
-    auto make_size_col = [](const char* title, const char* prop) {
+    auto make_size_col = [this](const char* title, const char* prop, const char* sort_prop) {
         auto factory = Gtk::SignalListItemFactory::create();
         factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
             auto* lbl = Gtk::make_managed<Gtk::Label>();
@@ -310,11 +349,23 @@ void CompareDialog::build_column_view() {
         });
         auto col = Gtk::ColumnViewColumn::create(title, factory);
         col->set_fixed_width(90);
+        // Add sorter: directory headers first, then by size
+        col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
+            bool da = is_dir_header(a);
+            bool db = is_dir_header(b);
+            if (da != db) return da ? -1 : 1;
+            auto sa = get_int64_prop(a, sort_prop);
+            auto sb = get_int64_prop(b, sort_prop);
+            // Treat -1 (missing) as less than any valid size
+            if (sa < 0 && sb >= 0) return -1;
+            if (sa >= 0 && sb < 0) return 1;
+            return sa < sb ? -1 : (sa > sb ? 1 : 0);
+        }));
         return col;
     };
 
     // Helper: date column (string property, formatted)
-    auto make_date_col = [](const char* title, const char* prop) {
+    auto make_date_col = [this](const char* title, const char* prop, const char* sort_prop) {
         auto factory = Gtk::SignalListItemFactory::create();
         factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
             auto* lbl = Gtk::make_managed<Gtk::Label>();
@@ -335,6 +386,18 @@ void CompareDialog::build_column_view() {
         });
         auto col = Gtk::ColumnViewColumn::create(title, factory);
         col->set_fixed_width(120);
+        // Add sorter: directory headers first, then by date string
+        col->set_sorter(adw::make_sorter([sort_prop](GObject* a, GObject* b) -> int {
+            bool da = is_dir_header(a);
+            bool db = is_dir_header(b);
+            if (da != db) return da ? -1 : 1;
+            auto sa = get_str_prop(a, sort_prop);
+            auto sb = get_str_prop(b, sort_prop);
+            // Empty dates sort before non-empty dates
+            if (sa.empty() && !sb.empty()) return -1;
+            if (!sa.empty() && sb.empty()) return 1;
+            return sa.compare(sb);
+        }));
         return col;
     };
 
@@ -371,15 +434,27 @@ void CompareDialog::build_column_view() {
     });
     auto status_col = Gtk::ColumnViewColumn::create("", status_factory);
     status_col->set_fixed_width(28);
+    // Add sorter for status column: directory headers first, then by status
+    status_col->set_sorter(adw::make_sorter([](GObject* a, GObject* b) -> int {
+        bool da = is_dir_header(a);
+        bool db = is_dir_header(b);
+        if (da != db) return da ? -1 : 1;
+        auto sa = get_str_prop(a, "status");
+        auto sb = get_str_prop(b, "status");
+        return sa.compare(sb);
+    }));
 
-    // Add all 7 columns
-    m_column_view->append_column(make_str_col("Filename", "src-name", 0.0f, 0, true));
-    m_column_view->append_column(make_size_col("Size",    "src-size"));
-    m_column_view->append_column(make_date_col("Modified","src-mod"));
+    // Add all 7 columns with sort properties
+    m_column_view->append_column(make_str_col("Filename", "src-name", "src-name", 0.0f, 0, true));
+    m_column_view->append_column(make_size_col("Size",    "src-size", "src-size"));
+    m_column_view->append_column(make_date_col("Modified","src-mod", "src-mod"));
     m_column_view->append_column(status_col);
-    m_column_view->append_column(make_str_col("Filename", "dst-name", 0.0f, 0, true));
-    m_column_view->append_column(make_size_col("Size",    "dst-size"));
-    m_column_view->append_column(make_date_col("Modified","dst-mod"));
+    m_column_view->append_column(make_str_col("Filename", "dst-name", "dst-name", 0.0f, 0, true));
+    m_column_view->append_column(make_size_col("Size",    "dst-size", "dst-size"));
+    m_column_view->append_column(make_date_col("Modified","dst-mod", "dst-mod"));
+
+    // Connect the ColumnView's sorter to the SortListModel to enable interactive sorting
+    m_sort_model->set_sorter(m_column_view->get_sorter());
 }
 
 // ── Async loading ─────────────────────────────────────────────────────────
