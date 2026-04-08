@@ -54,10 +54,14 @@ private:
     Gtk::Button*     m_prev_btn    = nullptr;
     Gtk::Button*     m_next_btn    = nullptr;
     Gtk::Label*      m_error_label = nullptr;
-    Gtk::Button*     m_delete_btn      = nullptr;  // delete from source
-    Gtk::Button*     m_copy_btn        = nullptr;  // copy src → dst
-    Gtk::Button*     m_dst_copy_btn    = nullptr;  // copy dst → src
-    Gtk::Button*     m_dst_delete_btn  = nullptr;  // delete from destination
+    Gtk::Button*       m_delete_btn      = nullptr;  // delete from source
+    Gtk::Button*       m_copy_btn        = nullptr;  // copy src → dst
+    Gtk::Button*       m_dst_copy_btn    = nullptr;  // copy dst → src
+    Gtk::Button*       m_dst_delete_btn  = nullptr;  // delete from destination
+    Gtk::ToggleButton* m_filter_left_btn  = nullptr;  // hide '-' (← only-in-src)
+    Gtk::ToggleButton* m_filter_right_btn = nullptr;  // hide '+' (→ only-in-dst)
+    Gtk::ToggleButton* m_filter_diff_btn  = nullptr;  // hide '*' (≠ different)
+    Gtk::ToggleButton* m_filter_error_btn = nullptr;  // hide '!' (! error)
 
     // Holds only the current page's items; wrapped in SortListModel and MultiSelection for the ColumnView
     Glib::RefPtr<Gio::ListStore<CompareRowObject>>   m_page_store;
@@ -91,6 +95,8 @@ private:
     void on_copy_clicked();
     void on_dst_copy_clicked();
     void on_dst_delete_clicked();
+    void apply_filters();
+    bool is_status_filtered(char status) const;
 
     static std::string format_size(int64_t bytes);
     static std::string format_date(const std::string& iso);

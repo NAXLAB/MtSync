@@ -176,10 +176,45 @@ void CompareDialog::setup_ui() {
     action_bar->append(*m_delete_btn);
     action_bar->append(*m_copy_btn);
 
-    // Spacer
-    auto* spacer = Gtk::make_managed<Gtk::Box>();
-    spacer->set_hexpand(true);
-    action_bar->append(*spacer);
+    // Left spacer
+    auto* spacer_l = Gtk::make_managed<Gtk::Box>();
+    spacer_l->set_hexpand(true);
+    action_bar->append(*spacer_l);
+
+    // Centre filter toggles — each hides rows of that status when active
+    auto* filter_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 2);
+    filter_box->set_halign(Gtk::Align::CENTER);
+
+    m_filter_left_btn = Gtk::make_managed<Gtk::ToggleButton>("←");
+    m_filter_left_btn->add_css_class("flat");
+    m_filter_left_btn->set_tooltip_text("Hide files only in source");
+    m_filter_left_btn->signal_toggled().connect([this]() { apply_filters(); });
+
+    m_filter_right_btn = Gtk::make_managed<Gtk::ToggleButton>("→");
+    m_filter_right_btn->add_css_class("flat");
+    m_filter_right_btn->set_tooltip_text("Hide files only in destination");
+    m_filter_right_btn->signal_toggled().connect([this]() { apply_filters(); });
+
+    m_filter_diff_btn = Gtk::make_managed<Gtk::ToggleButton>("≠");
+    m_filter_diff_btn->add_css_class("flat");
+    m_filter_diff_btn->set_tooltip_text("Hide files that differ");
+    m_filter_diff_btn->signal_toggled().connect([this]() { apply_filters(); });
+
+    m_filter_error_btn = Gtk::make_managed<Gtk::ToggleButton>("!");
+    m_filter_error_btn->add_css_class("flat");
+    m_filter_error_btn->set_tooltip_text("Hide files with errors");
+    m_filter_error_btn->signal_toggled().connect([this]() { apply_filters(); });
+
+    filter_box->append(*m_filter_left_btn);
+    filter_box->append(*m_filter_right_btn);
+    filter_box->append(*m_filter_diff_btn);
+    filter_box->append(*m_filter_error_btn);
+    action_bar->append(*filter_box);
+
+    // Right spacer
+    auto* spacer_r = Gtk::make_managed<Gtk::Box>();
+    spacer_r->set_hexpand(true);
+    action_bar->append(*spacer_r);
 
     // Right group — destination-side operations
     m_dst_copy_btn = Gtk::make_managed<Gtk::Button>("← Copy");
@@ -585,9 +620,10 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
             ce.path));
     }
 
-    m_total_pages = m_all_rows.empty()
-        ? 1
-        : static_cast<int>((m_all_rows.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+    int file_count = 0;
+    for (auto& r : m_all_rows)
+        if (r->property_status.get_value() != "/") ++file_count;
+    m_total_pages = file_count == 0 ? 1 : (file_count + PAGE_SIZE - 1) / PAGE_SIZE;
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────
@@ -595,21 +631,77 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
 void CompareDialog::show_page(int page) {
     m_current_page = page;
     m_page_store->remove_all();
+
+    // Collect rows that pass the status filter (dir headers pass unconditionally)
+    std::vector<Glib::RefPtr<CompareRowObject>> visible;
+    visible.reserve(m_all_rows.size());
+    for (auto& row : m_all_rows) {
+        auto st = row->property_status.get_value();
+        char s = st.empty() ? '=' : static_cast<char>(st[0]);
+        if (s != '/' && is_status_filtered(s)) continue;
+        visible.push_back(row);
+    }
+
+    // Strip orphan directory headers (headers with no file children before the next header)
+    std::vector<Glib::RefPtr<CompareRowObject>> final_rows;
+    final_rows.reserve(visible.size());
+    for (size_t i = 0; i < visible.size(); ++i) {
+        auto st = visible[i]->property_status.get_value();
+        char s = st.empty() ? '=' : static_cast<char>(st[0]);
+        if (s == '/') {
+            bool has_file = (i + 1 < visible.size()) && [&]() {
+                auto ns = visible[i + 1]->property_status.get_value();
+                return (ns.empty() ? '=' : static_cast<char>(ns[0])) != '/';
+            }();
+            if (has_file) final_rows.push_back(visible[i]);
+        } else {
+            final_rows.push_back(visible[i]);
+        }
+    }
+
     int start = page * PAGE_SIZE;
-    int end   = std::min(start + PAGE_SIZE, static_cast<int>(m_all_rows.size()));
+    int end   = std::min(start + PAGE_SIZE, static_cast<int>(final_rows.size()));
     for (int i = start; i < end; ++i)
-        m_page_store->append(m_all_rows[i]);
+        m_page_store->append(final_rows[i]);
     update_pagination_controls();
     m_stack->set_visible_child("results");
     update_action_buttons();
 }
 
 void CompareDialog::update_pagination_controls() {
-    int total = static_cast<int>(m_all_rows.size());
+    int visible = 0;
+    for (auto& row : m_all_rows) {
+        auto st = row->property_status.get_value();
+        char s = st.empty() ? '=' : static_cast<char>(st[0]);
+        if (s != '/' && !is_status_filtered(s)) ++visible;
+    }
     m_page_label->set_text(std::format(
-        "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, total));
+        "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, visible));
     m_prev_btn->set_sensitive(m_current_page > 0);
     m_next_btn->set_sensitive(m_current_page < m_total_pages - 1);
+}
+
+// ── Filter helpers ────────────────────────────────────────────────────────
+
+bool CompareDialog::is_status_filtered(char status) const {
+    switch (status) {
+        case '-': return m_filter_left_btn  && m_filter_left_btn->get_active();
+        case '+': return m_filter_right_btn && m_filter_right_btn->get_active();
+        case '*': return m_filter_diff_btn  && m_filter_diff_btn->get_active();
+        case '!': return m_filter_error_btn && m_filter_error_btn->get_active();
+        default:  return false;
+    }
+}
+
+void CompareDialog::apply_filters() {
+    int visible = 0;
+    for (auto& row : m_all_rows) {
+        auto st = row->property_status.get_value();
+        char s = st.empty() ? '=' : static_cast<char>(st[0]);
+        if (s != '/' && !is_status_filtered(s)) ++visible;
+    }
+    m_total_pages = visible == 0 ? 1 : (visible + PAGE_SIZE - 1) / PAGE_SIZE;
+    show_page(0);
 }
 
 // ── Action bar helpers ────────────────────────────────────────────────────

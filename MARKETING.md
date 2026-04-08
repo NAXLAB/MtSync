@@ -31,6 +31,8 @@ A side-by-side browser lets you navigate two locations simultaneously — any co
 ### Compare Before You Commit
 Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Saddle runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical. Click any column header to sort — files stay grouped with their directory so the structure of your storage is always clear.
 
+Four toggle buttons in the centre of the action bar let you filter the results by status — hide source-only files, destination-only files, differing files, or errors individually. Toggle any combination to focus on exactly what you care about. Directory headers disappear automatically when all their files are filtered out.
+
 Select one or more rows and act on them directly from the action bar — no need to leave the dialog:
 
 - **Copy →** — copy selected files from source to destination

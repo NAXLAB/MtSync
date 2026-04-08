@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.9 — Compare Dialog Filter Toggles
+- Four small toggle buttons (`←` `→` `≠` `!`) added to the centre of the Compare dialog action bar
+- When a toggle is active, rows with that status are hidden from the results list
+- Directory headers with no remaining visible children are suppressed automatically
+- Pagination count updates to reflect only the visible (unfiltered) files
+- Filter state persists across reloads triggered by copy or delete actions
+
 ## 0.6.8 — Remote Capacity Progress Bar
 - Remotes tab now shows a graphical progress bar indicating storage usage for each remote
 - Progress bar is positioned above the text usage stats (e.g. "4.9 GB of 20 GB")
