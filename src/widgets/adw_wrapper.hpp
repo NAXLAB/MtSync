@@ -333,9 +333,16 @@ inline void header_bar_pack_start(Gtk::Widget* header, Gtk::Widget* child) {
 }
 
 // --- Spinner ---
+// AdwSpinner requires libadwaita >= 1.6; fall back to GtkSpinner on older distros.
 
 inline Gtk::Widget* spinner() {
+#if ADW_CHECK_VERSION(1, 6, 0)
     return Glib::wrap(GTK_WIDGET(adw_spinner_new()));
+#else
+    auto* s = gtk_spinner_new();
+    gtk_spinner_start(GTK_SPINNER(s));
+    return Glib::wrap(s);
+#endif
 }
 
 // --- Status Page (for empty states) ---

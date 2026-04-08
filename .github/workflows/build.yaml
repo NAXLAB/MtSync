@@ -51,7 +51,7 @@ jobs:
         run: |
           dnf install -y \
             cmake gcc-c++ pkg-config \
-            gtkmm40-devel \
+            gtkmm4-devel \
             libadwaita-devel \
             libsoup3-devel \
             cairo-devel \
@@ -127,6 +127,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:

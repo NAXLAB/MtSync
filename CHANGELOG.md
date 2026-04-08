@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.10 — CI Build Fixes
+- Replaced `AdwSpinner` with a compile-time fallback to `GtkSpinner` on libadwaita < 1.6 (Ubuntu 24.04 ships 1.5)
+- Flatpak CI job now installs `flatpak` and `flatpak-builder` before invoking the builder action
+- Snap build fixed: removed `filesets` keyword (not valid in core24/snapcraft 8.x) and replaced `$rclone` fileset reference with a direct `prime` path
+- RPM dependency corrected from `gtkmm40-devel` to `gtkmm4-devel` (Fedora package name)
+
 ## 0.6.9 — Compare Dialog Filter Toggles
 - Four small toggle buttons (`←` `→` `≠` `!`) added to the centre of the Compare dialog action bar
 - When a toggle is active, rows with that status are hidden from the results list
