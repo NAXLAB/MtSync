@@ -35,7 +35,7 @@ modules:
   - name: rclone
     buildsystem: simple
     build-commands:
-      - install -Dm755 rclone-v1.68.2-linux-amd64/rclone /app/bin/rclone
+      - install -Dm755 rclone /app/bin/rclone
     sources:
       - type: archive
         url: https://github.com/rclone/rclone/releases/download/v1.68.2/rclone-v1.68.2-linux-amd64.zip
