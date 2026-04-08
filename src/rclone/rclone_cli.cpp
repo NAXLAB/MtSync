@@ -276,6 +276,27 @@ void RcloneCli::delete_files(const std::string& dir,
     });
 }
 
+void RcloneCli::copy_files(const std::string& src, const std::string& dst,
+                            const std::vector<std::string>& includes,
+                            AsyncCallback<std::monostate> callback) {
+    if (includes.empty()) {
+        callback(std::unexpected("No files specified for copy"));
+        return;
+    }
+    std::vector<std::string> args = {"copy", src, dst};
+    for (auto& inc : includes) {
+        args.push_back("--include");
+        args.push_back(inc);
+    }
+    run_command(std::move(args), [callback = std::move(callback)](
+        const std::string&, const std::string& err, int code) {
+        if (code != 0)
+            callback(std::unexpected("copy failed: " + err));
+        else
+            callback(std::monostate{});
+    });
+}
+
 void RcloneCli::mkdir(const std::string& path, AsyncCallback<std::monostate> callback) {
     run_command({"mkdir", path}, [callback = std::move(callback)](
         const std::string&, const std::string& err, int code) {

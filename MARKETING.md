@@ -31,6 +31,15 @@ A side-by-side browser lets you navigate two locations simultaneously — any co
 ### Compare Before You Commit
 Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Saddle runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical.
 
+Select one or more rows and act on them directly from the action bar — no need to leave the dialog:
+
+- **Copy →** — copy selected files from source to destination
+- **← Copy** — copy selected files from destination to source
+- **Delete** (source side) — remove selected files from the source remote
+- **Delete** (destination side) — remove selected files from the destination remote
+
+After any action the comparison reruns automatically so the list always reflects the current state. A Cancel button lets you abort a long-running scan at any time.
+
 ### Copy, Move & Sync
 Copy or move selected files between any two locations — local or remote, same provider or different. Sync entire directories with rclone's fast delta transfers. Bi-directional sync (rclone bisync) keeps two locations in agreement without overwriting newer files. File include-filter patterns let you narrow transfers to exactly the files you want.
 

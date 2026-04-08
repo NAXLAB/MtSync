@@ -55,6 +55,11 @@ public:
                       const std::vector<std::string>& includes,
                       AsyncCallback<std::monostate> callback);
 
+    // Copy specific files from src to dst; includes are absolute rclone filter patterns (e.g. "/sub/file.txt")
+    void copy_files(const std::string& src, const std::string& dst,
+                    const std::vector<std::string>& includes,
+                    AsyncCallback<std::monostate> callback);
+
     void mkdir(const std::string& path, AsyncCallback<std::monostate> callback);
 
     // Recursive lsjson — same as lsjson() but passes -R, returns all files recursively

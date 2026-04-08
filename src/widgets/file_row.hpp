@@ -77,7 +77,8 @@ public:
     static Glib::RefPtr<CompareRowObject> create(
         char status,
         const std::string& src_name, int64_t src_size, const std::string& src_mod,
-        const std::string& dst_name, int64_t dst_size, const std::string& dst_mod);
+        const std::string& dst_name, int64_t dst_size, const std::string& dst_mod,
+        const std::string& path = "");
 
     Glib::Property<Glib::ustring> property_status  {*this, "status"};   // single-char string
     Glib::Property<Glib::ustring> property_src_name{*this, "src-name"};
@@ -86,6 +87,7 @@ public:
     Glib::Property<Glib::ustring> property_dst_name {*this, "dst-name"};
     Glib::Property<gint64>        property_dst_size {*this, "dst-size"};
     Glib::Property<Glib::ustring> property_dst_mod  {*this, "dst-mod"};
+    Glib::Property<Glib::ustring> property_path     {*this, "path"};    // relative path within remote
 
 protected:
     CompareRowObject();

@@ -80,7 +80,7 @@ std::string CompareDialog::format_date(const std::string& iso) {
 CompareDialog::CompareDialog(const std::string& src,
                              const std::string& dst,
                              rclone::RcloneManager& manager)
-    : m_src(src), m_dst(dst) {
+    : m_src(src), m_dst(dst), m_manager(&manager) {
     set_title("Compare");
     set_default_size(1100, 640);
     set_modal(true);
@@ -106,6 +106,51 @@ void CompareDialog::setup_ui() {
     path_label->set_margin_end(12);
     path_label->set_ellipsize(Pango::EllipsizeMode::MIDDLE);
     root->append(*path_label);
+
+    // Action bar
+    auto* action_bar = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
+    action_bar->set_margin_start(8);
+    action_bar->set_margin_end(8);
+    action_bar->set_margin_top(4);
+    action_bar->set_margin_bottom(4);
+
+    // Left group — source-side operations
+    m_delete_btn = Gtk::make_managed<Gtk::Button>();
+    m_delete_btn->set_icon_name("edit-delete-symbolic");
+    m_delete_btn->add_css_class("destructive-action");
+    m_delete_btn->set_sensitive(false);
+    m_delete_btn->set_tooltip_text("Delete selected from source");
+    m_delete_btn->signal_clicked().connect([this]() { on_delete_clicked(); });
+
+    m_copy_btn = Gtk::make_managed<Gtk::Button>("Copy →");
+    m_copy_btn->set_sensitive(false);
+    m_copy_btn->set_tooltip_text("Copy selected from source to destination");
+    m_copy_btn->signal_clicked().connect([this]() { on_copy_clicked(); });
+
+    action_bar->append(*m_delete_btn);
+    action_bar->append(*m_copy_btn);
+
+    // Spacer
+    auto* spacer = Gtk::make_managed<Gtk::Box>();
+    spacer->set_hexpand(true);
+    action_bar->append(*spacer);
+
+    // Right group — destination-side operations
+    m_dst_copy_btn = Gtk::make_managed<Gtk::Button>("← Copy");
+    m_dst_copy_btn->set_sensitive(false);
+    m_dst_copy_btn->set_tooltip_text("Copy selected from destination to source");
+    m_dst_copy_btn->signal_clicked().connect([this]() { on_dst_copy_clicked(); });
+
+    m_dst_delete_btn = Gtk::make_managed<Gtk::Button>();
+    m_dst_delete_btn->set_icon_name("edit-delete-symbolic");
+    m_dst_delete_btn->add_css_class("destructive-action");
+    m_dst_delete_btn->set_sensitive(false);
+    m_dst_delete_btn->set_tooltip_text("Delete selected from destination");
+    m_dst_delete_btn->signal_clicked().connect([this]() { on_dst_delete_clicked(); });
+
+    action_bar->append(*m_dst_copy_btn);
+    action_bar->append(*m_dst_delete_btn);
+    root->append(*action_bar);
 
     // Main stack: loading / results / error
     m_stack = Gtk::make_managed<Gtk::Stack>();
@@ -203,9 +248,10 @@ void CompareDialog::setup_ui() {
 // ── ColumnView ────────────────────────────────────────────────────────────
 
 void CompareDialog::build_column_view() {
-    auto selection = Gtk::SingleSelection::create(m_page_store);
-    selection->set_can_unselect(true);
-    m_column_view = Gtk::make_managed<Gtk::ColumnView>(selection);
+    m_file_selection = Gtk::MultiSelection::create(m_page_store);
+    m_file_selection->signal_selection_changed().connect(
+        [this](guint, guint) { update_action_buttons(); });
+    m_column_view = Gtk::make_managed<Gtk::ColumnView>(m_file_selection);
     m_column_view->set_vexpand(true);
     m_column_view->add_css_class("data-table");
 
@@ -441,7 +487,8 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
         m_all_rows.push_back(CompareRowObject::create(
             ce.status,
             src_name, src_size, src_mod,
-            dst_name, dst_size, dst_mod));
+            dst_name, dst_size, dst_mod,
+            ce.path));
     }
 
     m_total_pages = m_all_rows.empty()
@@ -460,6 +507,7 @@ void CompareDialog::show_page(int page) {
         m_page_store->append(m_all_rows[i]);
     update_pagination_controls();
     m_stack->set_visible_child("results");
+    update_action_buttons();
 }
 
 void CompareDialog::update_pagination_controls() {
@@ -468,6 +516,82 @@ void CompareDialog::update_pagination_controls() {
         "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, total));
     m_prev_btn->set_sensitive(m_current_page > 0);
     m_next_btn->set_sensitive(m_current_page < m_total_pages - 1);
+}
+
+// ── Action bar helpers ────────────────────────────────────────────────────
+
+std::vector<std::string> CompareDialog::get_selected_paths() const {
+    std::vector<std::string> paths;
+    if (!m_file_selection) return paths;
+    auto n = m_file_selection->get_n_items();
+    for (guint i = 0; i < n; ++i) {
+        if (!m_file_selection->is_selected(i)) continue;
+        auto obj = std::dynamic_pointer_cast<CompareRowObject>(m_file_selection->get_object(i));
+        if (!obj) continue;
+        auto st = obj->property_status.get_value();
+        if (st.empty() || static_cast<char>(st[0]) == '/') continue; // skip headers
+        auto path = std::string(obj->property_path.get_value());
+        if (!path.empty())
+            paths.push_back("/" + path); // leading "/" = absolute include pattern for rclone
+    }
+    return paths;
+}
+
+void CompareDialog::update_action_buttons() {
+    bool in_results = m_stack && m_stack->get_visible_child_name() == "results";
+    bool has_selection = in_results && !get_selected_paths().empty();
+    if (m_delete_btn)     m_delete_btn->set_sensitive(has_selection);
+    if (m_copy_btn)       m_copy_btn->set_sensitive(has_selection);
+    if (m_dst_copy_btn)   m_dst_copy_btn->set_sensitive(has_selection);
+    if (m_dst_delete_btn) m_dst_delete_btn->set_sensitive(has_selection);
+}
+
+void CompareDialog::on_delete_clicked() {
+    auto paths = get_selected_paths();
+    if (paths.empty() || !m_manager) return;
+    m_stack->set_visible_child("loading");
+    m_manager->cli().delete_files(m_src, paths,
+        [this](auto result) {
+            if (!result)
+                g_warning("Compare delete failed: %s", result.error().c_str());
+            start_load(*m_manager);
+        });
+}
+
+void CompareDialog::on_copy_clicked() {
+    auto paths = get_selected_paths();
+    if (paths.empty() || !m_manager) return;
+    m_stack->set_visible_child("loading");
+    m_manager->cli().copy_files(m_src, m_dst, paths,
+        [this](auto result) {
+            if (!result)
+                g_warning("Compare copy failed: %s", result.error().c_str());
+            start_load(*m_manager);
+        });
+}
+
+void CompareDialog::on_dst_copy_clicked() {
+    auto paths = get_selected_paths();
+    if (paths.empty() || !m_manager) return;
+    m_stack->set_visible_child("loading");
+    m_manager->cli().copy_files(m_dst, m_src, paths,
+        [this](auto result) {
+            if (!result)
+                g_warning("Compare dst-copy failed: %s", result.error().c_str());
+            start_load(*m_manager);
+        });
+}
+
+void CompareDialog::on_dst_delete_clicked() {
+    auto paths = get_selected_paths();
+    if (paths.empty() || !m_manager) return;
+    m_stack->set_visible_child("loading");
+    m_manager->cli().delete_files(m_dst, paths,
+        [this](auto result) {
+            if (!result)
+                g_warning("Compare dst-delete failed: %s", result.error().c_str());
+            start_load(*m_manager);
+        });
 }
 
 } // namespace saddle

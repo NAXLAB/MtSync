@@ -38,6 +38,7 @@ public:
 private:
     std::string m_src;
     std::string m_dst;
+    rclone::RcloneManager* m_manager = nullptr;
 
     // Full merged dataset — populated after all three async ops complete
     std::vector<Glib::RefPtr<CompareRowObject>> m_all_rows;
@@ -53,9 +54,14 @@ private:
     Gtk::Button*     m_prev_btn    = nullptr;
     Gtk::Button*     m_next_btn    = nullptr;
     Gtk::Label*      m_error_label = nullptr;
+    Gtk::Button*     m_delete_btn      = nullptr;  // delete from source
+    Gtk::Button*     m_copy_btn        = nullptr;  // copy src → dst
+    Gtk::Button*     m_dst_copy_btn    = nullptr;  // copy dst → src
+    Gtk::Button*     m_dst_delete_btn  = nullptr;  // delete from destination
 
-    // Holds only the current page's items
+    // Holds only the current page's items; wrapped in MultiSelection for the ColumnView
     Glib::RefPtr<Gio::ListStore<CompareRowObject>> m_page_store;
+    Glib::RefPtr<Gtk::MultiSelection>              m_file_selection;
 
     // Shared state for coordinating three parallel async operations
     struct LoadState {
@@ -78,6 +84,12 @@ private:
                        const std::vector<rclone::CheckEntry>& checks);
     void show_page(int page);
     void update_pagination_controls();
+    void update_action_buttons();
+    std::vector<std::string> get_selected_paths() const;
+    void on_delete_clicked();
+    void on_copy_clicked();
+    void on_dst_copy_clicked();
+    void on_dst_delete_clicked();
 
     static std::string format_size(int64_t bytes);
     static std::string format_date(const std::string& iso);

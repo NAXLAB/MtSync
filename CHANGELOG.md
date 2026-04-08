@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 — Compare Dialog Actions
+- Action bar added below the source → destination path line; results list supports multi-select
+- Left side: **Delete** (icon, removes selected files from source) and **Copy →** (copies selected from source to destination)
+- Right side: **← Copy** (copies selected from destination to source) and **Delete** (icon, removes selected files from destination)
+- After any action the comparison reruns automatically to reflect the updated state
+
 ## 0.6.3 — Compare Dialog Improvements
 - Filename columns in the diff view now show "Filename" instead of "Source" / "Destination"
 - Fixed duplicate `"/"` directory header appearing when root-level files and subdirectory files were both present — results are now sorted by directory first, then by path, ensuring the root group is always contiguous
