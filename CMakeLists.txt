@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.6.5 LANGUAGES C CXX)
+project(Saddle VERSION 0.6.6 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -81,6 +81,11 @@ install(FILES
     RENAME com.saddle.Saddle.png
 )
 install(FILES
+    "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.svg"
+    DESTINATION share/icons/hicolor/scalable/apps
+    RENAME com.saddle.Saddle.svg
+)
+install(FILES
     "${CMAKE_SOURCE_DIR}/data/com.saddle.Saddle.desktop"
     DESTINATION share/applications
 )
@@ -109,6 +114,8 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
     "/usr/share/icons"
     "/usr/share/icons/hicolor"
     "/usr/share/icons/hicolor/256x256"
-    "/usr/share/icons/hicolor/256x256/apps")
+    "/usr/share/icons/hicolor/256x256/apps"
+    "/usr/share/icons/hicolor/scalable"
+    "/usr/share/icons/hicolor/scalable/apps")
 
 include(CPack)

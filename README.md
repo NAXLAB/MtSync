@@ -78,8 +78,9 @@ gtk-update-icon-cache ~/.local/share/icons/hicolor
 update-desktop-database ~/.local/share/applications
 ```
 
-Installing places the binary in `~/.local/bin`, registers the application icon with the hicolor
-theme, and installs the `.desktop` file so the icon appears in the launcher and taskbar.
+Installing places the binary in `~/.local/bin`, registers the application icon (256×256 PNG and
+scalable SVG) with the hicolor theme, and installs the `.desktop` file so the icon appears in the
+launcher and taskbar.
 
 ## Running
 

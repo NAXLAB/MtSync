@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.6 — Scalable Application Icon
+- Scalable SVG application icon now installed alongside the 256×256 PNG to `share/icons/hicolor/scalable/apps/com.saddle.Saddle.svg`
+- Icon renders crisply at any size in launchers and taskbars that prefer vector icons
+
 ## 0.6.5 — Compare Dialog Column Sorting
 - All seven columns in the Compare dialog now support interactive sorting by clicking column headers
 - Click a column header to sort ascending/descending; sort direction indicated by arrow glyphs
