@@ -34,7 +34,7 @@ public:
     // Daemon lifecycle
     void ensure_daemon(AsyncCallback<std::monostate> callback);
     void stop_daemon();
-    bool is_daemon_running() const { return m_daemon_pid > 0; }
+    bool is_daemon_running() const { return m_daemon_pid != 0; }
 
     // Async RC API calls
     void mount_async  (const std::string& src, const std::string& mountpoint,

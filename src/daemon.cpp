@@ -284,11 +284,12 @@ void SaddleDaemon::load_jobs() {
             g_warning("Failed to load jobs: %s", e.what());
         }
     }
-    // Mount active state is not valid across daemon restarts — any mounts
-    // from a previous session are gone, so reset the flag unconditionally.
-    for (auto& job : m_jobs)
+    // In-flight state is not valid across daemon restarts — reset unconditionally.
+    for (auto& job : m_jobs) {
         if (job.type == rclone::JobType::Mount)
             job.active = false;
+        job.running = false;
+    }
 }
 
 void SaddleDaemon::save_jobs() {
@@ -440,8 +441,20 @@ void SaddleDaemon::on_run_job(size_t index) {
     auto done_cb = [this, index](auto result) {
         if (index < m_job_submitting.size()) m_job_submitting[index] = false;
         if (!result.has_value()) {
-            g_warning("Job %zu failed: %s", index, result.error().c_str());
-            on_job_completed(index, false);
+            // Job never received an RC job ID — on_job_completed() would return early
+            // on its m_job_ids guard, leaking job.running and m_running_job_count.
+            // Clean up directly instead.
+            g_warning("Job %zu failed to submit: %s", index, result.error().c_str());
+            if (index < m_jobs.size()) {
+                m_jobs[index].running = false;
+                m_jobs[index].last_status = "error";
+                save_jobs();
+            }
+            m_running_job_count--;
+            if (m_running_job_count < 0) m_running_job_count = 0;
+            update_tray_animation();
+            json response_payload = {{"index", index}, {"success", false}};
+            m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
             return;
         }
 
@@ -461,7 +474,14 @@ void SaddleDaemon::on_run_job(size_t index) {
                 m_manager.rc().job_status(current_job_id, [this, index](auto status) {
                     // Guard against duplicate completion callbacks from overlapping poll cycles
                     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
-                    if (status.has_value() && status->finished) {
+                    if (!status.has_value()) {
+                        // rclone rcd is unreachable or doesn't know this job ID
+                        // (e.g. rcd crashed or was restarted). Treat as failure so the
+                        // stale job ID is cleared and the job can run again.
+                        on_job_completed(index, false);
+                        return;
+                    }
+                    if (status->finished) {
                         on_job_completed(index, status->success);
                         return;
                     }

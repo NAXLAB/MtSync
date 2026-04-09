@@ -27,6 +27,9 @@ namespace saddle::rclone {
 
 using json = nlohmann::json;
 
+// Timeout (ms) for stop_daemon before escalating from SIGTERM to SIGKILL
+static constexpr int STOP_TIMEOUT_MS = 5000;
+
 RcloneRc::RcloneRc(std::string addr, int port)
     : m_base_url(std::format("http://{}:{}", addr, port)) {
     m_session = soup_session_new();
@@ -89,17 +92,8 @@ void RcloneRc::rc_post(const std::string& endpoint,
 
 void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
     if (m_daemon_pid > 0) {
-        // Check if it's still alive by pinging
-        rc_post("core/version", json::object(), [this, callback = std::move(callback)](auto result) {
-            if (result.has_value()) {
-                callback(std::monostate{});
-            } else {
-                // Daemon died — reap and respawn
-                waitpid(m_daemon_pid, nullptr, WNOHANG);
-                m_daemon_pid = 0;
-                ensure_daemon(std::move(callback));
-            }
-        });
+        // Daemon is alive (child watch will fire if it dies)
+        callback(std::monostate{});
         return;
     }
 
@@ -108,7 +102,12 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
     // Adopt it rather than spawning a new one that would fail to bind the port.
     rc_post("core/version", json::object(), [this, callback = std::move(callback)](auto result) mutable {
         if (result.has_value()) {
-            // An rclone rcd is already running — use it without tracking its PID
+            // An rclone rcd is already running — adopt it by setting up a child
+            // watch so we get notified when it dies.  We don't know the real PID,
+            // so we can't use g_child_watch_add; instead we'll detect death via
+            // HTTP ping failure on the next ensure_daemon call.  Mark with -1 to
+            // distinguish from a PID we spawned ourselves.
+            m_daemon_pid = -1;
             callback(std::monostate{});
             return;
         }
@@ -154,38 +153,91 @@ void RcloneRc::spawn_daemon(AsyncCallback<std::monostate> callback) {
     if (dev_null >= 0) close(dev_null);
 
     if (!ok) {
+        m_daemon_pid = 0;
         std::string err = error ? error->message : "unknown error";
         if (error) g_error_free(error);
         callback(std::unexpected("Failed to spawn rclone rcd: " + err));
         return;
     }
 
+    // Register a child watch so we get async notification when the daemon dies.
+    // The watch callback reaps the zombie and zeros m_daemon_pid.
+    // We pass m_daemon_pid by value through a heap-allocated struct since the
+    // lambda may outlive the current scope.
+    struct WatchPack {
+        RcloneRc* self;
+        GPid pid;
+    };
+    auto* pack = new WatchPack{this, m_daemon_pid};
+    g_child_watch_add(pack->pid, [](GPid pid, gint status, gpointer user_data) {
+        auto* p = static_cast<WatchPack*>(user_data);
+        // Reap the zombie (waitpid already succeeded internally for g_child_watch_add,
+        // but call g_spawn_close_pid to release GLib resources).
+        g_spawn_close_pid(pid);
+        p->self->m_daemon_pid = 0;
+        delete p;
+        // Log that the daemon died — any pending ensure_daemon or job submission
+        // will detect this via the zeroed PID / HTTP failure.
+        g_warning("rclone rcd (pid %d) exited with status %d", (int)pid, status);
+    }, pack);
+
     // Give rclone rcd time to start, then verify it's up
     auto cb_ptr = std::make_shared<AsyncCallback<std::monostate>>(std::move(callback));
+    auto* verify_pack = new std::pair<RcloneRc*, std::shared_ptr<AsyncCallback<std::monostate>>>(this, cb_ptr);
     g_timeout_add(1500, [](gpointer data) -> gboolean {
         auto* pack = static_cast<std::pair<RcloneRc*, std::shared_ptr<AsyncCallback<std::monostate>>>*>(data);
         pack->first->rc_post("core/version", json::object(),
-            [cb = pack->second](auto result) {
+            [self = pack->first, cb = pack->second](auto result) {
                 if (result.has_value())
                     (*cb)(std::monostate{});
-                else
-                    (*cb)(std::unexpected(std::string("rclone rcd failed to start")));
+                else {
+                    // Startup verification failed — kill the daemon and zero PID
+                    // so that subsequent ensure_daemon calls retry cleanly.
+                    g_warning("rclone rcd failed startup verification, terminating");
+                    self->stop_daemon();
+                    (*cb)(std::unexpected("rclone rcd failed to start"));
+                }
             });
         delete pack;
         return G_SOURCE_REMOVE;
-    }, new std::pair(this, cb_ptr));
+    }, verify_pack);
 }
 
 void RcloneRc::stop_daemon() {
     if (m_daemon_pid > 0) {
-        kill(m_daemon_pid, SIGTERM);
-        // Block until rclone exits so port 5571 is free before we return.
-        // stop_daemon() is only called from the shutdown path after the main
-        // loop has exited, so blocking here is safe.
-        waitpid(m_daemon_pid, nullptr, 0);
-        g_spawn_close_pid(m_daemon_pid);
+        GPid pid = m_daemon_pid;
+        m_daemon_pid = 0;  // Prevent re-entry; child watch may still fire
+
+        // Send SIGTERM first
+        kill(pid, SIGTERM);
+
+        // Poll with WNOHANG for up to STOP_TIMEOUT_MS, then escalate to SIGKILL
+        const int poll_interval_ms = 50;
+        const int max_attempts = STOP_TIMEOUT_MS / poll_interval_ms;
+        for (int i = 0; i < max_attempts; ++i) {
+            if (waitpid(pid, nullptr, WNOHANG) != 0) {
+                // Process exited
+                g_spawn_close_pid(pid);
+                return;
+            }
+            g_usleep(poll_interval_ms * 1000);
+        }
+
+        // Still alive after timeout — escalate
+        g_warning("rclone rcd (pid %d) did not exit after %dms, sending SIGKILL",
+                   (int)pid, STOP_TIMEOUT_MS);
+        kill(pid, SIGKILL);
+        waitpid(pid, nullptr, 0);
+        g_spawn_close_pid(pid);
+    } else if (m_daemon_pid == -1) {
+        // Adopted daemon (unknown PID) — try to stop via HTTP then best-effort kill
+        // Find any rclone rcd process on our port and kill it
+        rc_post("core/quit", json::object(), [](auto) {
+            // Best effort — ignore result
+        });
         m_daemon_pid = 0;
     }
+    // m_daemon_pid == 0: nothing to do
 }
 
 void RcloneRc::mount_async(const std::string& src, const std::string& mountpoint,
@@ -399,6 +451,12 @@ void RcloneRc::job_status(int64_t jobid, AsyncCallback<JobStatus> callback) {
             return;
         }
         auto& j = result.value();
+        // rclone wraps RC-level errors as {"error":"...","status":N,"path":"..."}
+        // Return as unexpected so callers can distinguish "job not found" from "still running"
+        if (j.contains("status") && j.contains("error")) {
+            callback(std::unexpected(j["error"].template get<std::string>()));
+            return;
+        }
         JobStatus status;
         status.id = j.value("id", int64_t{0});
         status.finished = j.value("finished", false);

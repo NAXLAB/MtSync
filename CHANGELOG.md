@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.13 — Defunct rclone Process & Job Skipping Fixes
+- Replaced polling-based rclone rcd death detection with `g_child_watch_add()` for async SIGCHLD notification — zombies are now reaped immediately when the daemon exits
+- `stop_daemon()` now uses a 5-second timeout with SIGTERM→SIGKILL escalation instead of blocking indefinitely on `waitpid()`, preventing shutdown hangs
+- Adopted rclone rcd processes (from previous sessions) are now tracked with PID = -1 and stopped via `core/quit` HTTP call
+- Spawn verification failure now properly terminates the half-started daemon and zeros the PID so subsequent retries succeed cleanly
+- Fixed `is_daemon_running()` to recognise adopted daemons (PID ≠ 0 instead of PID > 0)
+- Fixed jobs being permanently skipped after rclone rcd crashes or restarts mid-job: `job_status()` now correctly identifies rclone's RC error envelope (`{"error":"...","status":N}`) and returns it as a failure rather than parsing it as a still-running job; the poll timer now calls `on_job_completed()` on any error, clearing the stale job ID
+- Fixed `m_running_job_count` leak and persistent `running:true` state when a job submission fails before receiving an RC job ID — cleanup is now performed inline rather than going through `on_job_completed()` which returned early on its guard
+- `load_jobs()` now resets `running:false` for all job types on daemon startup, not just `active` for mount jobs
+
 ## 0.6.12 — Animated Tray Icon Overlay & Security Fixes
 - Tray spinner animation frames are now composited over the idle icon rather than rendered on a transparent background
 - The idle icon remains visible through the gaps between spinner dots while a job is running
