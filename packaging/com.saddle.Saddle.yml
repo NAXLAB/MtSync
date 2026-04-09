@@ -45,6 +45,7 @@ modules:
   - name: libsigcplusplus
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
     cleanup:
@@ -59,6 +60,7 @@ modules:
   - name: glibmm
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - --wrap-mode=nofallback
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
@@ -75,6 +77,7 @@ modules:
   - name: cairomm
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
       - -Dbuild-tests=false
@@ -90,6 +93,7 @@ modules:
   - name: pangomm
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
     cleanup:
@@ -104,6 +108,7 @@ modules:
   - name: gtkmm
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
       - -Dbuild-tests=false
