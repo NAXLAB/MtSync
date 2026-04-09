@@ -98,7 +98,7 @@ modules:
     sources:
       - type: archive
         url: https://download.gnome.org/sources/pangomm/2.56/pangomm-2.56.1.tar.xz
-        sha256: 0539f5aa60e9bdc6b955bb448e2a62cc14562744df690258040fbb74bf885755d
+        sha256: 539f5aa60e9bdc6b955bb448e2a62cc14562744df690258040fbb74bf885755d
 
   - name: gtkmm
     buildsystem: meson
