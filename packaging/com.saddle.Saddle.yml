@@ -41,6 +41,81 @@ modules:
         url: https://github.com/rclone/rclone/releases/download/v1.68.2/rclone-v1.68.2-linux-amd64.zip
         sha256: 0e6fa18051e67fc600d803a2dcb10ddedb092247fc6eee61be97f64ec080a13c
 
+  # gtkmm-4.0 and its C++ dependency chain (not in the GNOME SDK)
+  - name: libsigcplusplus
+    buildsystem: meson
+    config-opts:
+      - -Dbuild-documentation=false
+      - -Dbuild-examples=false
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /lib/sigc++-3.0
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/libsigc++/3.6/libsigc++-3.6.0.tar.xz
+        sha256: c3d23b37dfd6e39f2e09f091b77b1541fbfa17c4f0b6bf5c89baef7229080e17
+
+  - name: glibmm
+    buildsystem: meson
+    config-opts:
+      - -Dbuild-documentation=false
+      - -Dbuild-examples=false
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /lib/glibmm-2.68
+      - /lib/giomm-2.68
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/glibmm/2.84/glibmm-2.84.0.tar.xz
+        sha256: 56ee5f51c8acfc0afdf46959316e4c8554cb50ed2b6bc5ce389d979cbb642509
+
+  - name: cairomm
+    buildsystem: meson
+    config-opts:
+      - -Dbuild-documentation=false
+      - -Dbuild-examples=false
+      - -Dbuild-tests=false
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /lib/cairomm-1.16
+    sources:
+      - type: archive
+        url: https://www.cairographics.org/releases/cairomm-1.16.2.tar.xz
+        sha256: 6a63bf98a97dda2b0f55e34d1b5f3fb909ef8b70f9b8d382cb1ff3978e7dc13f
+
+  - name: pangomm
+    buildsystem: meson
+    config-opts:
+      - -Dbuild-documentation=false
+      - -Dbuild-examples=false
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /lib/pangomm-2.48
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/pangomm/2.56/pangomm-2.56.1.tar.xz
+        sha256: 0539f5aa60e9bdc6b955bb448e2a62cc14562744df690258040fbb74bf885755d
+
+  - name: gtkmm
+    buildsystem: meson
+    config-opts:
+      - -Dbuild-documentation=false
+      - -Dbuild-examples=false
+      - -Dbuild-tests=false
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /lib/gtkmm-4.0
+      - /lib/gdkmm-4.0
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/gtkmm/4.18/gtkmm-4.18.0.tar.xz
+        sha256: 2ee31c15479fc4d8e958b03c8b5fbbc8e17bc122c2a2f544497b4e05619e33ec
+
   - name: saddle
     buildsystem: cmake-ninja
     config-opts:
