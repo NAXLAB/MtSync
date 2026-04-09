@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.6.13 LANGUAGES C CXX)
+project(Saddle VERSION 0.6.14 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,6 +38,16 @@ set(PROVIDER_ICONS
     "${PROVIDER_ICON_DIR}/wasabi.svg"          "${PROVIDER_ICON_DIR}/wasabi-dark.svg"
     "${PROVIDER_ICON_DIR}/cloudflare.svg"      "${PROVIDER_ICON_DIR}/cloudflare-dark.svg"
     "${PROVIDER_ICON_DIR}/hetzner.svg"         "${PROVIDER_ICON_DIR}/hetzner-dark.svg"
+    "${PROVIDER_ICON_DIR}/onedrive.svg"        "${PROVIDER_ICON_DIR}/onedrive-dark.svg"
+    "${PROVIDER_ICON_DIR}/pcloud.svg"          "${PROVIDER_ICON_DIR}/pcloud-dark.svg"
+    "${PROVIDER_ICON_DIR}/s3.svg"              "${PROVIDER_ICON_DIR}/s3-dark.svg"
+    "${PROVIDER_ICON_DIR}/azureblob.svg"       "${PROVIDER_ICON_DIR}/azureblob-dark.svg"
+    "${PROVIDER_ICON_DIR}/yandex.svg"          "${PROVIDER_ICON_DIR}/yandex-dark.svg"
+    "${PROVIDER_ICON_DIR}/mailru.svg"          "${PROVIDER_ICON_DIR}/mailru-dark.svg"
+    "${PROVIDER_ICON_DIR}/koofr.svg"           "${PROVIDER_ICON_DIR}/koofr-dark.svg"
+    "${PROVIDER_ICON_DIR}/jottacloud.svg"      "${PROVIDER_ICON_DIR}/jottacloud-dark.svg"
+    "${PROVIDER_ICON_DIR}/putio.svg"           "${PROVIDER_ICON_DIR}/putio-dark.svg"
+    "${PROVIDER_ICON_DIR}/premiumize.svg"      "${PROVIDER_ICON_DIR}/premiumize-dark.svg"
 )
 
 add_custom_command(

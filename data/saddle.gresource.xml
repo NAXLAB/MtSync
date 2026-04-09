@@ -43,5 +43,25 @@
     <file preprocess="xml-stripblanks">cloudflare-dark.svg</file>
     <file preprocess="xml-stripblanks">hetzner.svg</file>
     <file preprocess="xml-stripblanks">hetzner-dark.svg</file>
+    <file preprocess="xml-stripblanks">onedrive.svg</file>
+    <file preprocess="xml-stripblanks">onedrive-dark.svg</file>
+    <file preprocess="xml-stripblanks">pcloud.svg</file>
+    <file preprocess="xml-stripblanks">pcloud-dark.svg</file>
+    <file preprocess="xml-stripblanks">s3.svg</file>
+    <file preprocess="xml-stripblanks">s3-dark.svg</file>
+    <file preprocess="xml-stripblanks">azureblob.svg</file>
+    <file preprocess="xml-stripblanks">azureblob-dark.svg</file>
+    <file preprocess="xml-stripblanks">yandex.svg</file>
+    <file preprocess="xml-stripblanks">yandex-dark.svg</file>
+    <file preprocess="xml-stripblanks">mailru.svg</file>
+    <file preprocess="xml-stripblanks">mailru-dark.svg</file>
+    <file preprocess="xml-stripblanks">koofr.svg</file>
+    <file preprocess="xml-stripblanks">koofr-dark.svg</file>
+    <file preprocess="xml-stripblanks">jottacloud.svg</file>
+    <file preprocess="xml-stripblanks">jottacloud-dark.svg</file>
+    <file preprocess="xml-stripblanks">putio.svg</file>
+    <file preprocess="xml-stripblanks">putio-dark.svg</file>
+    <file preprocess="xml-stripblanks">premiumize.svg</file>
+    <file preprocess="xml-stripblanks">premiumize-dark.svg</file>
   </gresource>
 </gresources>

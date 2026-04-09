@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.14 — Extended Provider Icons
+- Added provider icons for OneDrive, pCloud, Amazon S3, Azure Blob Storage, Yandex Disk, Mail.ru Cloud, Koofr, Jottacloud, put.io, and premiumize.me
+- Each icon includes both light and dark theme variants for automatic dark mode support
+- Icons appear in the Backends tab remote list and the file manager remote dropdown
+
 ## 0.6.13 — Defunct rclone Process & Job Skipping Fixes
 - Replaced polling-based rclone rcd death detection with `g_child_watch_add()` for async SIGCHLD notification — zombies are now reaped immediately when the daemon exits
 - `stop_daemon()` now uses a 5-second timeout with SIGTERM→SIGKILL escalation instead of blocking indefinitely on `waitpid()`, preventing shutdown hangs
