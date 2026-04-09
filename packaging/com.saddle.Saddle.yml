@@ -95,7 +95,6 @@ modules:
     config-opts:
       - --libdir=lib
       - -Dbuild-documentation=false
-      - -Dbuild-examples=false
     cleanup:
       - /include
       - /lib/pkgconfig
