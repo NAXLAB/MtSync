@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <glib-unix.h>
 
@@ -50,6 +51,13 @@ bool IpcClient::connect() {
     m_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
     if (m_fd < 0) {
         g_warning("Failed to create socket: %s", g_strerror(errno));
+        return false;
+    }
+
+    if (socket_path.size() >= sizeof(sockaddr_un::sun_path)) {
+        g_warning("Socket path too long (%zu bytes)", socket_path.size());
+        ::close(m_fd);
+        m_fd = -1;
         return false;
     }
 

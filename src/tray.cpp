@@ -491,8 +491,8 @@ namespace saddle {
 
 TrayIcon::TrayIcon() {
     g_tray = this;
-    build_frames();
     load_idle_icon();
+    build_frames();
 
     m_owner_id = g_bus_own_name(
         G_BUS_TYPE_SESSION,
@@ -534,6 +534,11 @@ void TrayIcon::build_frames() {
         cairo_set_source_rgba(cr, 0, 0, 0, 0);
         cairo_paint(cr);
 
+        if (m_idle_surface) {
+            cairo_set_source_surface(cr, m_idle_surface, 0, 0);
+            cairo_paint(cr);
+        }
+
         for (int seg = 0; seg < ANIM_FRAMES; ++seg) {
             int dist    = (frame - seg + ANIM_FRAMES) % ANIM_FRAMES;
             double a    = 1.0 - dist * (0.85 / ANIM_FRAMES);
@@ -571,6 +576,11 @@ void TrayIcon::build_frames() {
         }
         cairo_destroy(cr);
         cairo_surface_destroy(surf);
+    }
+
+    if (m_idle_surface) {
+        cairo_surface_destroy(m_idle_surface);
+        m_idle_surface = nullptr;
     }
 }
 
@@ -642,7 +652,9 @@ void TrayIcon::load_idle_icon() {
             m_idle_icon[i+3] = (p >>  0) & 0xFF; // B
         }
     }
-    cairo_surface_destroy(dst_surface);
+
+    // Retain the surface so build_frames() can composite spinner frames over it
+    m_idle_surface = dst_surface;
     g_message("Tray: loaded idle icon %dx%d -> scaled to %dx%d ARGB32 (%zu bytes)",
               src_width, src_height, ICON_SIZE, ICON_SIZE, m_idle_icon.size());
 }

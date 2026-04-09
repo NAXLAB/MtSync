@@ -49,7 +49,7 @@ void AboutView::setup_ui() {
     // ── Status page ───────────────────────────────────────────────────────────
     auto* status = adw::status_page();
     adw::status_page_set_title(status, "Saddle");
-    adw::status_page_set_description(status, "Mount network storage in comfort.");
+    adw::status_page_set_description(status, "Mount or sync network storage in comfort");
 
     GBytes* probe = g_resources_lookup_data("/io/github/saddle/icons/application.png",
                                              G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
@@ -68,7 +68,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.6.11");
+    adw::action_row_set_subtitle(version_row, "0.6.12");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
@@ -93,6 +93,7 @@ void AboutView::setup_ui() {
         "The arms of the night");
     quote_label->set_wrap(true);
     quote_label->set_xalign(0.5);
+    quote_label->set_justify(Gtk::Justification::CENTER);
     quote_label->set_css_classes({"dim-label"});
     vbox->append(*quote_label);
 }

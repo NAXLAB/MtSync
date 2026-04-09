@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 namespace fs = std::filesystem;
 
@@ -57,6 +58,13 @@ bool IpcServer::start() {
         return false;
     }
 
+    if (socket_path.size() >= sizeof(sockaddr_un::sun_path)) {
+        g_warning("Socket path too long (%zu bytes)", socket_path.size());
+        ::close(m_server_fd);
+        m_server_fd = -1;
+        return false;
+    }
+
     struct sockaddr_un addr;
     std::memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
@@ -68,6 +76,8 @@ bool IpcServer::start() {
         m_server_fd = -1;
         return false;
     }
+
+    ::chmod(socket_path.c_str(), 0600);
 
     if (::listen(m_server_fd, 5) < 0) {
         g_warning("Failed to listen: %s", g_strerror(errno));

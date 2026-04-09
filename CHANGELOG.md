@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.6.11 — Flatpak Build Fixes
+## 0.6.12 — Animated Tray Icon Overlay & Security Fixes
+- Tray spinner animation frames are now composited over the idle icon rather than rendered on a transparent background
+- The idle icon remains visible through the gaps between spinner dots while a job is running
+- IPC Unix socket is now created with `0600` permissions, preventing other local users from connecting to the daemon
+- IPC socket path length is now validated before use in both server and client; fails fast with a clear error if the path exceeds the kernel's 108-byte limit
+- New Folder dialog rejects names containing `/` or `..` to prevent directory traversal outside the current location
+- Fixed defunct rclone rcd process blocking subsequent operations after app restart: `stop_daemon()` now calls `waitpid()` so port 5571 is guaranteed free before returning; `ensure_daemon()` now probes the port before spawning and adopts any already-running rclone rcd rather than spawning a new one that would fail to bind
+- Fixed file descriptor leak: `/dev/null` fd opened during rclone rcd spawn was not closed in the parent process
+
+## 0.6.11 — Flatpak Build Fixes & App Icon fixes
 - Fixed icon squareness rendering issue
 - Added sigc++, glibmm, cairomm, pangomm, and gtkmm as explicit Flatpak manifest modules in correct dependency order (required because the Flatpak SDK does not include the C++ bindings)
 - All meson modules now pass `--wrap-mode=nofallback` to prevent meson attempting GitHub clones (blocked by the Flatpak sandbox)

@@ -72,6 +72,8 @@ private:
     void rc_post(const std::string& endpoint,
                  const nlohmann::json& body,
                  AsyncCallback<nlohmann::json> callback);
+
+    void spawn_daemon(AsyncCallback<std::monostate> callback);
 };
 
 } // namespace saddle::rclone

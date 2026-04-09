@@ -21,6 +21,7 @@
 #include <format>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 namespace saddle::rclone {
 
@@ -93,7 +94,8 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
             if (result.has_value()) {
                 callback(std::monostate{});
             } else {
-                // Daemon died, restart
+                // Daemon died — reap and respawn
+                waitpid(m_daemon_pid, nullptr, WNOHANG);
                 m_daemon_pid = 0;
                 ensure_daemon(std::move(callback));
             }
@@ -101,8 +103,21 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         return;
     }
 
-    // Spawn rclone rcd, silencing its console output
-    GError* error = nullptr;
+    // m_daemon_pid == 0: probe first — a previous session's rclone rcd may still
+    // be listening (e.g. app crashed, or stop_daemon() raced with restart).
+    // Adopt it rather than spawning a new one that would fail to bind the port.
+    rc_post("core/version", json::object(), [this, callback = std::move(callback)](auto result) mutable {
+        if (result.has_value()) {
+            // An rclone rcd is already running — use it without tracking its PID
+            callback(std::monostate{});
+            return;
+        }
+        // Nothing listening — spawn a fresh one
+        spawn_daemon(std::move(callback));
+    });
+}
+
+void RcloneRc::spawn_daemon(AsyncCallback<std::monostate> callback) {
     auto rclone_path = Glib::find_program_in_path("rclone");
     if (rclone_path.empty()) {
         callback(std::unexpected("rclone not found in PATH"));
@@ -129,11 +144,14 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         }
     } : nullptr;
 
+    GError* error = nullptr;
     gboolean ok = g_spawn_async(nullptr, argv, nullptr,
         G_SPAWN_DO_NOT_REAP_CHILD,
         setup_func,
         dev_null >= 0 ? GINT_TO_POINTER(dev_null) : nullptr,
         &m_daemon_pid, &error);
+
+    if (dev_null >= 0) close(dev_null);
 
     if (!ok) {
         std::string err = error ? error->message : "unknown error";
@@ -142,12 +160,8 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
         return;
     }
 
-    // Wait briefly then verify it's up
+    // Give rclone rcd time to start, then verify it's up
     auto cb_ptr = std::make_shared<AsyncCallback<std::monostate>>(std::move(callback));
-    auto session = m_session;
-    auto base_url = m_base_url;
-
-    // Give it a second to start, then verify
     g_timeout_add(1500, [](gpointer data) -> gboolean {
         auto* pack = static_cast<std::pair<RcloneRc*, std::shared_ptr<AsyncCallback<std::monostate>>>*>(data);
         pack->first->rc_post("core/version", json::object(),
@@ -165,6 +179,10 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
 void RcloneRc::stop_daemon() {
     if (m_daemon_pid > 0) {
         kill(m_daemon_pid, SIGTERM);
+        // Block until rclone exits so port 5571 is free before we return.
+        // stop_daemon() is only called from the shutdown path after the main
+        // loop has exited, so blocking here is safe.
+        waitpid(m_daemon_pid, nullptr, 0);
         g_spawn_close_pid(m_daemon_pid);
         m_daemon_pid = 0;
     }

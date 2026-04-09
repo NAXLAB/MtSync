@@ -168,6 +168,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     create_btn->signal_clicked().connect([this, folder_entry, mkdir_popover]() {
         auto name = std::string(folder_entry->get_text());
         if (name.empty() || !m_active_pane) return;
+        if (name.find('/') != std::string::npos || name.find("..") != std::string::npos) return;
         folder_entry->set_text("");
         mkdir_popover->popdown();
         auto dest = m_active_pane->get_current_rclone_path();

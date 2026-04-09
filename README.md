@@ -4,7 +4,7 @@
 
 # Saddle
 
-Mount network storage in comfort.
+Mount or sync network storage in comfort
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](LICENSE)
 

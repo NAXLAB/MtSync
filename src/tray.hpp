@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <cairo/cairo.h>
 #include <sigc++/sigc++.h>
 #include <string>
 #include <array>
@@ -66,6 +67,7 @@ private:
     sigc::connection m_anim_timer;
     std::array<std::vector<uint8_t>, ANIM_FRAMES> m_frames;
     std::vector<uint8_t> m_idle_icon;
+    cairo_surface_t* m_idle_surface = nullptr;
 
 public:
     GDBusConnection* m_connection = nullptr;
