@@ -59,6 +59,7 @@ modules:
   - name: glibmm
     buildsystem: meson
     config-opts:
+      - --wrap-mode=nofallback
       - -Dbuild-documentation=false
       - -Dbuild-examples=false
     cleanup:
