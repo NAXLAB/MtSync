@@ -47,7 +47,6 @@ modules:
     config-opts:
       - --libdir=lib
       - -Dbuild-documentation=false
-      - -Dbuild-examples=false
     cleanup:
       - /include
       - /lib/pkgconfig
@@ -63,7 +62,6 @@ modules:
       - --libdir=lib
       - --wrap-mode=nofallback
       - -Dbuild-documentation=false
-      - -Dbuild-examples=false
     cleanup:
       - /include
       - /lib/pkgconfig
@@ -79,7 +77,6 @@ modules:
     config-opts:
       - --libdir=lib
       - -Dbuild-documentation=false
-      - -Dbuild-examples=false
       - -Dbuild-tests=false
     cleanup:
       - /include
@@ -109,7 +106,6 @@ modules:
     config-opts:
       - --libdir=lib
       - -Dbuild-documentation=false
-      - -Dbuild-examples=false
       - -Dbuild-tests=false
     cleanup:
       - /include
