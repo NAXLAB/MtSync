@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.11 — Flatpak Build Fixes
+- Fixed icon squareness rendering issue
+- Added sigc++, glibmm, cairomm, pangomm, and gtkmm as explicit Flatpak manifest modules in correct dependency order (required because the Flatpak SDK does not include the C++ bindings)
+- All meson modules now pass `--wrap-mode=nofallback` to prevent meson attempting GitHub clones (blocked by the Flatpak sandbox)
+- All meson modules now pass `--libdir=lib` so `.pc` files land in `/app/lib/pkgconfig/` where pkg-config can find them
+- Removed `-Dbuild-examples=false` from all five C++ dependency modules (not valid in their meson builds)
+- Corrected pangomm SHA-256 hash in the manifest (extra leading zero caused hash mismatch)
+- Fixed rclone binary install path: flatpak-builder strips one path component from archives so the binary lands at `rclone` directly
+
 ## 0.6.10 — CI Build Fixes
 - Replaced `AdwSpinner` with a compile-time fallback to `GtkSpinner` on libadwaita < 1.6 (Ubuntu 24.04 ships 1.5)
 - Flatpak CI job now installs `flatpak` and `flatpak-builder` before invoking the builder action
