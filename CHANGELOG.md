@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.17 — Provider Dropdown Icons
+- Provider dropdown in the Add/Edit Remote dialog now shows branded SVG icons alongside each provider name
+- Icons render at 20px with automatic light/dark theme variants via `AdwStyleManager`
+- Providers without custom icons fall back to the symbolic `network-server` icon
+- Replaced plain `GtkStringList` model with `Gio::ListStore<ProviderItem>` and custom `Gtk::SignalListItemFactory` for rich icon+label rendering
+
 ## 0.6.16 — Remotes Tab Delete Button Colour
 - Delete button on the Remotes tab is now red (`destructive-action` class) for visual consistency with the Jobs tab
 

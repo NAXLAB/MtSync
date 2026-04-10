@@ -18,8 +18,24 @@
 
 #include "views/backend_edit_view.hpp"
 #include "widgets/adw_wrapper.hpp"
+#include <giomm.h>
 
 namespace saddle {
+
+// ── ProviderItem implementation ──
+
+Glib::RefPtr<ProviderItem> ProviderItem::create(int index, const std::string& name,
+                                                  const std::string& prefix,
+                                                  const std::string& description,
+                                                  const std::string& icon_name) {
+    return Glib::RefPtr<ProviderItem>(new ProviderItem(index, name, prefix, description, icon_name));
+}
+
+ProviderItem::ProviderItem(int index, const std::string& name, const std::string& prefix,
+                           const std::string& description, const std::string& icon_name)
+    : m_index(index), m_name(name), m_prefix(prefix),
+      m_description(description), m_icon_name(icon_name) {
+}
 
 BackendEditView::BackendEditView(rclone::RcloneManager& manager, DoneCallback on_done)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
@@ -70,12 +86,90 @@ void BackendEditView::setup_ui() {
     }
     adw::preferences_group_add(basic_group, m_name_row);
 
-    // Provider combo
+    // Provider combo with icon factory
     m_provider_combo = adw::combo_row();
     adw::preferences_row_set_title(m_provider_combo, "Provider");
-    m_provider_model = gtk_string_list_new(nullptr);
-    adw::combo_row_set_string_list_model(m_provider_combo, m_provider_model);
+    m_provider_model = Gio::ListStore<ProviderItem>::create();
+    adw::combo_row_set_model(m_provider_combo, G_LIST_MODEL(m_provider_model->gobj()));
     adw_combo_row_set_enable_search(ADW_COMBO_ROW(m_provider_combo->gobj()), true);
+
+    // Factory for the selected item display
+    auto factory = Gtk::SignalListItemFactory::create();
+    factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+        auto* icon = Gtk::make_managed<Gtk::Image>();
+        icon->set_pixel_size(20);
+        icon->set_valign(Gtk::Align::CENTER);
+        auto* label = Gtk::make_managed<Gtk::Label>();
+        label->set_halign(Gtk::Align::START);
+        label->set_hexpand(true);
+        label->set_ellipsize(Pango::EllipsizeMode::END);
+        box->append(*icon);
+        box->append(*label);
+        item->set_child(*box);
+    });
+    factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = dynamic_cast<Gtk::Box*>(item->get_child());
+        if (!box) return;
+        auto icon_w = dynamic_cast<Gtk::Image*>(box->get_first_child());
+        auto* label = dynamic_cast<Gtk::Label*>(box->get_first_child()->get_next_sibling());
+        auto prov = item->get_item();
+        if (!prov || !icon_w || !label) return;
+        auto pi = std::dynamic_pointer_cast<ProviderItem>(prov);
+        if (!pi) return;
+        std::string base = "/io/github/saddle/provider-icons/" + pi->get_icon_name();
+        // Use resource for provider SVGs, fall back to symbolic for defaults
+        if (pi->get_icon_name().find("-symbolic") != std::string::npos) {
+            icon_w->set_from_icon_name(pi->get_icon_name());
+            icon_w->set_pixel_size(20);
+        } else {
+            std::string res = base + ".svg";
+            if (adw_style_manager_get_dark(adw_style_manager_get_default()))
+                res = base + "-dark.svg";
+            icon_w->set_from_resource(res);
+        }
+        label->set_text(pi->get_name());
+    });
+    adw_combo_row_set_factory(ADW_COMBO_ROW(m_provider_combo->gobj()), GTK_LIST_ITEM_FACTORY(factory->gobj()));
+
+    // Factory for the popup list
+    auto list_factory = Gtk::SignalListItemFactory::create();
+    list_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+        auto* icon = Gtk::make_managed<Gtk::Image>();
+        icon->set_pixel_size(20);
+        icon->set_valign(Gtk::Align::CENTER);
+        auto* label = Gtk::make_managed<Gtk::Label>();
+        label->set_halign(Gtk::Align::START);
+        label->set_hexpand(true);
+        label->set_ellipsize(Pango::EllipsizeMode::END);
+        box->append(*icon);
+        box->append(*label);
+        item->set_child(*box);
+    });
+    list_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = dynamic_cast<Gtk::Box*>(item->get_child());
+        if (!box) return;
+        auto icon_w = dynamic_cast<Gtk::Image*>(box->get_first_child());
+        auto* label = dynamic_cast<Gtk::Label*>(box->get_first_child()->get_next_sibling());
+        auto prov = item->get_item();
+        if (!prov || !icon_w || !label) return;
+        auto pi = std::dynamic_pointer_cast<ProviderItem>(prov);
+        if (!pi) return;
+        std::string base = "/io/github/saddle/provider-icons/" + pi->get_icon_name();
+        if (pi->get_icon_name().find("-symbolic") != std::string::npos) {
+            icon_w->set_from_icon_name(pi->get_icon_name());
+            icon_w->set_pixel_size(20);
+        } else {
+            std::string res = base + ".svg";
+            if (adw_style_manager_get_dark(adw_style_manager_get_default()))
+                res = base + "-dark.svg";
+            icon_w->set_from_resource(res);
+        }
+        label->set_text(pi->get_name());
+    });
+    adw_combo_row_set_list_factory(ADW_COMBO_ROW(m_provider_combo->gobj()), GTK_LIST_ITEM_FACTORY(list_factory->gobj()));
+
     adw::preferences_group_add(basic_group, m_provider_combo);
 
     // Connect provider selection change
@@ -83,8 +177,13 @@ void BackendEditView::setup_ui() {
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<BackendEditView*>(data);
             auto idx = adw::combo_row_get_selected(self->m_provider_combo);
-            if (idx != GTK_INVALID_LIST_POSITION)
-                self->on_provider_selected(static_cast<int>(idx));
+            if (idx != GTK_INVALID_LIST_POSITION) {
+                auto item = self->m_provider_model->get_item(idx);
+                if (item) {
+                    auto pi = std::dynamic_pointer_cast<ProviderItem>(item);
+                    if (pi) self->on_provider_selected(pi->get_index());
+                }
+            }
         }), this);
 
     // OAuth group (hidden by default, shown for OAuth providers)
@@ -154,9 +253,46 @@ void BackendEditView::load_providers() {
         if (!result.has_value()) return;
         m_providers = std::move(result.value());
 
-        for (auto& p : m_providers) {
-            auto label = p.description.empty() ? p.name : p.name + " - " + p.description;
-            gtk_string_list_append(m_provider_model, label.c_str());
+        m_provider_model->remove_all();
+        for (size_t i = 0; i < m_providers.size(); ++i) {
+            auto& p = m_providers[i];
+            // Determine icon resource name
+            std::string icon_name = "network-server-symbolic";
+            auto lower_name = p.name;
+            for (auto& c : lower_name) c = static_cast<char>(g_ascii_tolower(static_cast<guchar>(c)));
+            // Map common provider names to icon resources
+            if (lower_name.find("google drive") != std::string::npos) icon_name = "drive";
+            else if (lower_name == "dropbox") icon_name = "dropbox";
+            else if (lower_name.find("backblaze") != std::string::npos || lower_name == "b2") icon_name = "b2";
+            else if (lower_name == "mega") icon_name = "mega";
+            else if (lower_name == "box") icon_name = "box";
+            else if (lower_name.find("google cloud") != std::string::npos) icon_name = "gcs";
+            else if (lower_name.find("proton") != std::string::npos) icon_name = "protondrive";
+            else if (lower_name.find("internet archive") != std::string::npos) icon_name = "internetarchive";
+            else if (lower_name.find("google photos") != std::string::npos) icon_name = "gphotos";
+            else if (lower_name == "seafile") icon_name = "seafile";
+            else if (lower_name.find("zoho") != std::string::npos) icon_name = "zoho";
+            else if (lower_name == "filen") icon_name = "filen";
+            else if (lower_name.find("swift") != std::string::npos) icon_name = "swift";
+            else if (lower_name == "hdfs" || lower_name.find("hadoop") != std::string::npos) icon_name = "hdfs";
+            else if (lower_name.find("sharefile") != std::string::npos) icon_name = "sharefile";
+            else if (lower_name.find("digitalocean") != std::string::npos) icon_name = "digitalocean";
+            else if (lower_name == "wasabi") icon_name = "wasabi";
+            else if (lower_name.find("cloudflare") != std::string::npos) icon_name = "cloudflare";
+            else if (lower_name.find("hetzner") != std::string::npos) icon_name = "hetzner";
+            else if (lower_name.find("onedrive") != std::string::npos) icon_name = "onedrive";
+            else if (lower_name.find("pcloud") != std::string::npos) icon_name = "pcloud";
+            else if (lower_name.find("amazon s3") != std::string::npos || lower_name.find(" s3") != std::string::npos) icon_name = "s3";
+            else if (lower_name.find("azure") != std::string::npos) icon_name = "azureblob";
+            else if (lower_name.find("yandex") != std::string::npos) icon_name = "yandex";
+            else if (lower_name.find("mail.ru") != std::string::npos) icon_name = "mailru";
+            else if (lower_name == "koofr") icon_name = "koofr";
+            else if (lower_name.find("jotta") != std::string::npos) icon_name = "jottacloud";
+            else if (lower_name.find("put.io") != std::string::npos) icon_name = "putio";
+            else if (lower_name.find("premiumize") != std::string::npos) icon_name = "premiumize";
+
+            auto item = ProviderItem::create(static_cast<int>(i), p.name, p.prefix, p.description, icon_name);
+            m_provider_model->append(item);
         }
 
         // If editing, select the matching provider

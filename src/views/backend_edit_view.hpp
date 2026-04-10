@@ -20,6 +20,7 @@
 
 #include "rclone/rclone_manager.hpp"
 #include <adwaita.h>
+#include <giomm/liststore.h>
 #include <gtkmm.h>
 #include <functional>
 #include <memory>
@@ -28,6 +29,32 @@
 #include <vector>
 
 namespace saddle {
+
+// Lightweight GObject wrapper so we can use Gio::ListStore with AdwComboRow
+class ProviderItem : public Glib::Object {
+public:
+    static Glib::RefPtr<ProviderItem> create(int index, const std::string& name,
+                                              const std::string& prefix,
+                                              const std::string& description,
+                                              const std::string& icon_name);
+
+    int get_index() const { return m_index; }
+    const std::string& get_name() const { return m_name; }
+    const std::string& get_prefix() const { return m_prefix; }
+    const std::string& get_description() const { return m_description; }
+    const std::string& get_icon_name() const { return m_icon_name; }
+
+protected:
+    ProviderItem(int index, const std::string& name, const std::string& prefix,
+                 const std::string& description, const std::string& icon_name);
+
+private:
+    int m_index;
+    std::string m_name;
+    std::string m_prefix;
+    std::string m_description;
+    std::string m_icon_name;
+};
 
 class BackendEditView : public Gtk::Box {
 public:
@@ -53,7 +80,7 @@ private:
     Gtk::Widget* m_advanced_expander = nullptr;
     Gtk::Widget* m_name_row = nullptr;
     Gtk::Widget* m_provider_combo = nullptr;
-    GtkStringList* m_provider_model = nullptr;
+    Glib::RefPtr<Gio::ListStore<ProviderItem>> m_provider_model;
 
     // OAuth widgets
     Gtk::Widget* m_oauth_group = nullptr;
