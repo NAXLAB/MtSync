@@ -240,6 +240,28 @@ void RcloneRc::stop_daemon() {
     // m_daemon_pid == 0: nothing to do
 }
 
+void RcloneRc::list_mounts(AsyncCallback<std::vector<std::string>> callback) {
+    rc_post("mount/listmounts", {}, [callback = std::move(callback)](auto result) {
+        if (result.has_value()) {
+            std::vector<std::string> mount_points;
+            try {
+                auto& j = result.value();
+                if (j.contains("mountPoints")) {
+                    for (auto& mp : j["mountPoints"]) {
+                        mount_points.push_back(mp.template get<std::string>());
+                    }
+                }
+            } catch (const std::exception& e) {
+                callback(std::unexpected(std::string("Failed to parse mount list: ") + e.what()));
+                return;
+            }
+            callback(std::move(mount_points));
+        } else {
+            callback(std::unexpected(result.error()));
+        }
+    });
+}
+
 void RcloneRc::mount_async(const std::string& src, const std::string& mountpoint,
                             AsyncCallback<std::monostate> callback) {
     mount_async(src, mountpoint, "", std::move(callback));

@@ -22,6 +22,7 @@
 #include "settings.hpp"
 #include <format>
 #include <iostream>
+#include <set>
 #include <glibmm.h>
 
 using json = nlohmann::json;
@@ -228,11 +229,36 @@ SaddleDaemon::SaddleDaemon() {
     m_manager.rc().ensure_daemon([this](auto result) {
         if (!result.has_value()) return;
 
-        // Auto-mount jobs flagged with mount_at_startup
-        for (size_t i = 0; i < m_jobs.size(); ++i) {
-            if (m_jobs[i].type == rclone::JobType::Mount && m_jobs[i].mount_at_startup)
-                on_run_job(i);
-        }
+        // First, check which mount points are already active (e.g. from a previous session)
+        m_manager.rc().list_mounts([this](auto result) {
+            std::set<std::string> active_mounts;
+            if (result.has_value()) {
+                active_mounts = std::set<std::string>(result.value().begin(), result.value().end());
+            }
+
+            // For each mount job, verify if it's actually mounted or needs auto-start
+            for (size_t i = 0; i < m_jobs.size(); ++i) {
+                if (m_jobs[i].type != rclone::JobType::Mount) continue;
+
+                // Extract the mount point (destination) from the job
+                std::string mount_point = m_jobs[i].destination;
+
+                if (active_mounts.count(mount_point)) {
+                    // Mount already exists — mark as running/active
+                    m_jobs[i].running = true;
+                    m_jobs[i].active = true;
+                } else if (m_jobs[i].mount_at_startup) {
+                    // Not mounted but flagged for auto-mount — start it
+                    on_run_job(i);
+                }
+            }
+
+            save_jobs();
+
+            // Broadcast updated job list so any connected GUI sees the correct state
+            json response_payload = {{"jobs", m_jobs}};
+            m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobsList, response_payload));
+        });
     });
 
     schedule_all_jobs();

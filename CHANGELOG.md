@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.15 — Auto-Mount Verification & Job Button Colours
+- Daemon now verifies existing mount points at startup via `mount/listmounts` RC endpoint before auto-mounting
+- Mount jobs whose destinations are already active are marked `running: true` / `active: true` without re-mounting
+- Updated job list is broadcast to connected GUI clients so mount state displays correctly even if mounts survived from a previous session
+- Play button in the Jobs tab is now green (`success` class), stop and delete buttons are red (`destructive-action` class)
+
 ## 0.6.14 — Extended Provider Icons
 - Added provider icons for OneDrive, pCloud, Amazon S3, Azure Blob Storage, Yandex Disk, Mail.ru Cloud, Koofr, Jottacloud, put.io, and premiumize.me
 - Each icon includes both light and dark theme variants for automatic dark mode support

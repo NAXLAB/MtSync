@@ -328,12 +328,14 @@ void JobView::rebuild_ui() {
         ui.run_btn->set_icon_name("media-playback-start-symbolic");
         ui.run_btn->set_valign(Gtk::Align::CENTER);
         ui.run_btn->add_css_class("flat");
+        ui.run_btn->add_css_class("success");
         ui.run_btn->signal_clicked().connect([this, i]() { on_run_job(i); });
 
         ui.stop_btn = std::make_unique<Gtk::Button>();
         ui.stop_btn->set_icon_name("media-playback-stop-symbolic");
         ui.stop_btn->set_valign(Gtk::Align::CENTER);
         ui.stop_btn->add_css_class("flat");
+        ui.stop_btn->add_css_class("destructive-action");
         ui.stop_btn->set_visible(false);
         ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
 
@@ -347,6 +349,7 @@ void JobView::rebuild_ui() {
         ui.del_btn->set_icon_name("user-trash-symbolic");
         ui.del_btn->set_valign(Gtk::Align::CENTER);
         ui.del_btn->add_css_class("flat");
+        ui.del_btn->add_css_class("destructive-action");
         ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
 
         btn_box->append(*ui.run_btn);

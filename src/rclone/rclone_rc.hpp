@@ -37,6 +37,7 @@ public:
     bool is_daemon_running() const { return m_daemon_pid != 0; }
 
     // Async RC API calls
+    void list_mounts  (AsyncCallback<std::vector<std::string>> callback);
     void mount_async  (const std::string& src, const std::string& mountpoint,
                        AsyncCallback<std::monostate> callback);
     void mount_async  (const std::string& src, const std::string& mountpoint,
