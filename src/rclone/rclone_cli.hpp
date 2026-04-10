@@ -46,6 +46,9 @@ public:
                    const std::string& client_secret,
                    AsyncCallback<std::string> callback);
 
+    // rclone binary version string (e.g. "v1.60.1-DEV")
+    void get_version(AsyncCallback<std::string> callback);
+
     // File listing
     void lsjson(const std::string& remote_path,
                 AsyncCallback<std::vector<FileEntry>> callback);

@@ -22,8 +22,10 @@
 
 namespace saddle {
 
-AboutView::AboutView()
-    : Gtk::Box(Gtk::Orientation::VERTICAL) {
+AboutView::AboutView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
+    : Gtk::Box(Gtk::Orientation::VERTICAL)
+    , m_manager(manager)
+    , m_daemon_proxy(daemon_proxy) {
     setup_ui();
 }
 
@@ -68,7 +70,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.6.19");
+    adw::action_row_set_subtitle(version_row, "0.6.20");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
@@ -80,6 +82,47 @@ void AboutView::setup_ui() {
     adw::preferences_row_set_title(copyright_row, "Copyright");
     adw::action_row_set_subtitle(copyright_row, "© 2026 Gavin Graham");
     adw::preferences_group_add(info_group, copyright_row);
+
+    // ── rclone group ─────────────────────────────────────────────────────────
+    auto* rclone_group = adw::preferences_group();
+    adw::preferences_group_set_title(rclone_group, "rclone");
+    vbox->append(*rclone_group);
+
+    // Single row: version · socket path · status — all on one line
+    auto* rclone_row = adw::preferences_row_new();
+
+    auto* info_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    info_box->set_margin_top(12);
+    info_box->set_margin_bottom(12);
+    info_box->set_margin_start(12);
+    info_box->set_margin_end(12);
+
+    m_rclone_version_label = Gtk::make_managed<Gtk::Label>("Loading...");
+    m_rclone_version_label->add_css_class("dim-label");
+
+    auto* sep1 = Gtk::make_managed<Gtk::Label>("·");
+    sep1->add_css_class("dim-label");
+
+    std::string socket_path = std::string(g_get_user_cache_dir()) + "/saddle/socket";
+    auto* socket_label = Gtk::make_managed<Gtk::Label>(socket_path);
+    socket_label->add_css_class("dim-label");
+    socket_label->set_hexpand(true);
+    socket_label->set_ellipsize(Pango::EllipsizeMode::MIDDLE);
+
+    auto* sep2 = Gtk::make_managed<Gtk::Label>("·");
+    sep2->add_css_class("dim-label");
+
+    m_status_label = Gtk::make_managed<Gtk::Label>();
+    m_status_label->add_css_class("dim-label");
+
+    info_box->append(*m_rclone_version_label);
+    info_box->append(*sep1);
+    info_box->append(*socket_label);
+    info_box->append(*sep2);
+    info_box->append(*m_status_label);
+
+    gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(rclone_row->gobj()), GTK_WIDGET(info_box->gobj()));
+    adw::preferences_group_add(rclone_group, rclone_row);
 
     // ── Lyric quote ──────────────────────────────────────────────────────────
     auto* quote_label = Gtk::make_managed<Gtk::Label>(
@@ -96,6 +139,21 @@ void AboutView::setup_ui() {
     quote_label->set_justify(Gtk::Justification::CENTER);
     quote_label->set_css_classes({"dim-label"});
     vbox->append(*quote_label);
+
+    // ── Refresh on map ────────────────────────────────────────────────────────
+    signal_map().connect([this]() {
+        // Status: refresh every visit
+        bool connected = m_daemon_proxy && m_daemon_proxy->is_connected();
+        m_status_label->set_text(connected ? "Connected" : "Disconnected");
+
+        // Version: fetch once only
+        if (m_rclone_version_label->get_text() == "Loading...") {
+            m_manager.cli().get_version([this](auto result) {
+                m_rclone_version_label->set_text(
+                    result.has_value() ? result.value() : "unavailable");
+            });
+        }
+    });
 }
 
 } // namespace saddle

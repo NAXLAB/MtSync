@@ -28,7 +28,8 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     , m_remotes_view(manager)
     , m_job_view(daemon_proxy)
     , m_browser_view(manager)
-    , m_settings_view(m_settings) {
+    , m_settings_view(m_settings)
+    , m_about_view(manager, daemon_proxy) {
     set_title("Saddle");
     set_default_size(1250, 900);
     set_icon_name("com.saddle.Saddle");

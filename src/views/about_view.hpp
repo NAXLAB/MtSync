@@ -18,15 +18,22 @@
 
 #pragma once
 
+#include "daemon_proxy.hpp"
+#include "rclone/rclone_manager.hpp"
 #include <gtkmm.h>
 
 namespace saddle {
 
 class AboutView : public Gtk::Box {
 public:
-    AboutView();
+    explicit AboutView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy);
 
 private:
+    rclone::RcloneManager& m_manager;
+    DaemonProxy*           m_daemon_proxy          = nullptr;
+    Gtk::Label*            m_rclone_version_label  = nullptr;
+    Gtk::Label*            m_status_label          = nullptr;
+
     void setup_ui();
 };
 

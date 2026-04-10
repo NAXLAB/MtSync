@@ -60,6 +60,19 @@ Glib::RefPtr<Gio::Subprocess> RcloneCli::run_command(std::vector<std::string> ar
     }
 }
 
+void RcloneCli::get_version(AsyncCallback<std::string> callback) {
+    run_command({"version"}, [callback = std::move(callback)](
+        const std::string& out, const std::string& /*err*/, int code) {
+        if (code != 0) { callback(std::unexpected("rclone version failed")); return; }
+        // First line is "rclone vX.Y.Z[-suffix]" — strip the "rclone " prefix
+        auto newline = out.find('\n');
+        auto first_line = newline != std::string::npos ? out.substr(0, newline) : out;
+        if (first_line.starts_with("rclone "))
+            first_line = first_line.substr(7);
+        callback(first_line.empty() ? std::string("unknown") : first_line);
+    });
+}
+
 void RcloneCli::list_remotes(AsyncCallback<std::vector<RemoteInfo>> callback) {
     run_command({"config", "dump"}, [callback = std::move(callback)](
         const std::string& out, const std::string& err, int code) {

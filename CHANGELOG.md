@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.20 — About Tab rclone Info
+- About tab now shows a "rclone" section with three rows: Version (fetched async via `rclone version --json` on first visit), Socket (IPC socket path, static), and Status (Connected/Disconnected, refreshed on each visit)
+- Added `RcloneCli::get_version()` method
+
 ## 0.6.19 — Provider Dropdown Fix
 - Fixed provider dropdown not showing the current provider when editing a remote
 - Fixed "Failed to wrap object of type 'GObject'" warning when selecting a provider — `ProviderItem` was missing `Glib::ObjectBase("SaddleProviderItem")` registration, causing the GType system to treat every instance as a plain GObject and `dynamic_pointer_cast` to return null
