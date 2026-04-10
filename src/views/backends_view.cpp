@@ -21,6 +21,7 @@
 #include "widgets/adw_wrapper.hpp"
 #include <sstream>
 #include <iomanip>
+#include <unordered_map>
 
 namespace saddle {
 
@@ -49,9 +50,18 @@ static bool resource_exists(const std::string& path) {
     return false;
 }
 
+// Maps rclone type strings to icon resource names where they differ
+static const std::string& icon_name_for_type(const std::string& type) {
+    static const std::unordered_map<std::string, std::string> overrides = {
+        {"googlephotos", "gphotos"},
+    };
+    auto it = overrides.find(type);
+    return it != overrides.end() ? it->second : type;
+}
+
 static Gtk::Image* make_remote_icon(const std::string& type) {
     bool dark = adw_style_manager_get_dark(adw_style_manager_get_default());
-    std::string base = "/io/github/saddle/provider-icons/" + type;
+    std::string base = "/io/github/saddle/provider-icons/" + icon_name_for_type(type);
     std::string res;
     if (dark && resource_exists(base + "-dark.svg"))
         res = base + "-dark.svg";

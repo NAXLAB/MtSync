@@ -28,12 +28,13 @@ Glib::RefPtr<ProviderItem> ProviderItem::create(int index, const std::string& na
                                                   const std::string& prefix,
                                                   const std::string& description,
                                                   const std::string& icon_name) {
-    return Glib::RefPtr<ProviderItem>(new ProviderItem(index, name, prefix, description, icon_name));
+    return Glib::make_refptr_for_instance(new ProviderItem(index, name, prefix, description, icon_name));
 }
 
 ProviderItem::ProviderItem(int index, const std::string& name, const std::string& prefix,
                            const std::string& description, const std::string& icon_name)
-    : m_index(index), m_name(name), m_prefix(prefix),
+    : Glib::ObjectBase("SaddleProviderItem"),
+      m_index(index), m_name(name), m_prefix(prefix),
       m_description(description), m_icon_name(icon_name) {
 }
 

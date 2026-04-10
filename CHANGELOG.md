@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.19 — Provider Dropdown Fix
+- Fixed provider dropdown not showing the current provider when editing a remote
+- Fixed "Failed to wrap object of type 'GObject'" warning when selecting a provider — `ProviderItem` was missing `Glib::ObjectBase("SaddleProviderItem")` registration, causing the GType system to treat every instance as a plain GObject and `dynamic_pointer_cast` to return null
+
 ## 0.6.18 — Collapsible Job Details
 - Job rows in the Jobs tab now collapse the UUID and full source/destination paths behind a disclosure chevron button, saving two lines per row in the default view
 - Chevron is positioned to the right of the delete button; clicking expands/collapses with a slide animation and flips the icon between `pan-end` and `pan-down`
