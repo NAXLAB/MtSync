@@ -1,5 +1,5 @@
 name: saddle
-version: '0.6.15'
+version: '0.6.16'
 summary: GTK4 frontend to rclone
 description: |
   Mount network storage in comfort. Saddle is a GTK4/libadwaita

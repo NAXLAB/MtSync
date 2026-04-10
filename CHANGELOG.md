@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.16 — Remotes Tab Delete Button Colour
+- Delete button on the Remotes tab is now red (`destructive-action` class) for visual consistency with the Jobs tab
+
 ## 0.6.15 — Auto-Mount Verification & Job Button Colours
 - Daemon now verifies existing mount points at startup via `mount/listmounts` RC endpoint before auto-mounting
 - Mount jobs whose destinations are already active are marked `running: true` / `active: true` without re-mounting

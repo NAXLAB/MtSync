@@ -263,6 +263,7 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         rr.del_btn->set_icon_name("user-trash-symbolic");
         rr.del_btn->set_valign(Gtk::Align::CENTER);
         rr.del_btn->add_css_class("flat");
+        rr.del_btn->add_css_class("destructive-action");
 
         std::string name = remote.name;
         rr.del_btn->signal_clicked().connect([this, name]() {
