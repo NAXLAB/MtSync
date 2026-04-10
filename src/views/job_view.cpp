@@ -352,27 +352,49 @@ void JobView::rebuild_ui() {
         ui.del_btn->add_css_class("destructive-action");
         ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
 
+        // Disclosure toggle button (chevron), placed after delete button
+        auto* expand_btn = Gtk::make_managed<Gtk::ToggleButton>();
+        expand_btn->set_icon_name("pan-end-symbolic");
+        expand_btn->set_valign(Gtk::Align::CENTER);
+        expand_btn->add_css_class("flat");
+
         btn_box->append(*ui.run_btn);
         btn_box->append(*ui.stop_btn);
         btn_box->append(*ui.edit_btn);
         btn_box->append(*ui.del_btn);
+        btn_box->append(*expand_btn);
         header->append(*btn_box);
         outer->append(*header);
 
-        // UUID label
+        // Collapsible detail section: UUID + full paths
+        auto* revealer = Gtk::make_managed<Gtk::Revealer>();
+        revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_DOWN);
+        revealer->set_reveal_child(false);
+
+        auto* detail_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
+        detail_box->set_margin_top(4);
+
         auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
         uuid_label->set_halign(Gtk::Align::START);
         uuid_label->set_hexpand(true);
         uuid_label->add_css_class("caption");
         uuid_label->add_css_class("dim-label");
-        outer->append(*uuid_label);
+        detail_box->append(*uuid_label);
 
-        // Source → Destination (combined line)
         auto* path_label = Gtk::make_managed<Gtk::Label>(job.source + " → " + job.destination);
         path_label->set_halign(Gtk::Align::START);
         path_label->add_css_class("caption");
         path_label->add_css_class("dim-label");
-        outer->append(*path_label);
+        detail_box->append(*path_label);
+
+        revealer->set_child(*detail_box);
+        outer->append(*revealer);
+
+        expand_btn->signal_toggled().connect([expand_btn, revealer]() {
+            bool open = expand_btn->get_active();
+            revealer->set_reveal_child(open);
+            expand_btn->set_icon_name(open ? "pan-down-symbolic" : "pan-end-symbolic");
+        });
 
         // Progress bar — only visible while a non-mount job is running
         ui.progress = std::make_unique<Gtk::ProgressBar>();
