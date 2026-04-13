@@ -1,5 +1,5 @@
 name: mtsync
-version: '0.7.0'
+version: '0.7.1'
 summary: GTK4 frontend to rclone
 description: |
   Mount network storage in comfort. Mt. Sync is a GTK4/libadwaita

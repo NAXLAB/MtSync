@@ -58,10 +58,11 @@ private:
     Gtk::Button*       m_copy_btn        = nullptr;  // copy src → dst
     Gtk::Button*       m_dst_copy_btn    = nullptr;  // copy dst → src
     Gtk::Button*       m_dst_delete_btn  = nullptr;  // delete from destination
-    Gtk::ToggleButton* m_filter_left_btn  = nullptr;  // hide '-' (← only-in-src)
-    Gtk::ToggleButton* m_filter_right_btn = nullptr;  // hide '+' (→ only-in-dst)
-    Gtk::ToggleButton* m_filter_diff_btn  = nullptr;  // hide '*' (≠ different)
-    Gtk::ToggleButton* m_filter_error_btn = nullptr;  // hide '!' (! error)
+    Gtk::ToggleButton* m_filter_left_btn  = nullptr;  // show '-' (← only-in-src)
+    Gtk::ToggleButton* m_filter_right_btn = nullptr;  // show '+' (→ only-in-dst)
+    Gtk::ToggleButton* m_filter_equal_btn = nullptr;  // show '=' (= identical)
+    Gtk::ToggleButton* m_filter_diff_btn  = nullptr;  // show '*' (≠ different)
+    Gtk::ToggleButton* m_filter_error_btn = nullptr;  // show '!' (! error)
 
     // Holds only the current page's items; wrapped in SortListModel and MultiSelection for the ColumnView
     Glib::RefPtr<Gio::ListStore<CompareRowObject>>   m_page_store;

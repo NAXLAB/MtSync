@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 — Compare Dialog Filter Toggle Logic
+- Added `=` toggle to show/hide identical files, positioned between `→` and `≠`
+- Filter toggles (←, →, =, ≠, !) now default to **on** and **show** their category when active (previously defaulted off and hid when active)
+- Deactivating a toggle hides that category; all rows visible by default on dialog open
+- Updated tooltips from "Hide…" to "Show…"
+
 ## 0.7.0 — Project Rename: Saddle → Mt. Sync
 - Project renamed from "Saddle" to "Mt. Sync" (`mtsync`)
 - Executable renamed from `saddle` to `mtsync`

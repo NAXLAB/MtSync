@@ -30,8 +30,9 @@ desktop application backed by a persistent daemon.
   dialog grouped by subdirectory — filename, size, and modified date shown only on the side where
   the file exists; status glyphs `→` (source only) `←` (dest only) `≠` (differs) `=` (identical);
   all seven columns support interactive sorting and files stay grouped with their directory header
-  when any column sort is active; four filter toggles (`←` `→` `≠` `!`) in the action bar hide
-  rows by status — directory headers with no visible children are suppressed automatically
+  when any column sort is active; five filter toggles (`←` `→` `=` `≠` `!`) in the action bar
+  show rows by status (all on by default; deactivate to hide that category) — directory headers
+  with no visible children are suppressed automatically
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer

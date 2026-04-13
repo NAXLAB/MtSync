@@ -181,32 +181,43 @@ void CompareDialog::setup_ui() {
     spacer_l->set_hexpand(true);
     action_bar->append(*spacer_l);
 
-    // Centre filter toggles — each hides rows of that status when active
+    // Centre filter toggles — each shows rows of that status when active
     auto* filter_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 2);
     filter_box->set_halign(Gtk::Align::CENTER);
 
     m_filter_left_btn = Gtk::make_managed<Gtk::ToggleButton>("←");
     m_filter_left_btn->add_css_class("flat");
-    m_filter_left_btn->set_tooltip_text("Hide files only in source");
+    m_filter_left_btn->set_tooltip_text("Show files only in source");
+    m_filter_left_btn->set_active(true);
     m_filter_left_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_right_btn = Gtk::make_managed<Gtk::ToggleButton>("→");
     m_filter_right_btn->add_css_class("flat");
-    m_filter_right_btn->set_tooltip_text("Hide files only in destination");
+    m_filter_right_btn->set_tooltip_text("Show files only in destination");
+    m_filter_right_btn->set_active(true);
     m_filter_right_btn->signal_toggled().connect([this]() { apply_filters(); });
+
+    m_filter_equal_btn = Gtk::make_managed<Gtk::ToggleButton>("=");
+    m_filter_equal_btn->add_css_class("flat");
+    m_filter_equal_btn->set_tooltip_text("Show identical files");
+    m_filter_equal_btn->set_active(true);
+    m_filter_equal_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_diff_btn = Gtk::make_managed<Gtk::ToggleButton>("≠");
     m_filter_diff_btn->add_css_class("flat");
-    m_filter_diff_btn->set_tooltip_text("Hide files that differ");
+    m_filter_diff_btn->set_tooltip_text("Show files that differ");
+    m_filter_diff_btn->set_active(true);
     m_filter_diff_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_error_btn = Gtk::make_managed<Gtk::ToggleButton>("!");
     m_filter_error_btn->add_css_class("flat");
-    m_filter_error_btn->set_tooltip_text("Hide files with errors");
+    m_filter_error_btn->set_tooltip_text("Show files with errors");
+    m_filter_error_btn->set_active(true);
     m_filter_error_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     filter_box->append(*m_filter_left_btn);
     filter_box->append(*m_filter_right_btn);
+    filter_box->append(*m_filter_equal_btn);
     filter_box->append(*m_filter_diff_btn);
     filter_box->append(*m_filter_error_btn);
     action_bar->append(*filter_box);
@@ -638,7 +649,7 @@ void CompareDialog::show_page(int page) {
     for (auto& row : m_all_rows) {
         auto st = row->property_status.get_value();
         char s = st.empty() ? '=' : static_cast<char>(st[0]);
-        if (s != '/' && is_status_filtered(s)) continue;
+        if (s != '/' && !is_status_filtered(s)) continue;
         visible.push_back(row);
     }
 
@@ -673,7 +684,7 @@ void CompareDialog::update_pagination_controls() {
     for (auto& row : m_all_rows) {
         auto st = row->property_status.get_value();
         char s = st.empty() ? '=' : static_cast<char>(st[0]);
-        if (s != '/' && !is_status_filtered(s)) ++visible;
+        if (s != '/' && is_status_filtered(s)) ++visible;
     }
     m_page_label->set_text(std::format(
         "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, visible));
@@ -687,6 +698,7 @@ bool CompareDialog::is_status_filtered(char status) const {
     switch (status) {
         case '-': return m_filter_left_btn  && m_filter_left_btn->get_active();
         case '+': return m_filter_right_btn && m_filter_right_btn->get_active();
+        case '=': return m_filter_equal_btn && m_filter_equal_btn->get_active();
         case '*': return m_filter_diff_btn  && m_filter_diff_btn->get_active();
         case '!': return m_filter_error_btn && m_filter_error_btn->get_active();
         default:  return false;
@@ -698,7 +710,7 @@ void CompareDialog::apply_filters() {
     for (auto& row : m_all_rows) {
         auto st = row->property_status.get_value();
         char s = st.empty() ? '=' : static_cast<char>(st[0]);
-        if (s != '/' && !is_status_filtered(s)) ++visible;
+        if (s != '/' && is_status_filtered(s)) ++visible;
     }
     m_total_pages = visible == 0 ? 1 : (visible + PAGE_SIZE - 1) / PAGE_SIZE;
     show_page(0);
