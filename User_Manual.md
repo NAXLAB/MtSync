@@ -1,0 +1,239 @@
+# Mt. Sync — User Manual
+
+Mt. Sync is a desktop application for managing cloud and network storage using [rclone](https://rclone.org/) as its engine. This manual covers everything you need to get started: connecting storage services, browsing files, and running transfer and mount jobs.
+
+---
+
+## Quick-Start Checklist
+
+1. Install `rclone` and ensure it is on your system PATH (or set a custom path in **Settings**)
+2. Launch Mt. Sync
+3. Go to the **Backends** tab and add at least one remote (cloud or network storage location)
+4. Go to the **Browser** tab and navigate your remote in one of the panes
+5. Use the action buttons at the bottom to copy, sync, move, or mount
+
+---
+
+## 1. Adding & Managing Remotes (Backends Tab)
+
+A *remote* is a named connection to a storage service — Google Drive, an SFTP server, an S3 bucket, a local path, and so on. You must add at least one remote before you can transfer files.
+
+### Adding a Remote
+
+1. Click the **+** button at the top of the Backends tab
+2. Enter a **Name** — this becomes the identifier used everywhere (e.g. a remote named `work` is referenced as `work:`)
+3. Choose a **Provider** from the dropdown — over 40 are supported, including:
+   - **Cloud storage:** Google Drive, Dropbox, OneDrive, Box, MEGA, Proton Drive, pCloud, and more
+   - **Object storage:** Amazon S3, Backblaze B2, Azure Blob, Cloudflare R2, Wasabi, and others
+   - **Network protocols:** SFTP, FTP, SMB (Windows shares)
+4. Fill in the fields that appear for your chosen provider (server address, API keys, bucket name, etc.)
+5. **OAuth providers** (Google Drive, Dropbox, OneDrive, etc.) show an **OAuth Login** button — click it and complete the sign-in in your browser
+6. Expand **Advanced Options** if you need to configure less common settings
+7. Click **Save** — the remote appears in the list with its storage usage shown below the name
+
+### Editing or Deleting a Remote
+
+Each remote row has an **Edit** button (pencil icon) and a **Delete** button (trash icon). Editing opens the same dialog with your existing settings pre-filled.
+
+> **Note:** Deleting a remote only removes it from Mt. Sync's configuration. No files are deleted from the storage service itself.
+
+---
+
+## 2. The File Browser (Browser Tab)
+
+The Browser tab shows two independent panes side by side. Each pane can point to a different remote or local folder, letting you navigate both sides of a transfer at the same time.
+
+### Navigating a Pane
+
+- Use the **Remote** dropdown at the top of each pane to choose a configured remote
+- Click a folder to open it
+- Use the **breadcrumb bar** to jump to any parent folder
+- Use the **back arrow** to go to the previous location
+- Tick **Show hidden files** (bottom of pane) to include dot-files in the listing
+- The status bar at the bottom of each pane shows the total file count and size of the current folder
+
+### Selecting Files
+
+- Click a file or folder to select it
+- Hold **Ctrl** and click to select multiple items
+- Hold **Shift** and click to select a range
+
+### Swapping Panes
+
+The **Swap ↔** button in the centre of the action bar swaps the remote and path between the left and right panes.
+
+---
+
+### Using Panes to Pre-fill Jobs
+
+> **This is the fastest way to set up a job.** Navigate to your source location in the **left pane** and your destination in the **right pane**, then click one of the green action buttons — **Copy**, **Move**, **Sync**, or **Mount**. The Add Job dialog opens with the source and destination already filled in. If you have files or folders selected, they are automatically added as **File Filters** so only those items are transferred.
+
+---
+
+### Compare
+
+Click **Compare** to run an integrity check between the two panes. Mt. Sync will scan both sides and display a table showing every file and its status:
+
+| Glyph | Meaning |
+|-------|---------|
+| `=` | File is identical on both sides |
+| `←` | File exists only in the source (left) |
+| `→` | File exists only in the destination (right) |
+| `≠` | File exists on both sides but differs |
+| `!` | Error reading the file on one side |
+
+Use the five filter toggles in the toolbar (`←` `→` `=` `≠` `!`) to show or hide each category. All are on by default — click one to hide that category. Columns are sortable, and files stay grouped under their directory header regardless of sort order.
+
+---
+
+## 3. Job Types
+
+Jobs are saved transfer or mount operations you can run on demand or on a schedule.
+
+### Copy
+
+Copies files from the source to the destination. Files already at the destination that are not in the source are **left untouched**. This is the safest option for one-way backups — nothing at the destination is ever deleted.
+
+### Move
+
+Copies files from the source to the destination, then **deletes them from the source**. Use this when you want to relocate files rather than duplicate them.
+
+### Sync
+
+Makes the destination an **exact mirror** of the source. Any file at the destination that does not exist in the source will be **deleted**. Use this when you want the destination to always reflect the current state of the source.
+
+- **Bi-directional** toggle — when enabled, changes flow in both directions (new or updated files on either side are copied to the other). Powered by rclone bisync.
+
+> **Caution:** A standard (one-way) Sync job will delete files from the destination that are not present in the source. Make sure your source is correct before running with **Dry Run** turned off.
+
+### Mount
+
+Mounts the **left-pane remote location** as a virtual filesystem **at the right-pane path** on your computer. After mounting, the remote appears as an ordinary folder you can open in any application.
+
+- The **left pane** is what gets mounted (the remote source)
+- The **right pane** is the local folder where it will be mounted
+- Use the red **Stop** button on the job row to unmount
+
+**Mount-specific options:**
+
+| Option | Description |
+|--------|-------------|
+| **Mount at Start-up** | Automatically re-mount this location each time Mt. Sync's daemon starts |
+| **VFS Cache Mode** | Controls how files are cached locally. `off` = no cache (read-only streaming); `minimal` = cache file metadata; `writes` = cache writes; `full` = full read/write cache on disk (best performance, uses local storage) |
+
+---
+
+## 4. Adding a Job
+
+Jobs can be added from the **Browser** tab (using the green action buttons) or directly from the **Jobs** tab using the **+** button.
+
+### Job Fields
+
+| Field | Description |
+|-------|-------------|
+| **Type** | Copy, Move, Sync, or Mount |
+| **Source** | The location to read from. Format: `remotename:path/to/folder` or `local:/absolute/path` |
+| **Destination** | The location to write to. Same format as Source |
+| **File Filters** | Space-separated glob patterns to limit which files are included. Example: `*.jpg *.png` transfers only images. Leave blank for all files |
+| **Dry Run** | **On by default.** Simulates the transfer without moving any data — great for checking what would happen. Turn this **off** when you are ready to perform the real transfer |
+| **Bi-directional** | (Sync only) Sync changes in both directions |
+| **Enable Checksum** | Verifies every file's integrity byte-for-byte after transfer. Slower, but catches corruption |
+| **Bandwidth Limit** | Maximum transfer speed, e.g. `10M` for 10 MB/s. Leave blank for unlimited |
+| **Parallel Transfers** | How many files transfer at the same time. Higher values speed up transfers of many small files |
+| **Retries on Failure** | How many times to retry a file that fails to transfer before giving up |
+
+### Running or Saving
+
+- **Run Now** — executes the job immediately and saves it
+- **Save** — saves the job without running it (useful for scheduling)
+- **Cancel** — closes the dialog without saving
+
+---
+
+## 5. Scheduling Jobs
+
+Any job can be run automatically on a schedule.
+
+1. Open the job dialog (add new or edit existing)
+2. Toggle **Enable Schedule** on
+3. Fill in the cron fields:
+
+| Field | Values | Example |
+|-------|--------|---------|
+| **Minute** | 0–59 or `*` | `30` = at the 30-minute mark |
+| **Hour** | 0–23 or `*` | `2` = 2 AM |
+| **Day** | 1–31 or `*` | `*` = every day |
+| **Month** | 1–12 or `*` | `*` = every month |
+| **Weekday** | 0–6 (0 = Sunday) or `*` | `1` = Mondays only |
+
+The **Schedule Summary** label updates as you type to show a plain-English description of your schedule (e.g. "Every day at 2:30 AM").
+
+Click **Schedule** to save. Scheduled jobs skip execution if the previous run is still in progress.
+
+---
+
+## 6. Running & Monitoring Jobs (Jobs Tab)
+
+The Jobs tab lists all your saved jobs. Each row shows:
+
+- **Type icon** — indicates Copy, Move, Sync, or Mount
+- **Job name** — derived from the source and destination paths
+- **Control buttons:**
+  - Green **Run** button — start the job immediately
+  - Red **Stop** button — halt a running job or unmount a mounted drive
+  - Pencil **Edit** button — modify the job configuration
+  - Trash **Delete** button — remove the job (does not delete any files)
+- **Progress bar** — visible while a transfer is running, showing percentage complete
+- **Status** — shows the current state or the result of the last run
+- **Transfer stats** — live speed, data transferred, and ETA during active jobs
+
+Click the **chevron** button on any row to expand it and see the full source/destination paths and the job's unique ID.
+
+### Activity Log
+
+Below the job list, the Activity Log records every job execution with a timestamp, result (STARTED, COMPLETED, SKIPPED, RETRYING), job type, and a details message. The most recent 100 entries are shown.
+
+---
+
+## 7. Settings
+
+Open the **Settings** tab to configure application-wide behaviour.
+
+### Notifications
+
+| Setting | Description |
+|---------|-------------|
+| **On Job Start** | Show a desktop notification when a job begins |
+| **On Completion** | Notify when a job finishes successfully |
+| **On Completion with Errors/Warnings** | Notify when a job finishes but encountered problems |
+
+### Start Up & Shut Down
+
+| Setting | Description |
+|---------|-------------|
+| **Start daemon on login** | Automatically launch the Mt. Sync background process when you log in, so scheduled jobs and mounts are available even without opening the app window |
+| **Start minimized to tray** | Launch to the system tray instead of opening the main window |
+| **Shutdown daemon when closing application** | When off, the daemon (and any active jobs or mounts) keeps running after you close the window |
+
+### Transfers
+
+These are the defaults applied to all new jobs. Individual jobs can override them.
+
+| Setting | Description |
+|---------|-------------|
+| **Default bandwidth limit** | Maximum transfer speed for all jobs (e.g. `10M` = 10 MB/s). Leave blank for unlimited |
+| **Verify checksums** | Enable checksum verification by default for all jobs |
+| **Parallel transfers** | Default number of files to transfer simultaneously |
+| **Retries on failure** | Default number of retry attempts for failed files |
+
+### rclone
+
+| Setting | Description |
+|---------|-------------|
+| **rclone binary path** | Full path to the rclone executable if it is not on your system PATH (e.g. `/home/user/bin/rclone`). Leave blank to use the system default. Takes effect after restarting Mt. Sync |
+
+---
+
+## 8. System Tray
+
+When Mt. Sync is running, an icon appears in your system tray. Right-click it for **Open** (show the main window) and **Quit** (exit the application and optionally stop the daemon). An animated spinner overlays the tray icon while any job is actively transferring.

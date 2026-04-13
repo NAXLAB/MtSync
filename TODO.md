@@ -21,5 +21,5 @@
 - [x] Activity log (structured column view — Time, State, Job ID, Type, Contents)
 - [x] Desktop notifications (configurable per event via Settings)
 - [x] VFS cache mode for mount jobs
-- [x] Compare dialog filter toggles (hide rows by status — `←` `→` `≠` `!`)
+- [x] Compare dialog filter toggles (show rows by status — `←` `→` `=` `≠` `!`, all on by default)
 - [ ] Internal rclone embedding
