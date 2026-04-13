@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.3 — CI/CD Rename Fix
+- Fixed GitHub Actions workflow: updated all stale `saddle` artifact names, Flatpak bundle filename, and Flatpak manifest path to `mtsync` following the 0.7.0 project rename
+
 ## 0.7.2 — User Manual
 - Added `User_Manual.md` covering remote setup, all four job types (Copy, Move, Sync, Mount), job options, scheduling, the browser's pane-prefill workflow, the Compare dialog, and Settings
 

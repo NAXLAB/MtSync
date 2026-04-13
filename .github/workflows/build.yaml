@@ -35,7 +35,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: saddle-deb
+          name: mtsync-deb
           path: build/*.deb
 
   # ── RPM ────────────────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: saddle-rpm
+          name: mtsync-rpm
           path: build/*.rpm
 
   # ── AppImage ───────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: saddle-appimage
+          name: mtsync-appimage
           path: "*.AppImage"
 
   # ── Flatpak ────────────────────────────────────────────────────────────────
@@ -137,14 +137,14 @@ jobs:
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: saddle.flatpak
-          manifest-path: packaging/com.saddle.Saddle.yml
+          bundle: mtsync.flatpak
+          manifest-path: packaging/com.mtsync.MtSync.yml
           cache-key: flatpak-builder-${{ github.sha }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: saddle-flatpak
-          path: saddle.flatpak
+          name: mtsync-flatpak
+          path: mtsync.flatpak
 
   # ── Snap ───────────────────────────────────────────────────────────────────
   build-snap:
@@ -157,5 +157,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: saddle-snap
+          name: mtsync-snap
           path: "*.snap"
