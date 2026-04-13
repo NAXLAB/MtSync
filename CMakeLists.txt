@@ -91,7 +91,7 @@ install(FILES
     RENAME com.mtsync.MtSync.png
 )
 install(FILES
-    "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.svg"
+    "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.svg"
     DESTINATION share/icons/hicolor/scalable/apps
     RENAME com.mtsync.MtSync.svg
 )
