@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include <format>
 #include <unordered_map>
 
-namespace saddle {
+namespace mtsync {
 
 // GObject property helpers used inside C comparison callbacks
 static Glib::ustring get_str_prop(GObject* obj, const char* prop) {
@@ -46,7 +46,7 @@ static bool get_bool_prop(GObject* obj, const char* prop) {
 
 static void set_remote_icon(Gtk::Image* img, const std::string& type) {
     bool dark = adw_style_manager_get_dark(adw_style_manager_get_default());
-    std::string base = "/io/github/saddle/provider-icons/" + type;
+    std::string base = "/io/github/mtsync/provider-icons/" + type;
     auto try_res = [&](const std::string& path) -> bool {
         GBytes* b = g_resources_lookup_data(path.c_str(),
                         G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
@@ -746,4 +746,4 @@ std::string BrowserPane::mime_to_icon(const std::string& mime, bool is_dir) {
     return "text-x-generic-symbolic";
 }
 
-} // namespace saddle
+} // namespace mtsync

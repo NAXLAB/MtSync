@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 using json = nlohmann::json;
 
-namespace saddle {
+namespace mtsync {
 
 DaemonProxy::DaemonProxy() = default;
 
@@ -218,4 +218,4 @@ void DaemonProxy::quit() {
     send_request(ipc::RequestType::Quit, {});
 }
 
-} // namespace saddle
+} // namespace mtsync

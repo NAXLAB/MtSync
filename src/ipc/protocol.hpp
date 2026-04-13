@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace saddle::ipc {
+namespace mtsync::ipc {
 
 enum class RequestType {
     GetJobs,
@@ -80,4 +80,4 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ResponseType, {
 
 std::string get_socket_path();
 
-} // namespace saddle::ipc
+} // namespace mtsync::ipc

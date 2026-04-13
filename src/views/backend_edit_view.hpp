@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-namespace saddle {
+namespace mtsync {
 
 // Lightweight GObject wrapper so we can use Gio::ListStore with AdwComboRow
 class ProviderItem : public Glib::Object {
@@ -107,4 +107,4 @@ private:
     std::vector<std::pair<std::string, std::string>> collect_params();
 };
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,8 +1,8 @@
-name: saddle
-version: '0.6.20'
+name: mtsync
+version: '0.7.0'
 summary: GTK4 frontend to rclone
 description: |
-  Mount network storage in comfort. Saddle is a GTK4/libadwaita
+  Mount network storage in comfort. Mt. Sync is a GTK4/libadwaita
   frontend to rclone for managing remote storage, sync jobs,
   and mounts from a native GNOME desktop application.
 
@@ -11,7 +11,7 @@ grade: devel
 confinement: strict
 
 parts:
-  saddle:
+  mtsync:
     plugin: cmake
     source: .
     cmake-parameters:
@@ -35,8 +35,8 @@ parts:
       - usr/bin/rclone
 
 apps:
-  saddle:
-    command: usr/bin/saddle
+  mtsync:
+    command: usr/bin/mtsync
     extensions: [gnome]
     plugs:
       - network

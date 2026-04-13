@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #include "views/compare_dialog.hpp"
 #include "views/job_edit_dialog.hpp"
 
-namespace saddle {
+namespace mtsync {
 
 BrowserView::~BrowserView() = default;
 
@@ -287,4 +287,4 @@ void BrowserView::on_delete() {
     });
 }
 
-} // namespace saddle
+} // namespace mtsync

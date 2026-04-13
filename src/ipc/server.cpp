@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 namespace fs = std::filesystem;
 
-namespace saddle::ipc {
+namespace mtsync::ipc {
 
 IpcServer::IpcServer() = default;
 
@@ -250,4 +250,4 @@ void IpcServer::remove_client(int fd) {
     }
 }
 
-} // namespace saddle::ipc
+} // namespace mtsync::ipc

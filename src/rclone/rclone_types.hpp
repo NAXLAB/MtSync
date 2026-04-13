@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-namespace saddle::rclone {
+namespace mtsync::rclone {
 
 struct ProviderOption {
     std::string name;
@@ -156,4 +156,4 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
 template <typename T>
 using AsyncCallback = std::function<void(std::expected<T, std::string>)>;
 
-} // namespace saddle::rclone
+} // namespace mtsync::rclone

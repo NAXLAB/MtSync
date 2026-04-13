@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ using json = nlohmann::json;
 
 namespace {
 
-json make_response(saddle::ipc::ResponseType type, const json& payload,
+json make_response(mtsync::ipc::ResponseType type, const json& payload,
                    const json& request = json{}) {
     json resp = {
         {"type", type},
@@ -77,9 +77,9 @@ std::string format_duration(double seconds) {
 }
 
 void append_log(const std::string& line) {
-    auto dir = fs::path(g_get_user_state_dir()) / "saddle";
+    auto dir = fs::path(g_get_user_state_dir()) / "mtsync";
     fs::create_directories(dir);
-    std::ofstream f(dir / "saddle.log", std::ios::app);
+    std::ofstream f(dir / "mtsync.log", std::ios::app);
     if (!f) return;
     auto ts = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
     f << "[" << ts.raw() << "] " << line << "\n";
@@ -87,23 +87,23 @@ void append_log(const std::string& line) {
 
 } // namespace
 
-namespace saddle {
+namespace mtsync {
 
-SaddleDaemon::SaddleDaemon() {
-    auto config_dir = fs::path(g_get_user_config_dir()) / "saddle";
+MtSyncDaemon::MtSyncDaemon() {
+    auto config_dir = fs::path(g_get_user_config_dir()) / "mtsync";
     fs::create_directories(config_dir);
     m_config_path = (config_dir / "jobs.json").string();
 
     load_jobs();
 
     m_tray = std::make_unique<TrayIcon>();
-    m_tray->set_tooltip("Saddle - rclone GUI");
+    m_tray->set_tooltip("Mt. Sync - rclone GUI");
     m_tray->signal_show_window().connect([this]() {
         if (m_ipc_server->client_count() > 0) {
             m_ipc_server->send_to_all(make_response(ipc::ResponseType::ShowWindow, {}));
         } else {
             // No GUI connected — launch one
-            auto exe = Glib::find_program_in_path("saddle");
+            auto exe = Glib::find_program_in_path("mtsync");
             if (exe.empty()) exe = "/proc/self/exe";
             try {
                 Glib::spawn_async({}, {exe});
@@ -264,11 +264,11 @@ SaddleDaemon::SaddleDaemon() {
     schedule_all_jobs();
 }
 
-SaddleDaemon::~SaddleDaemon() {
+MtSyncDaemon::~MtSyncDaemon() {
     stop();
 }
 
-void SaddleDaemon::stop() {
+void MtSyncDaemon::stop() {
     m_running = false;
 
     for (auto& conn : m_poll_timers) conn.disconnect();
@@ -282,22 +282,22 @@ void SaddleDaemon::stop() {
     m_manager.rc().stop_daemon();
 }
 
-void SaddleDaemon::run() {
+void MtSyncDaemon::run() {
     if (!m_ipc_server->start()) {
         g_error("Failed to start IPC server");
         return;
     }
 
-    g_message("Saddle daemon started");
+    g_message("Mt. Sync daemon started");
 
     while (m_running) {
         g_main_context_iteration(nullptr, true);
     }
 
-    g_message("Saddle daemon stopped");
+    g_message("Mt. Sync daemon stopped");
 }
 
-void SaddleDaemon::load_jobs() {
+void MtSyncDaemon::load_jobs() {
     if (fs::exists(m_config_path)) {
         try {
             std::ifstream f(m_config_path);
@@ -318,7 +318,7 @@ void SaddleDaemon::load_jobs() {
     }
 }
 
-void SaddleDaemon::save_jobs() {
+void MtSyncDaemon::save_jobs() {
     json j;
     j["jobs"] = json::array();
     for (auto& job : m_jobs)
@@ -329,7 +329,7 @@ void SaddleDaemon::save_jobs() {
     f << j.dump(2);
 }
 
-void SaddleDaemon::schedule_all_jobs() {
+void MtSyncDaemon::schedule_all_jobs() {
     for (size_t i = 0; i < m_jobs.size(); ++i) {
         if (m_jobs[i].schedule_enabled) {
             schedule_job(i);
@@ -337,7 +337,7 @@ void SaddleDaemon::schedule_all_jobs() {
     }
 }
 
-void SaddleDaemon::schedule_job(size_t index) {
+void MtSyncDaemon::schedule_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
     if (!job.schedule_enabled) return;
@@ -372,7 +372,7 @@ void SaddleDaemon::schedule_job(size_t index) {
         }, delay_ms);
 }
 
-void SaddleDaemon::on_run_job(size_t index) {
+void MtSyncDaemon::on_run_job(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
 
@@ -550,7 +550,7 @@ void SaddleDaemon::on_run_job(size_t index) {
     }
 }
 
-void SaddleDaemon::on_job_completed(size_t index, bool success) {
+void MtSyncDaemon::on_job_completed(size_t index, bool success) {
     // Atomically claim ownership: if the job_id is already cleared, another
     // completion path beat us here (duplicate from overlapping poll cycles).
     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
@@ -644,11 +644,11 @@ void SaddleDaemon::on_job_completed(size_t index, bool success) {
     });
 }
 
-void SaddleDaemon::update_tray_animation() {
+void MtSyncDaemon::update_tray_animation() {
     if (m_running_job_count > 0)
         m_tray->start_animation();
     else
         m_tray->stop_animation();
 }
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <format>
 #include <unordered_map>
 
-namespace saddle {
+namespace mtsync {
 
 // Helper to extract string property from GObject for sorting
 static Glib::ustring get_str_prop(GObject* obj, const char* prop) {
@@ -780,4 +780,4 @@ void CompareDialog::on_dst_delete_clicked() {
         });
 }
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <fstream>
 #include <format>
 
-namespace saddle {
+namespace mtsync {
 
 namespace fs = std::filesystem;
 
@@ -39,15 +39,15 @@ void SettingsView::save() {
 
 void SettingsView::write_autostart(bool enable) {
     auto autostart_dir = fs::path(g_get_user_config_dir()) / "autostart";
-    auto desktop_file  = autostart_dir / "saddle-daemon.desktop";
+    auto desktop_file  = autostart_dir / "mtsync-daemon.desktop";
 
     if (enable) {
         fs::create_directories(autostart_dir);
         std::ofstream f(desktop_file);
         f << "[Desktop Entry]\n"
              "Type=Application\n"
-             "Name=Saddle Daemon\n"
-             "Exec=saddle --daemon\n"
+             "Name=Mt. Sync Daemon\n"
+             "Exec=mtsync --daemon\n"
              "X-GNOME-Autostart-enabled=true\n";
     } else {
         std::error_code ec;
@@ -257,4 +257,4 @@ void SettingsView::setup_ui() {
         }), this);
 }
 
-} // namespace saddle
+} // namespace mtsync

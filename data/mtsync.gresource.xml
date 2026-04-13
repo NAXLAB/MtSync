@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/io/github/saddle">
-    <file alias="icons/application.png">Saddle App Icon 1.png</file>
-    <file alias="icons/idle.png">Saddle App Indicator Icon 1.png</file>
+  <gresource prefix="/io/github/mtsync">
+    <file alias="icons/application.png">MtSync App Icon 1.png</file>
+    <file alias="icons/idle.png">MtSync App Indicator Icon 1.png</file>
   </gresource>
-  <gresource prefix="/io/github/saddle/provider-icons">
+  <gresource prefix="/io/github/mtsync/provider-icons">
     <file preprocess="xml-stripblanks">drive.svg</file>
     <file preprocess="xml-stripblanks">drive-dark.svg</file>
     <file preprocess="xml-stripblanks">dropbox.svg</file>

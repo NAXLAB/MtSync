@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,9 @@
 #include "window.hpp"
 #include "widgets/adw_wrapper.hpp"
 
-namespace saddle {
+namespace mtsync {
 
-SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy,
+MtSyncWindow::MtSyncWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy,
                            Settings& settings)
     : m_settings(settings)
     , m_daemon_proxy(daemon_proxy)
@@ -30,9 +30,9 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     , m_browser_view(manager)
     , m_settings_view(m_settings)
     , m_about_view(manager, daemon_proxy) {
-    set_title("Saddle");
+    set_title("Mt. Sync");
     set_default_size(1250, 900);
-    set_icon_name("com.saddle.Saddle");
+    set_icon_name("com.mtsync.MtSync");
 
     // CSS for view switcher tab styling
     auto css = Gtk::CssProvider::create();
@@ -97,8 +97,8 @@ SaddleWindow::SaddleWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
     }, false);
 }
 
-void SaddleWindow::show_toast(const char* message) {
+void MtSyncWindow::show_toast(const char* message) {
     adw::toast_overlay_add_toast(m_toast_overlay, message);
 }
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.6.20 LANGUAGES C CXX)
+project(MtSync VERSION 0.7.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,8 +15,8 @@ find_package(nlohmann_json 3.2 REQUIRED)
 
 # Compile GLib resources into a generated C file
 find_program(GLIB_COMPILE_RESOURCES glib-compile-resources REQUIRED)
-set(RESOURCE_XML "${CMAKE_SOURCE_DIR}/data/saddle.gresource.xml")
-set(RESOURCE_C  "${CMAKE_BINARY_DIR}/saddle_resources.c")
+set(RESOURCE_XML "${CMAKE_SOURCE_DIR}/data/mtsync.gresource.xml")
+set(RESOURCE_C  "${CMAKE_BINARY_DIR}/mtsync_resources.c")
 set(PROVIDER_ICON_DIR "${CMAKE_SOURCE_DIR}/data/provider-icons")
 set(PROVIDER_ICONS
     "${PROVIDER_ICON_DIR}/drive.svg"           "${PROVIDER_ICON_DIR}/drive-dark.svg"
@@ -61,8 +61,8 @@ add_custom_command(
         "${RESOURCE_XML}"
     DEPENDS
         "${RESOURCE_XML}"
-        "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
-        "${CMAKE_SOURCE_DIR}/assets/icons/ui/Saddle App Indicator Icon 1.png"
+        "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.png"
+        "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync App Indicator Icon 1.png"
         ${PROVIDER_ICONS}
     COMMENT "Compiling GLib resources"
 )
@@ -70,13 +70,13 @@ add_custom_command(
 # Collect sources and include the generated resource file
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(saddle ${SOURCES} "${RESOURCE_C}")
+add_executable(mtsync ${SOURCES} "${RESOURCE_C}")
 
-target_include_directories(saddle PRIVATE
+target_include_directories(mtsync PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(saddle PRIVATE
+target_link_libraries(mtsync PRIVATE
     PkgConfig::GTKMM
     PkgConfig::ADWAITA
     PkgConfig::SOUP
@@ -84,27 +84,27 @@ target_link_libraries(saddle PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-install(TARGETS saddle DESTINATION bin)
+install(TARGETS mtsync DESTINATION bin)
 install(FILES
-    "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.png"
+    "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.png"
     DESTINATION share/icons/hicolor/256x256/apps
-    RENAME com.saddle.Saddle.png
+    RENAME com.mtsync.MtSync.png
 )
 install(FILES
     "${CMAKE_SOURCE_DIR}/assets/icons/application/Saddle App Icon 1.svg"
     DESTINATION share/icons/hicolor/scalable/apps
-    RENAME com.saddle.Saddle.svg
+    RENAME com.mtsync.MtSync.svg
 )
 install(FILES
-    "${CMAKE_SOURCE_DIR}/data/com.saddle.Saddle.desktop"
+    "${CMAKE_SOURCE_DIR}/data/com.mtsync.MtSync.desktop"
     DESTINATION share/applications
 )
 
 # ── Packaging (CPack) ──────────────────────────────────────────────────────
-set(CPACK_PACKAGE_NAME             "saddle")
-set(CPACK_PACKAGE_VENDOR           "Saddle")
+set(CPACK_PACKAGE_NAME             "mtsync")
+set(CPACK_PACKAGE_VENDOR           "Mt. Sync")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GTK4 frontend to rclone")
-set(CPACK_PACKAGE_CONTACT          "https://github.com/gavindi/Saddle")
+set(CPACK_PACKAGE_CONTACT          "https://github.com/gavindi/MtSync")
 set(CPACK_RESOURCE_FILE_LICENSE    "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_FILE_NAME
     "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")

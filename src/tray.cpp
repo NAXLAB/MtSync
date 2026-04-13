@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026 Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026 Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,25 +41,25 @@ static cairo_status_t png_read_func(void* closure, unsigned char* data, unsigned
     return CAIRO_STATUS_SUCCESS;
 }
 
-const gchar SADDLE_SERVICE[]    = "com.saddle.Daemon";
-const gchar SADDLE_PATH[]       = "/com/saddle/Daemon";
-const gchar SADDLE_IFACE[]      = "com.saddle.Daemon";
+const gchar MTSYNC_SERVICE[]    = "com.mtsync.Daemon";
+const gchar MTSYNC_PATH[]       = "/com/mtsync/Daemon";
+const gchar MTSYNC_IFACE[]      = "com.mtsync.Daemon";
 
-const gchar SADDLE_SNI_PATH[]   = "/StatusNotifierItem";
+const gchar MTSYNC_SNI_PATH[]   = "/StatusNotifierItem";
 const gchar SNI_IFACE[]         = "org.kde.StatusNotifierItem";
 const gchar SNI_WATCHER_SVC[]   = "org.kde.StatusNotifierWatcher";
 const gchar SNI_WATCHER_OBJ[]   = "/StatusNotifierWatcher";
 const gchar SNI_WATCHER_IFACE[] = "org.kde.StatusNotifierWatcher";
 
-const gchar IDLE_ICON_RESOURCE[] = "/io/github/saddle/icons/idle.png";
+const gchar IDLE_ICON_RESOURCE[] = "/io/github/mtsync/icons/idle.png";
 
-const gchar SADDLE_MENU_PATH[]  = "/com/saddle/Daemon/Menu";
+const gchar MTSYNC_MENU_PATH[]  = "/com/mtsync/Daemon/Menu";
 
-std::string g_tooltip = "Saddle";
+std::string g_tooltip = "Mt. Sync";
 bool g_attention = false;
-saddle::TrayIcon* g_tray = nullptr;
+mtsync::TrayIcon* g_tray = nullptr;
 
-// ── com.saddle.Daemon handlers ────────────────────────────────────────────────
+// ── com.mtsync.Daemon handlers ────────────────────────────────────────────────
 
 static void handle_method_call(GDBusConnection*, const gchar*, const gchar*,
                                const gchar*, const gchar* method,
@@ -85,7 +85,7 @@ static gboolean handle_set_prop(GDBusConnection*, const gchar*, const gchar*,
     return FALSE;
 }
 
-static const GDBusInterfaceVTable saddle_vtable = {
+static const GDBusInterfaceVTable mtsync_vtable = {
     handle_method_call,
     handle_get_prop,
     handle_set_prop
@@ -107,9 +107,9 @@ static GVariant* handle_get_prop_sni(GDBusConnection*, const gchar*, const gchar
     if (g_strcmp0(prop, "Category") == 0)
         return g_variant_new_string("ApplicationStatus");
     if (g_strcmp0(prop, "Id") == 0)
-        return g_variant_new_string("saddle");
+        return g_variant_new_string("mtsync");
     if (g_strcmp0(prop, "Title") == 0)
-        return g_variant_new_string("Saddle");
+        return g_variant_new_string("Mt. Sync");
     if (g_strcmp0(prop, "Status") == 0)
         return g_variant_new_string(g_attention ? "NeedsAttention" : "Active");
     if (g_strcmp0(prop, "WindowId") == 0)
@@ -135,7 +135,7 @@ static GVariant* handle_get_prop_sni(GDBusConnection*, const gchar*, const gchar
     if (g_strcmp0(prop, "ItemIsMenu") == 0)
         return g_variant_new_boolean(FALSE);
     if (g_strcmp0(prop, "Menu") == 0)
-        return g_variant_new_object_path(SADDLE_MENU_PATH);
+        return g_variant_new_object_path(MTSYNC_MENU_PATH);
     if (g_strcmp0(prop, "ToolTip") == 0) {
         // (sa(iiay)ss): icon_name, icon_data[], title, description
         GVariantBuilder b;
@@ -143,7 +143,7 @@ static GVariant* handle_get_prop_sni(GDBusConnection*, const gchar*, const gchar
         g_variant_builder_add(&b, "s", "");
         g_variant_builder_open(&b, G_VARIANT_TYPE("a(iiay)"));
         g_variant_builder_close(&b);
-        g_variant_builder_add(&b, "s", "Saddle");
+        g_variant_builder_add(&b, "s", "Mt. Sync");
         g_variant_builder_add(&b, "s", g_tooltip.c_str());
         return g_variant_builder_end(&b);
     }
@@ -193,7 +193,7 @@ static GVariant* make_menu_layout() {
     // Title item (non-clickable)
     GVariantBuilder title_props;
     g_variant_builder_init(&title_props, G_VARIANT_TYPE("a{sv}"));
-    g_variant_builder_add(&title_props, "{sv}", "label",   g_variant_new_string("Saddle"));
+    g_variant_builder_add(&title_props, "{sv}", "label",   g_variant_new_string("Mt. Sync"));
     g_variant_builder_add(&title_props, "{sv}", "enabled", g_variant_new_boolean(FALSE));
     g_variant_builder_add(&title_props, "{sv}", "visible", g_variant_new_boolean(TRUE));
     GVariantBuilder title_children;
@@ -279,15 +279,15 @@ static const GDBusInterfaceVTable menu_vtable = {
 // ── Bus callbacks ─────────────────────────────────────────────────────────────
 
 void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
-    auto* self = static_cast<saddle::TrayIcon*>(data);
+    auto* self = static_cast<mtsync::TrayIcon*>(data);
     self->m_connection = static_cast<GDBusConnection*>(g_object_ref(conn));
 
     GError* error = nullptr;
 
-    // Register com.saddle.Daemon IPC object
+    // Register com.mtsync.Daemon IPC object
     auto* daemon_node = g_dbus_node_info_new_for_xml(
         "<node>"
-        "  <interface name='com.saddle.Daemon'>"
+        "  <interface name='com.mtsync.Daemon'>"
         "    <method name='ShowWindow'/>"
         "    <method name='Quit'/>"
         "    <property name='Tooltip' type='s' access='read'/>"
@@ -300,15 +300,15 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
         error = nullptr;
     } else {
         g_dbus_connection_register_object(
-            conn, SADDLE_PATH, daemon_node->interfaces[0],
-            &saddle_vtable, self, nullptr, &error);
+            conn, MTSYNC_PATH, daemon_node->interfaces[0],
+            &mtsync_vtable, self, nullptr, &error);
         g_dbus_node_info_unref(daemon_node);
         if (error) {
             g_warning("Tray: failed to register daemon object: %s", error->message);
             g_error_free(error);
             error = nullptr;
         } else {
-            g_message("Tray: D-Bus service registered at %s", SADDLE_PATH);
+            g_message("Tray: D-Bus service registered at %s", MTSYNC_PATH);
         }
     }
 
@@ -364,7 +364,7 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
         error = nullptr;
     } else {
         guint sni_id = g_dbus_connection_register_object(
-            conn, SADDLE_SNI_PATH, sni_node->interfaces[0],
+            conn, MTSYNC_SNI_PATH, sni_node->interfaces[0],
             &sni_vtable, self, nullptr, &error);
         g_dbus_node_info_unref(sni_node);
 
@@ -373,7 +373,7 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
             g_error_free(error);
         } else {
             self->m_sni_reg_id = sni_id;
-            g_message("Tray: SNI object registered at %s", SADDLE_SNI_PATH);
+            g_message("Tray: SNI object registered at %s", MTSYNC_SNI_PATH);
         }
     }
 
@@ -442,7 +442,7 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
         error = nullptr;
     } else {
         guint menu_id = g_dbus_connection_register_object(
-            conn, SADDLE_MENU_PATH, menu_node->interfaces[0],
+            conn, MTSYNC_MENU_PATH, menu_node->interfaces[0],
             &menu_vtable, self, nullptr, &error);
         g_dbus_node_info_unref(menu_node);
 
@@ -451,7 +451,7 @@ void on_bus_acquired(GDBusConnection* conn, const gchar*, gpointer data) {
             g_error_free(error);
         } else {
             self->m_menu_reg_id = menu_id;
-            g_message("Tray: dbusmenu registered at %s", SADDLE_MENU_PATH);
+            g_message("Tray: dbusmenu registered at %s", MTSYNC_MENU_PATH);
         }
     }
 }
@@ -463,7 +463,7 @@ void on_name_acquired(GDBusConnection* conn, const gchar* name, gpointer) {
     g_dbus_connection_call(conn,
         SNI_WATCHER_SVC, SNI_WATCHER_OBJ, SNI_WATCHER_IFACE,
         "RegisterStatusNotifierItem",
-        g_variant_new("(s)", SADDLE_SERVICE),
+        g_variant_new("(s)", MTSYNC_SERVICE),
         nullptr, G_DBUS_CALL_FLAGS_NONE, -1, nullptr,
         +[](GObject* src, GAsyncResult* res, gpointer) {
             GError* err = nullptr;
@@ -487,7 +487,7 @@ void on_name_lost(GDBusConnection*, const gchar* name, gpointer) {
 
 } // namespace
 
-namespace saddle {
+namespace mtsync {
 
 TrayIcon::TrayIcon() {
     g_tray = this;
@@ -496,7 +496,7 @@ TrayIcon::TrayIcon() {
 
     m_owner_id = g_bus_own_name(
         G_BUS_TYPE_SESSION,
-        SADDLE_SERVICE,
+        MTSYNC_SERVICE,
         G_BUS_NAME_OWNER_FLAGS_NONE,
         on_bus_acquired,
         on_name_acquired,
@@ -523,7 +523,7 @@ void TrayIcon::set_tooltip(const std::string& text) {
     if (!m_connection) return;
     GError* err = nullptr;
     g_dbus_connection_emit_signal(m_connection, nullptr,
-        SADDLE_SNI_PATH, SNI_IFACE, "NewToolTip", nullptr, &err);
+        MTSYNC_SNI_PATH, SNI_IFACE, "NewToolTip", nullptr, &err);
     if (err) { g_warning("Tray: NewToolTip: %s", err->message); g_error_free(err); }
 }
 
@@ -587,7 +587,7 @@ void TrayIcon::build_frames() {
 void TrayIcon::load_idle_icon() {
     g_message("Tray: attempting to load idle icon from resource");
     GError* error = nullptr;
-    GBytes* data = g_resources_lookup_data("/io/github/saddle/icons/idle.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+    GBytes* data = g_resources_lookup_data("/io/github/mtsync/icons/idle.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
     if (!data) {
         g_warning("Tray: failed to lookup idle icon resource: %s", error ? error->message : "unknown");
         if (error) g_error_free(error);
@@ -701,7 +701,7 @@ void TrayIcon::start_animation() {
         if (m_connection) {
             GError* err = nullptr;
             g_dbus_connection_emit_signal(m_connection, nullptr,
-                SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+                MTSYNC_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
             if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
         }
         return true;
@@ -709,7 +709,7 @@ void TrayIcon::start_animation() {
     if (m_connection) {
         GError* err = nullptr;
         g_dbus_connection_emit_signal(m_connection, nullptr,
-            SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+            MTSYNC_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
         if (err) { g_warning("Tray: NewIcon: %s", err->message); g_error_free(err); }
     }
 }
@@ -730,7 +730,7 @@ void TrayIcon::stop_animation() {
         g_variant_builder_add(&changed, "{sv}", "IconPixmap", get_idle_icon_pixmap());
         err = nullptr;
         g_dbus_connection_emit_signal(m_connection, nullptr,
-            SADDLE_SNI_PATH, "org.freedesktop.DBus.Properties",
+            MTSYNC_SNI_PATH, "org.freedesktop.DBus.Properties",
             "PropertiesChanged",
             g_variant_new("(sa{sv}as)", SNI_IFACE, &changed, &invalidated), &err);
         if (err) {
@@ -741,7 +741,7 @@ void TrayIcon::stop_animation() {
         // Also emit NewIcon as fallback
         err = nullptr;
         g_dbus_connection_emit_signal(m_connection, nullptr,
-            SADDLE_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
+            MTSYNC_SNI_PATH, SNI_IFACE, "NewIcon", nullptr, &err);
         if (err) { g_warning("Tray: NewIcon on stop: %s", err->message); g_error_free(err); }
 
     }
@@ -752,9 +752,9 @@ void TrayIcon::set_attention(bool attention) {
     if (!m_connection) return;
     GError* err = nullptr;
     g_dbus_connection_emit_signal(m_connection, nullptr,
-        SADDLE_SNI_PATH, SNI_IFACE, "NewStatus",
+        MTSYNC_SNI_PATH, SNI_IFACE, "NewStatus",
         g_variant_new("(s)", attention ? "NeedsAttention" : "Active"), &err);
     if (err) { g_warning("Tray: NewStatus: %s", err->message); g_error_free(err); }
 }
 
-} // namespace saddle
+} // namespace mtsync

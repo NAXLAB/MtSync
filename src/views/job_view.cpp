@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include <format>
 #include <regex>
 
-namespace saddle {
+namespace mtsync {
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -71,7 +71,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
     , m_daemon_proxy(daemon_proxy) {
 
-    auto config_dir = fs::path(g_get_user_config_dir()) / "saddle";
+    auto config_dir = fs::path(g_get_user_config_dir()) / "mtsync";
     fs::create_directories(config_dir);
     m_config_path = (config_dir / "jobs.json").string();
 
@@ -629,7 +629,7 @@ std::string JobView::format_speed(double bytes_per_sec) {
 }
 
 void JobView::refresh_log() {
-    auto path = fs::path(g_get_user_state_dir()) / "saddle" / "saddle.log";
+    auto path = fs::path(g_get_user_state_dir()) / "mtsync" / "mtsync.log";
     std::ifstream f(path);
     m_log_store->remove_all();
     if (!f) return;
@@ -795,4 +795,4 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
     }
 }
 
-} // namespace saddle
+} // namespace mtsync

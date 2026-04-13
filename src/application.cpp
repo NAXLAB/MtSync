@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,28 +23,28 @@
 #include <glibmm.h>
 #include <nlohmann/json.hpp>
 
-extern "C" GResource* saddle_get_resource();
+extern "C" GResource* mtsync_get_resource();
 
-namespace saddle {
+namespace mtsync {
 
-SaddleApplication::SaddleApplication()
-    : Gtk::Application("com.saddle.Saddle") {
-    saddle_get_resource(); // register embedded GLib resources
+MtSyncApplication::MtSyncApplication()
+    : Gtk::Application("com.mtsync.MtSync") {
+    mtsync_get_resource(); // register embedded GLib resources
     adw::init();
     m_settings = load_settings();
 }
 
-Glib::RefPtr<SaddleApplication> SaddleApplication::create() {
-    return Glib::make_refptr_for_instance(new SaddleApplication());
+Glib::RefPtr<MtSyncApplication> MtSyncApplication::create() {
+    return Glib::make_refptr_for_instance(new MtSyncApplication());
 }
 
-void SaddleApplication::ensure_daemon_running() {
+void MtSyncApplication::ensure_daemon_running() {
     m_daemon_proxy = std::make_unique<DaemonProxy>();
 
     if (!m_daemon_proxy->connect()) {
         g_message("Daemon not running, starting it...");
         
-        auto exe_path = Glib::find_program_in_path("saddle");
+        auto exe_path = Glib::find_program_in_path("mtsync");
         if (exe_path.empty()) {
             exe_path = "/proc/self/exe";
         }
@@ -74,12 +74,12 @@ void SaddleApplication::ensure_daemon_running() {
     }
 }
 
-void SaddleApplication::on_activate() {
+void MtSyncApplication::on_activate() {
     bool first_create = !m_window;
     if (!m_window) {
         ensure_daemon_running();
 
-        m_window = Gtk::make_managed<SaddleWindow>(m_rclone_manager, m_daemon_proxy.get(),
+        m_window = Gtk::make_managed<MtSyncWindow>(m_rclone_manager, m_daemon_proxy.get(),
                                                     m_settings);
         add_window(*m_window);
 
@@ -95,4 +95,4 @@ void SaddleApplication::on_activate() {
         m_window->present();
 }
 
-} // namespace saddle
+} // namespace mtsync

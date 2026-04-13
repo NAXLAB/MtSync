@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <memory>
 #include <vector>
 
-namespace saddle {
+namespace mtsync {
 
 class BackendEditView;
 
@@ -70,4 +70,4 @@ private:
     void on_edit_done();
 };
 
-} // namespace saddle
+} // namespace mtsync

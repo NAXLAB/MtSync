@@ -1,12 +1,25 @@
 # Changelog
 
+## 0.7.0 — Project Rename: Saddle → Mt. Sync
+- Project renamed from "Saddle" to "Mt. Sync" (`mtsync`)
+- Executable renamed from `saddle` to `mtsync`
+- Application ID changed from `com.saddle.Saddle` to `com.mtsync.MtSync`
+- D-Bus service renamed from `com.saddle.Daemon` to `com.mtsync.Daemon`
+- GLib resource prefix changed from `/io/github/saddle` to `/io/github/mtsync`
+- Config directory changed from `~/.config/saddle/` to `~/.config/mtsync/`
+- Cache directory changed from `~/.cache/saddle/` to `~/.cache/mtsync/`
+- Log file changed from `~/.local/state/saddle/saddle.log` to `~/.local/state/mtsync/mtsync.log`
+- All C++ namespaces renamed from `saddle` to `mtsync`; class prefix changed from `Saddle` to `MtSync`
+- New Mt. Sync branded application icon displayed on the About tab
+- New Mt. Sync branded system tray icon; used as the background of the animated spinner overlay during active jobs
+
 ## 0.6.20 — About Tab rclone Info
 - About tab now shows a "rclone" section with three rows: Version (fetched async via `rclone version --json` on first visit), Socket (IPC socket path, static), and Status (Connected/Disconnected, refreshed on each visit)
 - Added `RcloneCli::get_version()` method
 
 ## 0.6.19 — Provider Dropdown Fix
 - Fixed provider dropdown not showing the current provider when editing a remote
-- Fixed "Failed to wrap object of type 'GObject'" warning when selecting a provider — `ProviderItem` was missing `Glib::ObjectBase("SaddleProviderItem")` registration, causing the GType system to treat every instance as a plain GObject and `dynamic_pointer_cast` to return null
+- Fixed "Failed to wrap object of type 'GObject'" warning when selecting a provider — `ProviderItem` was missing `Glib::ObjectBase("MtSyncProviderItem")` registration, causing the GType system to treat every instance as a plain GObject and `dynamic_pointer_cast` to return null
 
 ## 0.6.18 — Collapsible Job Details
 - Job rows in the Jobs tab now collapse the UUID and full source/destination paths behind a disclosure chevron button, saving two lines per row in the default view
@@ -86,7 +99,7 @@
 - Sorting now orders by directory first, keeps the directory header above its files, then sorts within each group by the selected column
 
 ## 0.6.6 — Scalable Application Icon
-- Scalable SVG application icon now installed alongside the 256×256 PNG to `share/icons/hicolor/scalable/apps/com.saddle.Saddle.svg`
+- Scalable SVG application icon now installed alongside the 256×256 PNG to `share/icons/hicolor/scalable/apps/com.mtsync.MtSync.svg`
 - Icon renders crisply at any size in launchers and taskbars that prefer vector icons
 
 ## 0.6.5 — Compare Dialog Column Sorting
@@ -152,7 +165,7 @@
 - About tab now includes a lyric quote below the copyright section
 
 ## 0.5.2 — Custom Idle Tray Icon
-- Replaced the system systray idle icon (`network-server-symbolic`) with a custom Saddle-branded icon
+- Replaced the system systray idle icon (`network-server-symbolic`) with a custom Mt. Sync-branded icon
 - Custom icon is bundled as a GLib resource and rendered via Cairo (no external icon dependencies)
 - Idle icon is scaled to 22×22 ARGB32 to match the busy animation frame dimensions
 - Fixed tray icon not updating when animation stopped by emitting the standard D-Bus `PropertiesChanged` signal alongside `NewIcon`
@@ -167,7 +180,7 @@
 - All three default to off
 - Settings tab general section renamed to **Start Up &amp; Shut Down** and moved below Notifications
 - Notification toggles are applied at the daemon level via `load_settings()` at the point of dispatch
-- System tray right-click menu now shows "Saddle" as a non-clickable title above a separator, followed by Open and Quit
+- System tray right-click menu now shows "Mt. Sync" as a non-clickable title above a separator, followed by Open and Quit
 
 ## 0.4.8 — Notification Fix
 - Fixed desktop notifications falling back to a console `g_message` instead of displaying via `notify-send`
@@ -318,7 +331,7 @@
 - Fixed: editing an existing job no longer silently discards its file filter patterns
 
 ## 0.3.4 — Job Activity Log
-- Job execution results are now written to `~/.local/state/saddle/saddle.log`
+- Job execution results are now written to `~/.local/state/mtsync/mtsync.log`
 - Each job logs a STARTED line and a COMPLETED line (with file count, bytes transferred, and speed for sync/copy/move jobs)
 - Mount jobs log success or failure with error message
 - Jobs tab now shows an **Activity Log** panel at the bottom, displaying the log file contents and auto-scrolling to the latest entry
@@ -336,14 +349,14 @@
 
 ## 0.3.1 — Desktop Integration
 - Application icon now appears in taskbar, launcher, and dock when the app is running
-- Added `data/com.saddle.Saddle.desktop` for XDG desktop entry
+- Added `data/com.mtsync.MtSync.desktop` for XDG desktop entry
 - CMake install rules deploy the icon to `share/icons/hicolor/256x256/apps/` and the `.desktop` file to `share/applications/`
-- Window sets `icon-name` to `com.saddle.Saddle` for X11 tray/taskbar resolution
+- Window sets `icon-name` to `com.mtsync.MtSync` for X11 tray/taskbar resolution
 - Added Installing section to README
 
 ## 0.3.0 — Application Icon
 - Application icon now embedded in the binary via GLib resources and displayed on the About tab
-- Added `data/saddle.gresource.xml` and updated CMakeLists.txt to compile resources at build time
+- Added `data/mtsync.gresource.xml` and updated CMakeLists.txt to compile resources at build time
 - No installation step required — icon is always available regardless of system paths
 
 ## 0.2.6 - Mount at startup fix
@@ -402,10 +415,10 @@
 ## 0.1.4 — Settings Tab
 
 - New **Settings** tab to the right of Backends
-- **General** group: Start daemon on login (writes/removes `~/.config/autostart/saddle-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing application
+- **General** group: Start daemon on login (writes/removes `~/.config/autostart/mtsync-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing application
 - **Transfers** group: Default bandwidth limit, Verify checksums, Parallel transfers count
 - **rclone** group: Override rclone binary path (leave empty for PATH lookup; restart required)
-- Settings persist to `~/.config/saddle/settings.json`
+- Settings persist to `~/.config/mtsync/settings.json`
 - "Close to tray" takes effect immediately without restart
 
 ## 0.1.3 — Mount Job Type
@@ -464,15 +477,15 @@
 - Daemon broadcasts job status changes to all connected GUI clients
 - Fixed IPC server/client communication (messages now properly sent/received)
 - Desktop notifications on job completion (when notify-send or kdialog is available)
-- D-Bus service (com.saddle.Saddle) for external communication
+- D-Bus service (com.mtsync.MtSync) for external communication
 - Daemon exposes ShowWindow and Quit methods via D-Bus
 
 ## 0.0.8 — Background Daemon Mode
 
-- `saddle --daemon` runs a background daemon process
+- `mtsync --daemon` runs a background daemon process
 - Daemon manages job scheduling and rclone RC daemon lifecycle
 - Jobs continue running even when GUI is closed
-- IPC server (Unix socket at `~/.cache/saddle/socket`) for GUI ↔ Daemon communication
+- IPC server (Unix socket at `~/.cache/mtsync/socket`) for GUI ↔ Daemon communication
 - Note: System tray icon is stubbed (GTK4 lacks native tray support; full tray integration planned)
 
 ## 0.0.7 — Selected Files in Copy/Move/Sync
@@ -506,7 +519,7 @@ The file browser has been redesigned as a dual-pane manager (rcloneview-style), 
 - New Folder popover with Enter-key support
 - New rclone CLI operations: `copy`, `move`, `delete` (with `--include` file filters), `mkdir`
 - Sync tab renamed to Jobs; supports three job types: Sync, Copy, Move
-- `Job` data model replaces `SyncPair`; stored in `~/.config/saddle/jobs.json`
+- `Job` data model replaces `SyncPair`; stored in `~/.config/mtsync/jobs.json`
 - Automatic migration from `sync_pairs.json` on first launch (existing sync pairs become [SYNC] jobs)
 - Browser Copy/Move buttons open a job-configuration dialog instead of running immediately
 - `JobEditDialog` pre-fills source/destination from the active and other pane
@@ -541,4 +554,4 @@ Initial release.
 - Dynamic form generation from rclone provider options
 - File browser with ColumnView and directory navigation via `rclone lsjson`
 - Sync management with rclone RC daemon, live progress (bytes, speed, ETA)
-- Sync pair persistence in `~/.config/saddle/sync_pairs.json`
+- Sync pair persistence in `~/.config/mtsync/sync_pairs.json`

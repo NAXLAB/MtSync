@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #include "widgets/adw_wrapper.hpp"
 #include <giomm.h>
 
-namespace saddle {
+namespace mtsync {
 
 // ── ProviderItem implementation ──
 
@@ -33,7 +33,7 @@ Glib::RefPtr<ProviderItem> ProviderItem::create(int index, const std::string& na
 
 ProviderItem::ProviderItem(int index, const std::string& name, const std::string& prefix,
                            const std::string& description, const std::string& icon_name)
-    : Glib::ObjectBase("SaddleProviderItem"),
+    : Glib::ObjectBase("MtSyncProviderItem"),
       m_index(index), m_name(name), m_prefix(prefix),
       m_description(description), m_icon_name(icon_name) {
 }
@@ -118,7 +118,7 @@ void BackendEditView::setup_ui() {
         if (!prov || !icon_w || !label) return;
         auto pi = std::dynamic_pointer_cast<ProviderItem>(prov);
         if (!pi) return;
-        std::string base = "/io/github/saddle/provider-icons/" + pi->get_icon_name();
+        std::string base = "/io/github/mtsync/provider-icons/" + pi->get_icon_name();
         // Use resource for provider SVGs, fall back to symbolic for defaults
         if (pi->get_icon_name().find("-symbolic") != std::string::npos) {
             icon_w->set_from_icon_name(pi->get_icon_name());
@@ -157,7 +157,7 @@ void BackendEditView::setup_ui() {
         if (!prov || !icon_w || !label) return;
         auto pi = std::dynamic_pointer_cast<ProviderItem>(prov);
         if (!pi) return;
-        std::string base = "/io/github/saddle/provider-icons/" + pi->get_icon_name();
+        std::string base = "/io/github/mtsync/provider-icons/" + pi->get_icon_name();
         if (pi->get_icon_name().find("-symbolic") != std::string::npos) {
             icon_w->set_from_icon_name(pi->get_icon_name());
             icon_w->set_pixel_size(20);
@@ -507,4 +507,4 @@ std::vector<std::pair<std::string, std::string>> BackendEditView::collect_params
     return params;
 }
 
-} // namespace saddle
+} // namespace mtsync

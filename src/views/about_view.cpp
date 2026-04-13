@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
 
-namespace saddle {
+namespace mtsync {
 
 AboutView::AboutView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
@@ -50,14 +50,14 @@ void AboutView::setup_ui() {
 
     // ── Status page ───────────────────────────────────────────────────────────
     auto* status = adw::status_page();
-    adw::status_page_set_title(status, "Saddle");
+    adw::status_page_set_title(status, "Mt. Sync");
     adw::status_page_set_description(status, "Mount or sync network storage in comfort");
 
-    GBytes* probe = g_resources_lookup_data("/io/github/saddle/icons/application.png",
+    GBytes* probe = g_resources_lookup_data("/io/github/mtsync/icons/application.png",
                                              G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
     if (probe) {
         g_bytes_unref(probe);
-        auto texture = Gdk::Texture::create_from_resource("/io/github/saddle/icons/application.png");
+        auto texture = Gdk::Texture::create_from_resource("/io/github/mtsync/icons/application.png");
         adw_status_page_set_paintable(ADW_STATUS_PAGE(status->gobj()), GDK_PAINTABLE(texture->gobj()));
     } else {
         adw::status_page_set_icon_name(status, "help-about-symbolic");
@@ -70,7 +70,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.6.20");
+    adw::action_row_set_subtitle(version_row, "0.7.0");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
@@ -103,7 +103,7 @@ void AboutView::setup_ui() {
     auto* sep1 = Gtk::make_managed<Gtk::Label>("·");
     sep1->add_css_class("dim-label");
 
-    std::string socket_path = std::string(g_get_user_cache_dir()) + "/saddle/socket";
+    std::string socket_path = std::string(g_get_user_cache_dir()) + "/mtsync/socket";
     auto* socket_label = Gtk::make_managed<Gtk::Label>(socket_path);
     socket_label->add_css_class("dim-label");
     socket_label->set_hexpand(true);
@@ -156,4 +156,4 @@ void AboutView::setup_ui() {
     });
 }
 
-} // namespace saddle
+} // namespace mtsync

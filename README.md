@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gavindi/Saddle/main/assets/icons/application/Saddle%20App%20Icon%201.svg" alt="Saddle Logo" width="128">
+  <img src="https://raw.githubusercontent.com/gavindi/Mt. Sync/main/assets/icons/application/Mt. Sync%20App%20Icon%201.svg" alt="Mt. Sync Logo" width="128">
 </p>
 
-# Saddle
+# Mt. Sync
 
 Mount or sync network storage in comfort
 
@@ -43,16 +43,16 @@ desktop application backed by a persistent daemon.
   instance is still running; failed jobs are automatically retried up to a configurable count before
   being marked as failed; activity log panel shows the last 100 entries in a structured column
   view (Time, State, Job ID, Type, Contents) with colour-coded state labels, newest first
-- **Background daemon** — `saddle --daemon` keeps jobs running when the GUI is closed; GUI
+- **Background daemon** — `mtsync --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
-  GUI if it is not running; animated spinner shown while any job is active; custom Saddle-branded
+  GUI if it is not running; animated spinner shown while any job is active; custom Mt. Sync-branded
   idle icon rendered via Cairo and bundled as a GLib resource
 - **Desktop notifications** — Optional notifications via `notify-send` or `kdialog`; independently
   configurable for job start, successful completion, and completion with errors/warnings
 - **Settings** — Startup & shutdown behaviour (autostart, tray), notification toggles, transfer
   defaults (bandwidth limit, checksums, parallel transfers, retries on failure), rclone binary path
-  override; persisted to `~/.config/saddle/settings.json`
+  override; persisted to `~/.config/mtsync/settings.json`
 
 ## Dependencies
 
@@ -101,17 +101,17 @@ launcher and taskbar.
 ## Running
 
 ```bash
-./build/saddle          # launch GUI (starts daemon automatically)
-./build/saddle --daemon # run as background daemon only
+./build/mtsync          # launch GUI (starts daemon automatically)
+./build/mtsync --daemon # run as background daemon only
 ```
 
-Saddle expects `rclone` to be available on `PATH`.
+Mt. Sync expects `rclone` to be available on `PATH`.
 
 ## Architecture
 
 ```
-SaddleApplication (Gtk::Application)
- └── SaddleWindow (Gtk::ApplicationWindow)
+MtSyncApplication (Gtk::Application)
+ └── MtSyncWindow (Gtk::ApplicationWindow)
       ├── AdwHeaderBar + AdwViewSwitcher
       └── AdwViewStack
            ├── BrowserView   — dual-pane file browser (two BrowserPane widgets)
@@ -120,8 +120,8 @@ SaddleApplication (Gtk::Application)
            ├── SettingsView  — application and transfer settings
            └── AboutView     — version, license, and copyright
 
-SaddleDaemon (background process, saddle --daemon)
- ├── IpcServer             — Unix socket at ~/.cache/saddle/socket
+MtSyncDaemon (background process, mtsync --daemon)
+ ├── IpcServer             — Unix socket at ~/.cache/mtsync/socket
  ├── TrayIcon              — StatusNotifierItem + dbusmenu via D-Bus
  └── RcloneManager
       ├── RcloneCli         — Gio::Subprocess for one-shot commands
@@ -132,7 +132,7 @@ SaddleDaemon (background process, saddle --daemon)
 starts the daemon automatically if it is not already running. Jobs continue executing in the daemon
 when the GUI window is closed.
 
-**D-Bus services:** `com.saddle.Daemon` (daemon) exposes `ShowWindow` and `Quit` methods.
+**D-Bus services:** `com.mtsync.Daemon` (daemon) exposes `ShowWindow` and `Quit` methods.
 
 libadwaita is used via its C API bridged to gtkmm with `Glib::wrap()`, as no C++ bindings
 (libadwaitamm) are available.
@@ -144,9 +144,9 @@ All async I/O dispatches on the GLib main loop — no manual threading.
 | Path | Purpose |
 |------|---------|
 | `~/.config/rclone/rclone.conf` | rclone backend configuration |
-| `~/.config/saddle/jobs.json` | Saddle job definitions |
-| `~/.config/saddle/settings.json` | Saddle application settings |
-| `~/.cache/saddle/socket` | IPC socket (daemon ↔ GUI) |
+| `~/.config/mtsync/jobs.json` | Mt. Sync job definitions |
+| `~/.config/mtsync/settings.json` | Mt. Sync application settings |
+| `~/.cache/mtsync/socket` | IPC socket (daemon ↔ GUI) |
 
 ## License
 

@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         if (arg == "--daemon" || arg == "-d") {
             daemon_mode = true;
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: saddle [OPTIONS]\n"
+            std::cout << "Usage: mtsync [OPTIONS]\n"
                       << "  --daemon, -d    Run as background daemon\n"
                       << "  --help, -h      Show this help\n";
             return 0;
@@ -47,12 +47,12 @@ int main(int argc, char* argv[]) {
     std::signal(SIGTERM, signal_handler);
 
     if (daemon_mode) {
-        saddle::SaddleDaemon daemon;
+        mtsync::MtSyncDaemon daemon;
         daemon.run();
         return 0;
     }
 
     // Run as GUI application
-    auto app = saddle::SaddleApplication::create();
+    auto app = mtsync::MtSyncApplication::create();
     return app->run(argc, argv);
 }

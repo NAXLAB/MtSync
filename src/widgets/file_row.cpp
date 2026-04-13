@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 
 #include "widgets/file_row.hpp"
 
-namespace saddle {
+namespace mtsync {
 
-RemoteObject::RemoteObject() : Glib::ObjectBase("SaddleRemoteObject") {}
+RemoteObject::RemoteObject() : Glib::ObjectBase("MtSyncRemoteObject") {}
 
 Glib::RefPtr<RemoteObject> RemoteObject::create(const rclone::RemoteInfo& info) {
     auto obj = Glib::make_refptr_for_instance(new RemoteObject());
@@ -29,7 +29,7 @@ Glib::RefPtr<RemoteObject> RemoteObject::create(const rclone::RemoteInfo& info) 
     return obj;
 }
 
-FileObject::FileObject() : Glib::ObjectBase("SaddleFileObject") {}
+FileObject::FileObject() : Glib::ObjectBase("MtSyncFileObject") {}
 
 Glib::RefPtr<FileObject> FileObject::create(const rclone::FileEntry& entry) {
     auto obj = Glib::make_refptr_for_instance(new FileObject());
@@ -42,7 +42,7 @@ Glib::RefPtr<FileObject> FileObject::create(const rclone::FileEntry& entry) {
     return obj;
 }
 
-LogEntry::LogEntry() : Glib::ObjectBase("SaddleLogEntry") {}
+LogEntry::LogEntry() : Glib::ObjectBase("MtSyncLogEntry") {}
 
 Glib::RefPtr<LogEntry> LogEntry::create(
     const std::string& time, const std::string& state,
@@ -58,7 +58,7 @@ Glib::RefPtr<LogEntry> LogEntry::create(
     return obj;
 }
 
-CompareRowObject::CompareRowObject() : Glib::ObjectBase("SaddleCompareRowObject") {}
+CompareRowObject::CompareRowObject() : Glib::ObjectBase("MtSyncCompareRowObject") {}
 
 Glib::RefPtr<CompareRowObject> CompareRowObject::create(
     char status,
@@ -78,4 +78,4 @@ Glib::RefPtr<CompareRowObject> CompareRowObject::create(
     return obj;
 }
 
-} // namespace saddle
+} // namespace mtsync

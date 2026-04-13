@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,11 @@
 #include <fcntl.h>
 #include <glib-unix.h>
 
-namespace saddle::ipc {
+namespace mtsync::ipc {
 
 std::string get_socket_path() {
     auto* user_cache = g_get_user_cache_dir();
-    auto dir = std::filesystem::path(user_cache) / "saddle";
+    auto dir = std::filesystem::path(user_cache) / "mtsync";
     std::filesystem::create_directories(dir);
     return (dir / "socket").string();
 }
@@ -160,4 +160,4 @@ void IpcClient::read_message() {
     }
 }
 
-} // namespace saddle::ipc
+} // namespace mtsync::ipc

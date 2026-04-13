@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "rclone/rclone_types.hpp"
 #include <glibmm.h>
 
-namespace saddle {
+namespace mtsync {
 
 // GObject wrapper around RemoteInfo for use with Gio::ListStore in the sidebar
 class RemoteObject : public Glib::Object {
@@ -93,4 +93,4 @@ protected:
     CompareRowObject();
 };
 
-} // namespace saddle
+} // namespace mtsync

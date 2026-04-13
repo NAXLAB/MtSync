@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <array>
 #include <vector>
 
-namespace saddle {
+namespace mtsync {
 
 class TrayIcon {
 public:
@@ -75,4 +75,4 @@ public:
     guint m_menu_reg_id = 0;
 };
 
-} // namespace saddle
+} // namespace mtsync

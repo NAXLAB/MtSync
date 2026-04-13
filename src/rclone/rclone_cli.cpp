@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 
-namespace saddle::rclone {
+namespace mtsync::rclone {
 
 using json = nlohmann::json;
 
@@ -367,4 +367,4 @@ Glib::RefPtr<Gio::Subprocess> RcloneCli::check(const std::string& src, const std
         });
 }
 
-} // namespace saddle::rclone
+} // namespace mtsync::rclone

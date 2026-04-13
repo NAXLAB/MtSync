@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <string>
 #include <glib.h>
 
-namespace saddle {
+namespace mtsync {
 
 struct Settings {
     // General
@@ -51,7 +51,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings,
     notify_on_start, notify_on_completion, notify_on_errors)
 
 inline std::filesystem::path settings_file_path() {
-    return std::filesystem::path(g_get_user_config_dir()) / "saddle" / "settings.json";
+    return std::filesystem::path(g_get_user_config_dir()) / "mtsync" / "settings.json";
 }
 
 inline Settings load_settings() {
@@ -70,4 +70,4 @@ inline void save_settings(const Settings& s) {
     f << nlohmann::json(s).dump(2);
 }
 
-} // namespace saddle
+} // namespace mtsync

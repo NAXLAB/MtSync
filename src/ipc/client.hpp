@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <sigc++/sigc++.h>
 #include <nlohmann/json.hpp>
 
-namespace saddle::ipc {
+namespace mtsync::ipc {
 
 std::string get_socket_path();
 
@@ -49,4 +49,4 @@ private:
     sigc::signal<void(const nlohmann::json&)> m_signal_received;
 };
 
-} // namespace saddle::ipc
+} // namespace mtsync::ipc

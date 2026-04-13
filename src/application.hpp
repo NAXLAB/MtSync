@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,29 +24,29 @@
 #include <gtkmm.h>
 #include <memory>
 
-namespace saddle {
+namespace mtsync {
 
-class SaddleWindow;
+class MtSyncWindow;
 
-class SaddleApplication : public Gtk::Application {
+class MtSyncApplication : public Gtk::Application {
 public:
-    static Glib::RefPtr<SaddleApplication> create();
+    static Glib::RefPtr<MtSyncApplication> create();
 
     rclone::RcloneManager& rclone_manager() { return m_rclone_manager; }
     DaemonProxy& daemon_proxy() { return *m_daemon_proxy; }
     bool is_daemon_connected() const { return m_daemon_proxy && m_daemon_proxy->is_connected(); }
 
 protected:
-    SaddleApplication();
+    MtSyncApplication();
     void on_activate() override;
 
 private:
     void ensure_daemon_running();
 
-    SaddleWindow* m_window = nullptr;
+    MtSyncWindow* m_window = nullptr;
     rclone::RcloneManager m_rclone_manager;
     std::unique_ptr<DaemonProxy> m_daemon_proxy;
     Settings m_settings;
 };
 
-} // namespace saddle
+} // namespace mtsync

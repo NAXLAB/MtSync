@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,14 +29,14 @@
 #include <sigc++/sigc++.h>
 
 namespace fs = std::filesystem;
-namespace rclone = saddle::rclone;
+namespace rclone = mtsync::rclone;
 
-namespace saddle {
+namespace mtsync {
 
-class SaddleDaemon {
+class MtSyncDaemon {
 public:
-    SaddleDaemon();
-    ~SaddleDaemon();
+    MtSyncDaemon();
+    ~MtSyncDaemon();
 
     void run();
     void stop();
@@ -69,4 +69,4 @@ private:
     bool m_running = true;
 };
 
-} // namespace saddle
+} // namespace mtsync

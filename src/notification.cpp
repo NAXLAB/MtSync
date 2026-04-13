@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
         try {
             Glib::spawn_sync(
                 {},
-                {exe, "-a", "Saddle", "-i", "drive", title, body}
+                {exe, "-a", "Mt. Sync", "-i", "drive", title, body}
             );
             return true;
         } catch (...) {}
@@ -50,7 +50,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
 
 } // namespace
 
-namespace saddle {
+namespace mtsync {
 
 Notification::~Notification() = default;
 
@@ -64,4 +64,4 @@ void send_notification(const std::string& title, const std::string& body) {
     }
 }
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include <iomanip>
 #include <unordered_map>
 
-namespace saddle {
+namespace mtsync {
 
 namespace {
 
@@ -61,7 +61,7 @@ static const std::string& icon_name_for_type(const std::string& type) {
 
 static Gtk::Image* make_remote_icon(const std::string& type) {
     bool dark = adw_style_manager_get_dark(adw_style_manager_get_default());
-    std::string base = "/io/github/saddle/provider-icons/" + icon_name_for_type(type);
+    std::string base = "/io/github/mtsync/provider-icons/" + icon_name_for_type(type);
     std::string res;
     if (dark && resource_exists(base + "-dark.svg"))
         res = base + "-dark.svg";
@@ -339,4 +339,4 @@ void BackendsView::on_edit_done() {
     refresh();
 }
 
-} // namespace saddle
+} // namespace mtsync

@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=Saddle
+Name=Mt. Sync
 Comment=GTK4 frontend to rclone
-Exec=saddle
-Icon=com.saddle.Saddle
+Exec=mtsync
+Icon=com.mtsync.MtSync
 Type=Application
 Categories=Utility;Network;FileTransfer;
-StartupWMClass=saddle
+StartupWMClass=mtsync

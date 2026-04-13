@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <giomm.h>
 #include <string>
 
-namespace saddle::rclone {
+namespace mtsync::rclone {
 
 class RcloneRc {
 public:
@@ -77,4 +77,4 @@ private:
     void spawn_daemon(AsyncCallback<std::monostate> callback);
 };
 
-} // namespace saddle::rclone
+} // namespace mtsync::rclone

@@ -1,8 +1,8 @@
-# Saddle — C++ GTK4 Frontend to rclone: Implementation Reference
+# Mt. Sync — C++ GTK4 Frontend to rclone: Implementation Reference
 
 ## Context
 
-Saddle is a C++ GTK4 GUI frontend to rclone. It allows users to configure rclone backends via a
+Mt. Sync is a C++ GTK4 GUI frontend to rclone. It allows users to configure rclone backends via a
 graphical interface, manage sync/copy/move/mount jobs with live progress, browse remote file
 systems, and control application settings — replacing the need for CLI-based rclone configuration.
 
@@ -34,14 +34,14 @@ sudo apt install \
 ## 2. Project Structure
 
 ```
-Saddle/
+Mt. Sync/
 ├── CMakeLists.txt
 ├── .gitignore
 ├── src/
 │   ├── main.cpp                        # Entry point, adw_init(), --daemon dispatch
-│   ├── application.hpp/cpp             # SaddleApplication (Gtk::Application subclass)
-│   ├── window.hpp/cpp                  # SaddleWindow — AdwToolbarView + AdwViewStack + AdwViewSwitcher
-│   ├── daemon.hpp/cpp                  # SaddleDaemon — background process, job scheduler
+│   ├── application.hpp/cpp             # MtSyncApplication (Gtk::Application subclass)
+│   ├── window.hpp/cpp                  # MtSyncWindow — AdwToolbarView + AdwViewStack + AdwViewSwitcher
+│   ├── daemon.hpp/cpp                  # MtSyncDaemon — background process, job scheduler
 │   ├── daemon_proxy.hpp/cpp            # GUI-side IPC client wrapper
 │   ├── settings.hpp                    # Settings struct + load/save (settings.json)
 │   ├── notification.hpp/cpp            # Desktop notifications (notify-send / kdialog)
@@ -75,28 +75,28 @@ Saddle/
 ## 3. Architecture
 
 ```
-Single executable (saddle) with two modes:
+Single executable (mtsync) with two modes:
 
 1. GUI Mode (default):
-   saddle main() → SaddleApplication → SaddleWindow
+   mtsync main() → MtSyncApplication → MtSyncWindow
    └── RcloneManager (CLI + RC interfaces)
-       └── DaemonProxy (IPC client → SaddleDaemon)
+       └── DaemonProxy (IPC client → MtSyncDaemon)
 
 2. Daemon Mode (--daemon flag):
-   saddle --daemon → SaddleDaemon
+   mtsync --daemon → MtSyncDaemon
    ├── RcloneManager (CLI + RC interfaces)
    ├── TrayIcon (StatusNotifierItem via D-Bus)
-   ├── IpcServer (Unix socket at ~/.cache/saddle/socket)
+   ├── IpcServer (Unix socket at ~/.cache/mtsync/socket)
    └── JobScheduler (cron-based scheduling)
 
-**Tray animation system**: `SaddleDaemon` tracks active transfers via `m_running_job_count`
+**Tray animation system**: `MtSyncDaemon` tracks active transfers via `m_running_job_count`
 (counter, not a scan). Mount jobs are excluded — they're persistent state, not active transfers.
 A `m_job_submitting` guard prevents duplicate counter increments from rapid repeated calls
 (e.g. scheduler firing multiple times in the same millisecond). `set_attention()` is only
 called when count reaches zero to avoid GNOME AppIndicator resetting its property cache mid-run.
 
 **Idle tray icon**: The system systray idle icon (`network-server-symbolic`) is replaced with
-a custom Saddle-branded icon loaded from the GLib resource `/io/github/saddle/icons/idle.png`.
+a custom Mt. Sync-branded icon loaded from the GLib resource `/io/github/mtsync/icons/idle.png`.
 The PNG is loaded via `cairo_image_surface_create_from_png_stream()` (no gdk-pixbuf dependency),
 scaled to 22×22 to match animation frame dimensions, and converted to ARGB32 pixel data.
 When animation stops, `stop_animation()` emits both the standard D-Bus `PropertiesChanged`
@@ -151,9 +151,9 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 - New Folder popover; Delete via `AdwAlertDialog` confirmation
 
 ### Tab 2: Jobs
-- **JobView**: List of persisted jobs (`~/.config/saddle/jobs.json`). Jobs are loaded from the daemon on initial map; subsequent updates arrive via IPC broadcast messages (no polling).
+- **JobView**: List of persisted jobs (`~/.config/mtsync/jobs.json`). Jobs are loaded from the daemon on initial map; subsequent updates arrive via IPC broadcast messages (no polling).
 - Each job row shows: type icon (symbolic), `SourceDir → DestDir` display name derived from the last path component of source and destination, source/destination full paths, progress bar (visible while running), footer with UUID left and last status right
-- Activity log panel at the bottom of the tab (auto-scrolling, persisted to `~/.local/state/saddle/saddle.log`)
+- Activity log panel at the bottom of the tab (auto-scrolling, persisted to `~/.local/state/mtsync/mtsync.log`)
 - Run/Stop per job; live progress (bytes, speed, ETA) via polling `core/stats` + `job/status`
 - **JobEditDialog**: source, destination, job type, file filter patterns (space-separated `--include` patterns), cron schedule (five fields + human-readable summary), "Mount at Start-up" option for mount jobs; bi-directional sync toggle for Sync jobs
 
@@ -170,10 +170,10 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 
 ### Tab 4: Settings
 - **SettingsView**: `AdwClamp` (max 600px) + scrollable `AdwPreferencesGroup` sections
-- **General**: Start daemon on login (writes `~/.config/autostart/saddle-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing
+- **General**: Start daemon on login (writes `~/.config/autostart/mtsync-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing
 - **Transfers**: Default bandwidth limit, Verify checksums, Parallel transfers count
 - **rclone**: Binary path override (empty = PATH lookup; restart required)
-- All settings persist immediately to `~/.config/saddle/settings.json`
+- All settings persist immediately to `~/.config/mtsync/settings.json`
 
 ### Tab 5: About
 - **AboutView**: `AdwStatusPage` (icon, app name, description) + `AdwPreferencesGroup` rows for Version, License, Copyright
@@ -184,7 +184,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
-project(Saddle VERSION 0.3.27 LANGUAGES C CXX)
+project(Mt. Sync VERSION 0.3.27 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -197,11 +197,11 @@ pkg_check_modules(SOUP REQUIRED IMPORTED_TARGET libsoup-3.0)
 find_package(nlohmann_json 3.2 REQUIRED)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-add_executable(saddle ${SOURCES})
-target_include_directories(saddle PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(saddle PRIVATE
+add_executable(mtsync ${SOURCES})
+target_include_directories(mtsync PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(mtsync PRIVATE
     PkgConfig::GTKMM PkgConfig::ADWAITA PkgConfig::SOUP nlohmann_json::nlohmann_json)
-install(TARGETS saddle DESTINATION bin)
+install(TARGETS mtsync DESTINATION bin)
 ```
 
 C++23 for `std::expected`, `std::format`, ranges. `CONFIGURE_DEPENDS` auto-detects new source files.
@@ -213,7 +213,7 @@ C++23 for `std::expected`, `std::format`, ranges. `CONFIGURE_DEPENDS` auto-detec
 | Path | Purpose |
 |------|---------|
 | `~/.config/rclone/rclone.conf` | rclone backend configuration |
-| `~/.config/saddle/jobs.json` | Saddle job definitions |
-| `~/.config/saddle/settings.json` | Saddle application settings |
-| `~/.config/autostart/saddle-daemon.desktop` | Autostart entry (written when enabled in Settings) |
-| `~/.cache/saddle/socket` | IPC socket (daemon ↔ GUI) |
+| `~/.config/mtsync/jobs.json` | Mt. Sync job definitions |
+| `~/.config/mtsync/settings.json` | Mt. Sync application settings |
+| `~/.config/autostart/mtsync-daemon.desktop` | Autostart entry (written when enabled in Settings) |
+| `~/.cache/mtsync/socket` | IPC socket (daemon ↔ GUI) |

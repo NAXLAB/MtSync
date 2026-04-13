@@ -1,14 +1,14 @@
-# Saddle — Your Network Storage Mounting Experience
+# Mt. Sync — Your Network Storage Mounting Experience
 
 > **Mount network storage in comfort.**
 
-Saddle is a native GNOME desktop application that puts the full power of [rclone](https://rclone.org/) behind a polished GTK4 interface. Whether you're mounting a remote drive, scheduling nightly syncs, or browsing files across a dozen cloud providers — Saddle handles it quietly in the background while you get on with your work.
+Mt. Sync is a native GNOME desktop application that puts the full power of [rclone](https://rclone.org/) behind a polished GTK4 interface. Whether you're mounting a remote drive, scheduling nightly syncs, or browsing files across a dozen cloud providers — Mt. Sync handles it quietly in the background while you get on with your work.
 
 ---
 
 ## Works With Everything rclone Supports
 
-rclone connects to over 40 storage providers. Saddle gives all of them a native desktop home.
+rclone connects to over 40 storage providers. Mt. Sync gives all of them a native desktop home.
 
 **Cloud storage** — Google Drive, Dropbox, Backblaze B2, MEGA, Box, Amazon S3, Google Cloud Storage, Proton Drive, Wasabi, Cloudflare R2, DigitalOcean Spaces, Hetzner, and more.
 
@@ -23,13 +23,13 @@ Each provider is shown with its own icon — Google Drive looks like Google Driv
 ## Mount. Browse. Sync. All in One Place.
 
 ### Mount Network Storage as a Local Drive
-Mount any remote as a local filesystem with a single click. Saddle passes your VFS cache mode preference (`off`, `minimal`, `writes`, or `full`) directly to rclone so performance matches your workflow. Mounted drives appear as active jobs and can be unmounted just as easily. Mount jobs can be configured to start automatically when the daemon launches.
+Mount any remote as a local filesystem with a single click. Mt. Sync passes your VFS cache mode preference (`off`, `minimal`, `writes`, or `full`) directly to rclone so performance matches your workflow. Mounted drives appear as active jobs and can be unmounted just as easily. Mount jobs can be configured to start automatically when the daemon launches.
 
 ### Dual-Pane File Browser
 A side-by-side browser lets you navigate two locations simultaneously — any combination of local disk and remote storage. Sortable columns, MIME-type icons, breadcrumb navigation, back history, and per-pane hidden file toggles make it feel like a native file manager. A status bar shows file and folder counts with total size. The swap button exchanges the two panes with a single click.
 
 ### Compare Before You Commit
-Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Saddle runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical. Click any column header to sort — files stay grouped with their directory so the structure of your storage is always clear.
+Before transferring anything, hit **Compare** to see exactly what differs between the two panes. Mt. Sync runs `rclone check` across both locations and presents the results as a structured, paginated list grouped by subdirectory. Each row shows the filename, size, and modified date on the side where the file exists — nothing on the side where it doesn't. Status glyphs make the picture instantly readable: `→` exists only in source, `←` exists only in destination, `≠` present on both sides but different, `=` identical. Click any column header to sort — files stay grouped with their directory so the structure of your storage is always clear.
 
 Four toggle buttons in the centre of the action bar let you filter the results by status — hide source-only files, destination-only files, differing files, or errors individually. Toggle any combination to focus on exactly what you care about. Directory headers disappear automatically when all their files are filtered out.
 
@@ -52,7 +52,7 @@ Set any job to run on a cron schedule. The built-in schedule editor takes five f
 
 ## A Daemon That Never Sleeps
 
-Saddle separates the GUI from the work. The background daemon manages all job execution, scheduling, and rclone RC lifecycle independently. Close the window — your syncs keep running. Reopen it tomorrow — your job history is right there. The GUI reconnects automatically and picks up where it left off.
+Mt. Sync separates the GUI from the work. The background daemon manages all job execution, scheduling, and rclone RC lifecycle independently. Close the window — your syncs keep running. Reopen it tomorrow — your job history is right there. The GUI reconnects automatically and picks up where it left off.
 
 The system tray icon keeps you informed at a glance:
 - **Spinner** — a job is actively transferring
@@ -99,7 +99,7 @@ All three default to off. Turn on only what matters to you.
 
 ## Settings That Stay Out of Your Way
 
-Everything persists automatically to `~/.config/saddle/settings.json`. No Apply button. No restart required for most settings.
+Everything persists automatically to `~/.config/mtsync/settings.json`. No Apply button. No restart required for most settings.
 
 - **Start Up & Shut Down** — launch the daemon at login, start minimised to tray, shut down daemon when closing the window
 - **Notifications** — per-event notification toggles
@@ -110,8 +110,8 @@ Everything persists automatically to `~/.config/saddle/settings.json`. No Apply 
 
 ## Native. Fast. Yours.
 
-Saddle is built with C++23, GTK4, and libadwaita. It follows GNOME HIG conventions, respects your system theme (including dark mode), and integrates with your desktop notification service. No Electron. No runtime dependencies beyond the libraries it's built against. One binary, one daemon, done.
+Mt. Sync is built with C++23, GTK4, and libadwaita. It follows GNOME HIG conventions, respects your system theme (including dark mode), and integrates with your desktop notification service. No Electron. No runtime dependencies beyond the libraries it's built against. One binary, one daemon, done.
 
 ---
 
-*Saddle is free software — GNU General Public License v2.0.*
+*Mt. Sync is free software — GNU General Public License v2.0.*

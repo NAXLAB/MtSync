@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "settings.hpp"
 #include <gtkmm.h>
 
-namespace saddle {
+namespace mtsync {
 
 class SettingsView : public Gtk::Box {
 public:
@@ -51,4 +51,4 @@ private:
     static void write_autostart(bool enable);
 };
 
-} // namespace saddle
+} // namespace mtsync

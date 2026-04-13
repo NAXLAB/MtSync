@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace saddle::cron {
+namespace mtsync::cron {
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -216,4 +216,4 @@ inline std::string describe(const rclone::Job& job) {
     return std::format("{} {} {} {} {}", M, H, D, Mo, W);
 }
 
-} // namespace saddle::cron
+} // namespace mtsync::cron

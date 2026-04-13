@@ -1,6 +1,6 @@
 /*
- * Saddle — GTK4 frontend to rclone
- * Copyright (C) 2026  Saddle contributors
+ * Mt. Sync — GTK4 frontend to rclone
+ * Copyright (C) 2026  Mt. Sync contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace saddle {
+namespace mtsync {
 
 class BrowserPane : public Gtk::Box {
 public:
@@ -107,4 +107,4 @@ private:
     static std::string format_size(int64_t bytes);
 };
 
-} // namespace saddle
+} // namespace mtsync
