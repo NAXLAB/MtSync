@@ -8,15 +8,20 @@ on:
 jobs:
   # ── DEB ────────────────────────────────────────────────────────────────────
   build-deb:
-    name: Build DEB
-    runs-on: ubuntu-24.04
+    name: Build DEB (Ubuntu ${{ matrix.ubuntu }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu: ['24.04', '25.10', '26.04']
+    container:
+      image: ubuntu:${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          apt-get update
+          apt-get install -y \
             cmake g++ pkg-config \
             libgtkmm-4.0-dev \
             libadwaita-1-dev \
@@ -35,7 +40,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mtsync-deb
+          name: mtsync-deb-ubuntu-${{ matrix.ubuntu }}
           path: build/*.deb
 
   # ── RPM ────────────────────────────────────────────────────────────────────

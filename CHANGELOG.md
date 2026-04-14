@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.5 — DEB Multi-Distro Matrix
+- DEB build now runs as a matrix across Ubuntu 24.04, 25.10, and 26.04 using native OS containers, so CPack auto-detects the correct runtime library names (e.g. `libgtkmm-4.0-1t64` on newer releases) for each target instead of hard-coding the build host's soname
+
 ## 0.7.4 — About Tab & Build Fixes
 - About tab subtitle ("Mount or sync network storage in comfort") is now **bold**
 - Fixed `CMakeLists.txt` install path: stale `Saddle App Icon 1.svg` corrected to `MtSync App Icon 1.svg`, fixing DEB/RPM/AppImage packaging
