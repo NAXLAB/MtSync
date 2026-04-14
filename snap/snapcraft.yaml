@@ -38,6 +38,7 @@ apps:
   mtsync:
     command: usr/bin/mtsync
     extensions: [gnome]
+    desktop: share/applications/com.mtsync.MtSync.desktop
     plugs:
       - network
       - home

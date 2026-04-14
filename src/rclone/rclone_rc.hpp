@@ -67,6 +67,7 @@ public:
 
 private:
     std::string m_base_url;
+    std::string m_config_path;
     SoupSession* m_session = nullptr;
     GPid m_daemon_pid = 0;
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.8 — Flatpak & Snap Packaging Fixes
+- **Flatpak – rclone config**: `RcloneCli` and `RcloneRc` now pass `--config ~/.config/rclone/rclone.conf` explicitly to every rclone invocation; Flatpak redirects `$XDG_CONFIG_HOME` to a per-app directory, causing rclone to see an empty config with no remotes
+- **Flatpak – tray icon**: Added `--own-name=com.mtsync.Daemon` to `finish-args`; without it the D-Bus name acquisition fails silently inside the sandbox and the SNI registration never fires
+- **Flatpak – app icon**: Added `gtk-update-icon-cache` post-install step to the Flatpak module; without it the hicolor theme cache inside the sandbox is stale and GNOME Shell cannot resolve the app icon
+- **Desktop file**: Corrected `StartupWMClass` from `mtsync` to `com.mtsync.MtSync` to match the GTK application ID used as the Wayland xdg_toplevel app_id
+- **Snap**: Added `desktop:` key to the `apps.mtsync` declaration for correct icon and title integration; local `.snap` bundles must be installed with `sudo snap install --dangerous mtsync_*.snap`
+
 ## 0.7.7 — Refined Application Icon
 - Removed background colour and border from icon
 

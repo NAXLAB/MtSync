@@ -33,6 +33,12 @@ static constexpr int STOP_TIMEOUT_MS = 5000;
 RcloneRc::RcloneRc(std::string addr, int port)
     : m_base_url(std::format("http://{}:{}", addr, port)) {
     m_session = soup_session_new();
+
+    // Mirror RcloneCli's config path logic so rclone rcd also bypasses Flatpak's
+    // $XDG_CONFIG_HOME redirect and reads the real user config.
+    const char* env_cfg = g_getenv("RCLONE_CONFIG");
+    m_config_path = (env_cfg && *env_cfg) ? env_cfg
+                  : std::string(g_get_home_dir()) + "/.config/rclone/rclone.conf";
 }
 
 RcloneRc::~RcloneRc() {
@@ -125,6 +131,8 @@ void RcloneRc::spawn_daemon(AsyncCallback<std::monostate> callback) {
     gchar* argv[] = {
         const_cast<gchar*>(rclone_path.c_str()),
         const_cast<gchar*>("rcd"),
+        const_cast<gchar*>("--config"),
+        const_cast<gchar*>(m_config_path.c_str()),
         const_cast<gchar*>("--rc-no-auth"),
         const_cast<gchar*>("--rc-addr"),
         const_cast<gchar*>("localhost:5571"),

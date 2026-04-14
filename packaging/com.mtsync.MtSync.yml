@@ -13,6 +13,7 @@ finish-args:
   - --filesystem=home
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.kde.StatusNotifierWatcher
+  - --own-name=com.mtsync.Daemon
 
 modules:
   # nlohmann/json is header-only — needed at compile time only, no runtime lib
@@ -121,6 +122,8 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
+    post-install:
+      - gtk-update-icon-cache -q -t -f /app/share/icons/hicolor
     sources:
       - type: dir
         path: ..

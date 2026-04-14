@@ -28,12 +28,20 @@ using json = nlohmann::json;
 RcloneCli::RcloneCli(std::string rclone_path) {
     auto resolved = Glib::find_program_in_path(rclone_path);
     m_rclone_path = resolved.empty() ? std::move(rclone_path) : std::move(resolved);
+
+    // Explicitly pass --config on every invocation so rclone uses the real user config
+    // regardless of $XDG_CONFIG_HOME (which Flatpak redirects to ~/.var/app/…/config).
+    const char* env_cfg = g_getenv("RCLONE_CONFIG");
+    m_config_path = (env_cfg && *env_cfg) ? env_cfg
+                  : std::string(g_get_home_dir()) + "/.config/rclone/rclone.conf";
 }
 
 Glib::RefPtr<Gio::Subprocess> RcloneCli::run_command(std::vector<std::string> args,
                                                        CompletionHandler on_complete) {
     std::vector<std::string> full_args;
     full_args.push_back(m_rclone_path);
+    full_args.push_back("--config");
+    full_args.push_back(m_config_path);
     for (auto& a : args)
         full_args.push_back(std::move(a));
 

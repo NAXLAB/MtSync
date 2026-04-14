@@ -77,6 +77,7 @@ public:
 
 private:
     std::string m_rclone_path;
+    std::string m_config_path;
 
     using CompletionHandler = std::function<void(const std::string& stdout_data,
                                                   const std::string& stderr_data,

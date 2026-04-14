@@ -5,4 +5,4 @@ Exec=mtsync
 Icon=com.mtsync.MtSync
 Type=Application
 Categories=Utility;Network;FileTransfer;
-StartupWMClass=mtsync
+StartupWMClass=com.mtsync.MtSync
