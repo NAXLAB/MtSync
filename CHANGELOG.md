@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.7 — Refined Application Icon
+- Removed background colour and border from icon
+
 ## 0.7.6 — DEB gtkmm Dependency Fix
 - Fixed `CPACK_DEBIAN_PACKAGE_DEPENDS`: gtkmm runtime package name is now detected at configure time via `dpkg -S` on the build host, so each matrix DEB correctly declares the package name that exists on its target Ubuntu release (e.g. `libgtkmm-4.0-1t64` on 24.04/25.10 rather than the hardcoded `libgtkmm-4.0-1v5`)
 
