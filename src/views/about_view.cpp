@@ -51,7 +51,7 @@ void AboutView::setup_ui() {
     // ── Status page ───────────────────────────────────────────────────────────
     auto* status = adw::status_page();
     adw::status_page_set_title(status, "Mt. Sync");
-    adw::status_page_set_description(status, "Mount or sync network storage in comfort");
+    adw::status_page_set_description(status, "<b>Mount or sync network storage in comfort</b>");
 
     GBytes* probe = g_resources_lookup_data("/io/github/mtsync/icons/application.png",
                                              G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
@@ -70,7 +70,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.7.3");
+    adw::action_row_set_subtitle(version_row, "0.7.4");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();

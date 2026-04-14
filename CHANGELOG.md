@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.4 — About Tab & Build Fixes
+- About tab subtitle ("Mount or sync network storage in comfort") is now **bold**
+- Fixed `CMakeLists.txt` install path: stale `Saddle App Icon 1.svg` corrected to `MtSync App Icon 1.svg`, fixing DEB/RPM/AppImage packaging
+
 ## 0.7.3 — CI/CD Rename Fix
 - Fixed GitHub Actions workflow: updated all stale `saddle` artifact names, Flatpak bundle filename, and Flatpak manifest path to `mtsync` following the 0.7.0 project rename
 
