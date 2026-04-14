@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(MtSync VERSION 0.7.5 LANGUAGES C CXX)
+project(MtSync VERSION 0.7.6 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,9 +111,28 @@ set(CPACK_PACKAGE_FILE_NAME
 set(CPACK_STRIP_FILES TRUE)
 
 # DEB
-set(CPACK_DEBIAN_PACKAGE_SECTION  "utils")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+
+# Auto-detect gtkmm runtime package name — it varies across Ubuntu releases:
+# libgtkmm-4.0-1v5 (22.04), libgtkmm-4.0-1t64 (24.04/25.10), etc.
+# find locates the versioned .so installed by libgtkmm-4.0-dev,
+# then dpkg -S resolves the owning runtime package.
+set(_GTKMM_DEB_PKG "libgtkmm-4.0-1v5")
+find_program(_DPKG_CMD dpkg)
+if(_DPKG_CMD)
+    execute_process(
+        COMMAND sh -c "find /usr/lib -maxdepth 3 -name 'libgtkmm-4.0.so.[0-9]*' 2>/dev/null | head -1 | xargs -r dpkg -S 2>/dev/null | cut -d: -f1"
+        OUTPUT_VARIABLE _GTKMM_DEB_PKG_DETECTED
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(_GTKMM_DEB_PKG_DETECTED)
+        set(_GTKMM_DEB_PKG "${_GTKMM_DEB_PKG_DETECTED}")
+    endif()
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libgtkmm-4.0-1v5 (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2, rclone")
+    "${_GTKMM_DEB_PKG} (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2, rclone")
 
 # RPM
 set(CPACK_RPM_PACKAGE_LICENSE  "GPL-2.0-only")

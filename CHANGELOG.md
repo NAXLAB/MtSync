@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.6 — DEB gtkmm Dependency Fix
+- Fixed `CPACK_DEBIAN_PACKAGE_DEPENDS`: gtkmm runtime package name is now detected at configure time via `dpkg -S` on the build host, so each matrix DEB correctly declares the package name that exists on its target Ubuntu release (e.g. `libgtkmm-4.0-1t64` on 24.04/25.10 rather than the hardcoded `libgtkmm-4.0-1v5`)
+
 ## 0.7.5 — DEB Multi-Distro Matrix
 - DEB build now runs as a matrix across Ubuntu 24.04, 25.10, and 26.04 using native OS containers, so CPack auto-detects the correct runtime library names (e.g. `libgtkmm-4.0-1t64` on newer releases) for each target instead of hard-coding the build host's soname
 
