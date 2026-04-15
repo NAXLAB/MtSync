@@ -10,6 +10,16 @@ base: core24
 grade: devel
 confinement: strict
 
+slots:
+  dbus-mtsync:
+    interface: dbus
+    bus: session
+    name: com.mtsync.MtSync
+  dbus-mtsync-daemon:
+    interface: dbus
+    bus: session
+    name: com.mtsync.Daemon
+
 parts:
   mtsync:
     plugin: cmake
@@ -24,6 +34,10 @@ parts:
       - libcairo2-dev
       - nlohmann-json3-dev
       - pkg-config
+      - gtk-update-icon-cache
+    override-prime: |
+      craftctl default
+      gtk-update-icon-cache -t -q usr/share/icons/hicolor
 
   rclone:
     plugin: dump
@@ -39,6 +53,9 @@ apps:
     command: usr/bin/mtsync
     extensions: [gnome]
     desktop: usr/share/applications/com.mtsync.MtSync.desktop
+    slots:
+      - dbus-mtsync
+      - dbus-mtsync-daemon
     plugs:
       - network
       - home
