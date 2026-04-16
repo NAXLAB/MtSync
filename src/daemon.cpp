@@ -23,6 +23,7 @@
 #include <format>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <glibmm.h>
 
 using json = nlohmann::json;
@@ -462,6 +463,51 @@ void MtSyncDaemon::on_run_job(size_t index) {
             filter.push_back({{"IncludeRule", {{"Pattern", inc}}}});
         }
         opts["_config"]["Filter"] = filter;
+    }
+
+    // Inject global rclone flags (lower priority — do not overwrite per-job opts)
+    {
+        auto global_flags = load_settings().global_rclone_flags;
+        if (!global_flags.empty()) {
+            std::vector<std::string> tokens;
+            std::istringstream iss(global_flags);
+            std::string tok;
+            while (iss >> tok) tokens.push_back(std::move(tok));
+
+            auto to_pascal = [](const std::string& s) {
+                std::string result;
+                bool cap_next = true;
+                for (char c : s) {
+                    if (c == '-') { cap_next = true; continue; }
+                    result += cap_next ? (char)std::toupper((unsigned char)c) : c;
+                    cap_next = false;
+                }
+                return result;
+            };
+
+            for (size_t i = 0; i < tokens.size(); ) {
+                const auto& t = tokens[i];
+                if (t.size() < 3 || t[0] != '-' || t[1] != '-') { ++i; continue; }
+                std::string key_raw = t.substr(2);
+                if (auto eq = key_raw.find('='); eq != std::string::npos) {
+                    std::string key = to_pascal(key_raw.substr(0, eq));
+                    std::string val = key_raw.substr(eq + 1);
+                    if (!opts["_config"].contains(key))
+                        opts["_config"][key] = val;
+                    ++i;
+                } else if (i + 1 < tokens.size() && tokens[i + 1][0] != '-') {
+                    std::string key = to_pascal(key_raw);
+                    if (!opts["_config"].contains(key))
+                        opts["_config"][key] = tokens[i + 1];
+                    i += 2;
+                } else {
+                    std::string key = to_pascal(key_raw);
+                    if (!opts["_config"].contains(key))
+                        opts["_config"][key] = true;
+                    ++i;
+                }
+            }
+        }
     }
 
     auto done_cb = [this, index](auto result) {

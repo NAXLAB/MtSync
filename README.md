@@ -53,7 +53,8 @@ desktop application backed by a persistent daemon.
   configurable for job start, successful completion, and completion with errors/warnings
 - **Settings** — Startup & shutdown behaviour (autostart, tray), notification toggles, transfer
   defaults (bandwidth limit, checksums, parallel transfers, retries on failure), rclone binary path
-  override; persisted to `~/.config/mtsync/settings.json`
+  override, global rclone flags applied to every job at execution time; persisted to
+  `~/.config/mtsync/settings.json`
 
 ## Dependencies
 

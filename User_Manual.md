@@ -231,6 +231,7 @@ These are the defaults applied to all new jobs. Individual jobs can override the
 | Setting | Description |
 |---------|-------------|
 | **rclone binary path** | Full path to the rclone executable if it is not on your system PATH (e.g. `/home/user/bin/rclone`). Leave blank to use the system default. Takes effect after restarting Mt. Sync |
+| **Global rclone flags** | Additional flags passed to every job at execution time. Enter them in standard rclone CLI format, space-separated (e.g. `--log-level DEBUG --checkers 8 --max-age 24h`). Per-job settings take precedence and will not be overridden by these flags |
 
 ---
 

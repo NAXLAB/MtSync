@@ -161,6 +161,20 @@ void SettingsView::setup_ui() {
     rclone_hint->set_margin_top(4);
     vbox->append(*rclone_hint);
 
+    m_global_flags_row = adw::entry_row();
+    adw::preferences_row_set_title(m_global_flags_row, "Global rclone flags");
+    if (!m_settings.global_rclone_flags.empty())
+        adw::entry_row_set_text(m_global_flags_row, m_settings.global_rclone_flags.c_str());
+    adw::preferences_group_add(rclone_group, m_global_flags_row);
+
+    auto* flags_hint = Gtk::make_managed<Gtk::Label>(
+        "Added to every job at execution time (e.g. --log-level DEBUG --checkers 8).");
+    flags_hint->add_css_class("dim-label");
+    flags_hint->set_xalign(0.0f);
+    flags_hint->set_margin_start(12);
+    flags_hint->set_margin_top(4);
+    vbox->append(*flags_hint);
+
     // ── Signal wiring (after all member pointers are stored) ──────────────────
 
     g_signal_connect(m_autostart_row->gobj(), "notify::active",
@@ -229,6 +243,14 @@ void SettingsView::setup_ui() {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.rclone_path =
                 adw::entry_row_get_text(self->m_rclone_path_row);
+            self->save();
+        }), this);
+
+    g_signal_connect(m_global_flags_row->gobj(), "changed",
+        G_CALLBACK(+[](GtkEditable*, gpointer data) {
+            auto* self = static_cast<SettingsView*>(data);
+            self->m_settings.global_rclone_flags =
+                adw::entry_row_get_text(self->m_global_flags_row);
             self->save();
         }), this);
 

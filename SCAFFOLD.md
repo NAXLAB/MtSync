@@ -172,7 +172,7 @@ threading needed. All async callbacks use `std::expected<T, std::string>` (C++23
 - **SettingsView**: `AdwClamp` (max 600px) + scrollable `AdwPreferencesGroup` sections
 - **General**: Start daemon on login (writes `~/.config/autostart/mtsync-daemon.desktop`), Start minimized to tray, Shutdown daemon when closing
 - **Transfers**: Default bandwidth limit, Verify checksums, Parallel transfers count
-- **rclone**: Binary path override (empty = PATH lookup; restart required)
+- **rclone**: Binary path override (empty = PATH lookup; restart required), `global_rclone_flags` (space-separated CLI flags injected into every job's RC `_config` at execution time; per-job settings take precedence)
 - All settings persist immediately to `~/.config/mtsync/settings.json`
 
 ### Tab 5: About

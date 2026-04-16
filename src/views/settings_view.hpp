@@ -41,6 +41,7 @@ private:
     Gtk::Widget* m_retries_row     = nullptr;
     // rclone
     Gtk::Widget* m_rclone_path_row       = nullptr;
+    Gtk::Widget* m_global_flags_row      = nullptr;
     // Notifications
     Gtk::Widget* m_notify_start_row      = nullptr;
     Gtk::Widget* m_notify_completion_row = nullptr;

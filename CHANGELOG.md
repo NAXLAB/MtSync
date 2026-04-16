@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.9 — Global rclone Flags Setting
+- Added **Global rclone flags** field to Settings → rclone group
+- Flags are parsed at job execution time and injected into every rclone RC call via the `_config` block (e.g. `--log-level DEBUG --checkers 8 --max-age 24h`)
+- Flag names are converted from CLI kebab-case to rclone's internal PascalCase automatically; supports `--flag value`, `--flag=value`, and boolean `--flag` forms
+- Per-job settings take precedence — global flags do not overwrite explicitly configured job options
+
 ## 0.7.8 — Flatpak & Snap Packaging Fixes
 - **Flatpak – rclone config**: `RcloneCli` and `RcloneRc` now pass `--config ~/.config/rclone/rclone.conf` explicitly to every rclone invocation; Flatpak redirects `$XDG_CONFIG_HOME` to a per-app directory, causing rclone to see an empty config with no remotes
 - **Flatpak – tray icon**: Added `--own-name=com.mtsync.Daemon` to `finish-args`; without it the D-Bus name acquisition fails silently inside the sandbox and the SNI registration never fires

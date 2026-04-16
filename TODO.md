@@ -22,4 +22,5 @@
 - [x] Desktop notifications (configurable per event via Settings)
 - [x] VFS cache mode for mount jobs
 - [x] Compare dialog filter toggles (show rows by status — `←` `→` `=` `≠` `!`, all on by default)
+- [x] Global rclone flags (applied to every job at execution time via RC `_config`)
 - [ ] Internal rclone embedding
