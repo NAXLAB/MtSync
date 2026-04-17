@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 — Consistent Package Filename Format
+- All build artifacts now follow the `name_version_arch.ext` format with underscores as separators
+- DEB/RPM: changed `CPACK_PACKAGE_FILE_NAME` separator from `-` to `_` (e.g. `mtsync_0.8.0_x86_64.deb`)
+- AppImage: added `VERSION` env var to linuxdeploy step so the version is embedded in the filename; output renamed to underscore format (e.g. `mtsync_0.8.0_x86_64.AppImage`)
+- Flatpak: bundle name is now computed from `CMakeLists.txt` at build time (e.g. `mtsync_0.8.0_x86_64.flatpak`)
+- Snap was already in the correct format (`mtsync_0.8.0_amd64.snap`) — no change
+
 ## 0.7.12 — Dead Code Removal
 - Removed `MtSyncWindow::show_toast()` — declared and defined but never called
 - Removed `class Notification` wrapper — never instantiated; free `send_notification()` function is still used

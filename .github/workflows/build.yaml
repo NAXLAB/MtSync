@@ -112,14 +112,20 @@ jobs:
             https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
           chmod +x linuxdeploy linuxdeploy-plugin-gtk.sh
 
+      - name: Get version
+        id: version
+        run: echo "version=$(grep -oP '(?<=VERSION )\d+\.\d+\.\d+' CMakeLists.txt | head -1)" >> $GITHUB_OUTPUT
+
       - name: Create AppImage
         env:
           DEPLOY_GTK_VERSION: 4
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           ./linuxdeploy \
             --appdir AppDir \
             --plugin gtk \
             --output appimage
+          mv mtsync-$VERSION-$(uname -m).AppImage mtsync_${VERSION}_$(uname -m).AppImage
 
       - uses: actions/upload-artifact@v4
         with:
@@ -140,16 +146,20 @@ jobs:
           sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           sudo flatpak install -y --noninteractive flathub org.gnome.Platform/x86_64/48 org.gnome.Sdk/x86_64/48
 
+      - name: Get version
+        id: version
+        run: echo "version=$(grep -oP '(?<=VERSION )\d+\.\d+\.\d+' CMakeLists.txt | head -1)" >> $GITHUB_OUTPUT
+
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: mtsync.flatpak
+          bundle: mtsync_${{ steps.version.outputs.version }}_x86_64.flatpak
           manifest-path: packaging/com.mtsync.MtSync.yml
           cache-key: flatpak-builder-${{ github.sha }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: mtsync-flatpak
-          path: mtsync.flatpak
+          path: mtsync_${{ steps.version.outputs.version }}_x86_64.flatpak
 
   # ── Snap ───────────────────────────────────────────────────────────────────
   build-snap:
