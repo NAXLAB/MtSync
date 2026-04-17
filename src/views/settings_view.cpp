@@ -17,6 +17,7 @@
  */
 
 #include "views/settings_view.hpp"
+#include "sandbox.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
 #include <filesystem>
@@ -38,16 +39,17 @@ void SettingsView::save() {
 }
 
 void SettingsView::write_autostart(bool enable) {
-    auto autostart_dir = fs::path(g_get_user_config_dir()) / "autostart";
+    auto autostart_dir = fs::path(sandbox::real_config_dir()) / "autostart";
     auto desktop_file  = autostart_dir / "mtsync-daemon.desktop";
 
     if (enable) {
-        fs::create_directories(autostart_dir);
+        std::error_code ec;
+        fs::create_directories(autostart_dir, ec);
         std::ofstream f(desktop_file);
         f << "[Desktop Entry]\n"
              "Type=Application\n"
              "Name=Mt. Sync Daemon\n"
-             "Exec=mtsync --daemon\n"
+             "Exec=" << sandbox::autostart_exec() << "\n"
              "X-GNOME-Autostart-enabled=true\n";
     } else {
         std::error_code ec;

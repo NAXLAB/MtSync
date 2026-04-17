@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.11 — Sandbox Autostart, Snap Local Browse & App Icon Fixes
+- Added `src/sandbox.hpp` — runtime sandbox detection (`in_flatpak()`, `in_snap()`) plus `real_home()`, `real_config_dir()` and `autostart_exec()` helpers that bypass the sandbox's XDG redirection and emit the correct launcher command for the host session
+- **Flatpak – autostart**: `write_autostart()` now writes to the host's real `~/.config/autostart/` (via `--filesystem=home`, not the redirected `$XDG_CONFIG_HOME`) and emits `Exec=flatpak run --command=mtsync com.mtsync.MtSync --daemon` so the host session can launch the daemon on login
+- **Snap – local home**: Browse → Local now resolves `$SNAP_REAL_HOME` instead of `$HOME` (which Snap points at the empty `$SNAP_USER_DATA` dir), so the user's real home directory contents are listed
+- **Snap – autostart**: Added `dot-config-autostart` `personal-files` plug (`write: [$HOME/.config/autostart]`) because the `home` plug excludes hidden directories; autostart `.desktop` now emits `Exec=/snap/bin/mtsync --daemon`. Sideloaded `.snap` installs must run `sudo snap connect mtsync:dot-config-autostart :personal-files` once
+- **Snap – app icon**: `override-prime` now copies the 256×256 PNG to `meta/gui/icon.png` so snapd launchers and GNOME Shell resolve the app icon at install time
+
 ## 0.7.10 — Provider Dropdown Filtering & Sorting
 - Removed unsupported internal rclone backends (Memory, Alias, Union, Cache, Crypt) from the Add/Edit Remote provider dropdown
 - Provider list is now sorted alphabetically

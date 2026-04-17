@@ -17,6 +17,7 @@
  */
 
 #include "widgets/browser_pane.hpp"
+#include "sandbox.hpp"
 #include <adwaita.h>
 #include <format>
 #include <unordered_map>
@@ -425,7 +426,7 @@ void BrowserPane::on_remote_selection_changed() {
     if (idx == 0) {
         m_current_remote = "Local";
         m_is_local       = true;
-        m_current_path   = Glib::get_home_dir();
+        m_current_path   = sandbox::real_home();
     } else {
         auto remote_idx = static_cast<size_t>(idx - 1);
         if (remote_idx >= m_remotes.size()) return; // list still loading

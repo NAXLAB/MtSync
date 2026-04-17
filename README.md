@@ -100,6 +100,43 @@ Installing places the binary in `~/.local/bin`, registers the application icon (
 scalable SVG) with the hicolor theme, and installs the `.desktop` file so the icon appears in the
 launcher and taskbar.
 
+### Flatpak
+
+Build and install the Flatpak bundle from the packaging manifest:
+
+```bash
+sudo apt install flatpak flatpak-builder
+flatpak install --user flathub org.gnome.Platform//48 org.gnome.Sdk//48
+flatpak-builder --user --install --force-clean build-flatpak packaging/com.mtsync.MtSync.yml
+```
+
+Launch with `flatpak run com.mtsync.MtSync`. rclone is bundled inside the Flatpak — no host
+installation needed. The manifest grants `--filesystem=home`, so enabling **Start daemon on
+login** in Settings writes the autostart entry directly to the host's `~/.config/autostart/`
+with the correct `flatpak run --command=mtsync com.mtsync.MtSync --daemon` exec line.
+
+### Snap
+
+Build and sideload the `.snap`:
+
+```bash
+sudo apt install snapcraft
+snapcraft pack
+sudo snap install --dangerous mtsync_*.snap
+```
+
+The Snap uses `strict` confinement. To enable **Start daemon on login**, connect the privileged
+`personal-files` plug once (sideloaded snaps do not auto-connect it):
+
+```bash
+sudo snap connect mtsync:dot-config-autostart :personal-files
+```
+
+Without that connection the autostart toggle fails silently, because the `home` plug cannot write
+to hidden directories such as `~/.config/autostart/`. rclone is bundled inside the snap. The
+**Local** remote in the Browse tab is resolved via `$SNAP_REAL_HOME` so your real home directory
+is listed rather than the empty snap-private data directory.
+
 ## Running
 
 ```bash
