@@ -233,7 +233,10 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     // ── Cron fields group ─────────────────────────────────────────────────
     m_cron_fields_group = adw::preferences_group();
-    adw::preferences_group_set_title(m_cron_fields_group, "Schedule (cron)");
+    adw::preferences_group_set_title(m_cron_fields_group, "Repeat Schedule");
+    adw_preferences_group_set_description(
+        ADW_PREFERENCES_GROUP(m_cron_fields_group->gobj()),
+        "Enter * to match every value, a number, a range (1–5), a list (1,3,5), or a step (*/2).");
     m_cron_fields_group->set_visible(sched_on);
     vbox->append(*m_cron_fields_group);
 
@@ -255,15 +258,15 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     };
     (void)cron_val;
 
-    m_cron_minute_entry  = make_cron_row("Minute",  "0-59 or *",
+    m_cron_minute_entry  = make_cron_row("Minute",       "0–59, */5, or *",
         m_editing ? m_editing->cron_minute  : "*");
-    m_cron_hour_entry    = make_cron_row("Hour",    "0-23 or *",
+    m_cron_hour_entry    = make_cron_row("Hour",         "0–23, */6, or *",
         m_editing ? m_editing->cron_hour    : "*");
-    m_cron_day_entry     = make_cron_row("Day",     "1-31 or *",
+    m_cron_day_entry     = make_cron_row("Day of month", "1–31 or *",
         m_editing ? m_editing->cron_day     : "*");
-    m_cron_month_entry   = make_cron_row("Month",   "1-12 or *",
+    m_cron_month_entry   = make_cron_row("Month",        "1–12 or *",
         m_editing ? m_editing->cron_month   : "*");
-    m_cron_weekday_entry = make_cron_row("Weekday", "0-6 (0=Sun) or *",
+    m_cron_weekday_entry = make_cron_row("Day of week",  "0 (Sun) to 6 (Sat) or *",
         m_editing ? m_editing->cron_weekday : "*");
 
     // Summary label below cron group

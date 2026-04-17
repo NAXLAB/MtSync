@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2 — Schedule UI Improvements
+- Scheduling section group title renamed from "Schedule (cron)" to "Repeat Schedule"
+- Added group description explaining `*`, ranges (`1–5`), lists (`1,3,5`), and steps (`*/2`)
+- "Day" field renamed to "Day of month" to distinguish it from "Day of week"
+- "Weekday" field renamed to "Day of week"
+- Placeholders updated to show practical examples (`0–59, */5, or *`; `0 (Sun) to 6 (Sat) or *`)
+
 ## 0.8.1 — Distribution Name in Package Filenames
 - DEB filenames now include the target Ubuntu version (e.g. `mtsync_0.8.1_ubuntu24.04_x86_64.deb`)
 - RPM filename now includes the target Fedora version, read from `/etc/os-release` at build time (e.g. `mtsync_0.8.1_fedora41_x86_64.rpm`)
