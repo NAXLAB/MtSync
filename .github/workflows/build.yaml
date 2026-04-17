@@ -36,7 +36,9 @@ jobs:
         run: cmake --build build --parallel $(nproc)
 
       - name: Package
-        run: cd build && cpack -G DEB
+        run: |
+          cd build && cpack -G DEB
+          mv *.deb mtsync_$(grep -oP '(?<=VERSION )\d+\.\d+\.\d+' ../CMakeLists.txt | head -1)_ubuntu${{ matrix.ubuntu }}_$(uname -m).deb
 
       - uses: actions/upload-artifact@v4
         with:
@@ -70,7 +72,9 @@ jobs:
         run: cmake --build build --parallel $(nproc)
 
       - name: Package
-        run: cd build && cpack -G RPM
+        run: |
+          cd build && cpack -G RPM
+          mv *.rpm mtsync_$(grep -oP '(?<=VERSION )\d+\.\d+\.\d+' ../CMakeLists.txt | head -1)_$(. /etc/os-release && echo ${ID}${VERSION_ID})_$(uname -m).rpm
 
       - uses: actions/upload-artifact@v4
         with:

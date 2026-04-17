@@ -90,6 +90,34 @@ substitute `Release` for an optimised binary.
 
 ## Installing
 
+Pre-built packages are produced by CI for each push to the `build` branch. Package filenames follow
+the `name_version_distro_arch.ext` convention (e.g. `mtsync_0.8.1_ubuntu24.04_x86_64.deb`).
+
+### DEB (Ubuntu)
+
+```bash
+sudo apt install ./mtsync_*_ubuntu*_x86_64.deb
+```
+
+Packages are built for Ubuntu 24.04, 25.10, and 26.04. Install the one that matches your release.
+
+### RPM (Fedora)
+
+```bash
+sudo dnf install ./mtsync_*_fedora*_x86_64.rpm
+```
+
+### AppImage
+
+```bash
+chmod +x mtsync_*_x86_64.AppImage
+./mtsync_*_x86_64.AppImage
+```
+
+No installation required — the AppImage is self-contained and runs directly.
+
+### From source
+
 ```bash
 cmake --install build --prefix ~/.local
 gtk-update-icon-cache ~/.local/share/icons/hicolor

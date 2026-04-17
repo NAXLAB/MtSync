@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1 — Distribution Name in Package Filenames
+- DEB filenames now include the target Ubuntu version (e.g. `mtsync_0.8.1_ubuntu24.04_x86_64.deb`)
+- RPM filename now includes the target Fedora version, read from `/etc/os-release` at build time (e.g. `mtsync_0.8.1_fedora41_x86_64.rpm`)
+
 ## 0.8.0 — Consistent Package Filename Format
 - All build artifacts now follow the `name_version_arch.ext` format with underscores as separators
 - DEB/RPM: changed `CPACK_PACKAGE_FILE_NAME` separator from `-` to `_` (e.g. `mtsync_0.8.0_x86_64.deb`)
