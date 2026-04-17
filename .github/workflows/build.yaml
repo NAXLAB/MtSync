@@ -125,7 +125,7 @@ jobs:
             --appdir AppDir \
             --plugin gtk \
             --output appimage
-          mv mtsync-$VERSION-$(uname -m).AppImage mtsync_${VERSION}_$(uname -m).AppImage
+          mv *.AppImage mtsync_${VERSION}_$(uname -m).AppImage
 
       - uses: actions/upload-artifact@v4
         with:
