@@ -84,8 +84,6 @@ struct SyncStats {
     int64_t total_bytes = 0;
     int transfers = 0;
     int total_transfers = 0;
-    int checks = 0;
-    int total_checks = 0;
     int errors = 0;
     double speed = 0.0;
     double elapsed_time = 0.0;
@@ -97,9 +95,6 @@ struct AboutInfo {
     std::optional<int64_t> total;
     std::optional<int64_t> used;
     std::optional<int64_t> free;
-    std::optional<int64_t> trashed;
-    std::optional<int64_t> other;
-    std::optional<int64_t> objects;
 };
 
 struct JobStatus {
@@ -107,7 +102,6 @@ struct JobStatus {
     bool finished = false;
     bool success = false;
     std::string error;
-    double duration = 0.0;
 };
 
 enum class JobType { Sync, Copy, Move, Mount };

@@ -83,12 +83,6 @@ inline void toolbar_view_add_top_bar(Gtk::Widget* toolbar, Gtk::Widget* bar) {
         bar->gobj());
 }
 
-inline void toolbar_view_add_bottom_bar(Gtk::Widget* toolbar, Gtk::Widget* bar) {
-    adw_toolbar_view_add_bottom_bar(
-        ADW_TOOLBAR_VIEW(toolbar->gobj()),
-        bar->gobj());
-}
-
 inline void toolbar_view_set_content(Gtk::Widget* toolbar, Gtk::Widget* content) {
     adw_toolbar_view_set_content(
         ADW_TOOLBAR_VIEW(toolbar->gobj()),
@@ -280,36 +274,6 @@ inline Glib::RefPtr<Gtk::Sorter> make_sorter(Func&& f) {
     return Glib::wrap(GTK_SORTER(sorter), false);
 }
 
-// --- Navigation Split View ---
-
-inline AdwNavigationSplitView* navigation_split_view_new() {
-    return ADW_NAVIGATION_SPLIT_VIEW(adw_navigation_split_view_new());
-}
-
-inline Gtk::Widget* navigation_split_view_widget(AdwNavigationSplitView* sv) {
-    return Glib::wrap(GTK_WIDGET(sv));
-}
-
-inline void navigation_split_view_set_sidebar(AdwNavigationSplitView* sv, AdwNavigationPage* page) {
-    adw_navigation_split_view_set_sidebar(sv, page);
-}
-
-inline void navigation_split_view_set_content(AdwNavigationSplitView* sv, AdwNavigationPage* page) {
-    adw_navigation_split_view_set_content(sv, page);
-}
-
-inline void navigation_split_view_set_show_content(AdwNavigationSplitView* sv, bool show) {
-    adw_navigation_split_view_set_show_content(sv, show ? TRUE : FALSE);
-}
-
-inline void navigation_split_view_set_min_sidebar_width(AdwNavigationSplitView* sv, double w) {
-    adw_navigation_split_view_set_min_sidebar_width(sv, w);
-}
-
-inline void navigation_split_view_set_sidebar_width_fraction(AdwNavigationSplitView* sv, double f) {
-    adw_navigation_split_view_set_sidebar_width_fraction(sv, f);
-}
-
 // --- Header Bar title button visibility ---
 
 inline void header_bar_set_show_start_title_buttons(Gtk::Widget* header, bool show) {
@@ -320,16 +284,6 @@ inline void header_bar_set_show_start_title_buttons(Gtk::Widget* header, bool sh
 inline void header_bar_set_show_end_title_buttons(Gtk::Widget* header, bool show) {
     adw_header_bar_set_show_end_title_buttons(
         ADW_HEADER_BAR(header->gobj()), show ? TRUE : FALSE);
-}
-
-// --- Header Bar packing ---
-
-inline void header_bar_pack_end(Gtk::Widget* header, Gtk::Widget* child) {
-    adw_header_bar_pack_end(ADW_HEADER_BAR(header->gobj()), child->gobj());
-}
-
-inline void header_bar_pack_start(Gtk::Widget* header, Gtk::Widget* child) {
-    adw_header_bar_pack_start(ADW_HEADER_BAR(header->gobj()), child->gobj());
 }
 
 // --- Spinner ---

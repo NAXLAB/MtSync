@@ -22,14 +22,6 @@
 
 namespace mtsync {
 
-class Notification {
-public:
-    Notification() = default;
-    ~Notification();
-
-    void show(const std::string& title, const std::string& body);
-};
-
 void send_notification(const std::string& title, const std::string& body);
 
 } // namespace mtsync

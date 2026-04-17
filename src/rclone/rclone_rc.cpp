@@ -412,8 +412,6 @@ void RcloneRc::get_stats(AsyncCallback<SyncStats> callback) {
         stats.total_bytes = j.value("totalBytes", int64_t{0});
         stats.transfers = j.value("transfers", 0);
         stats.total_transfers = j.value("totalTransfers", 0);
-        stats.checks = j.value("checks", 0);
-        stats.total_checks = j.value("totalChecks", 0);
         stats.errors = j.value("errors", 0);
         stats.speed = j.value("speed", 0.0);
         stats.elapsed_time = j.value("elapsedTime", 0.0);
@@ -437,8 +435,6 @@ void RcloneRc::get_stats(int64_t jobid, AsyncCallback<SyncStats> callback) {
             stats.total_bytes = j.value("totalBytes", int64_t{0});
             stats.transfers = j.value("transfers", 0);
             stats.total_transfers = j.value("totalTransfers", 0);
-            stats.checks = j.value("checks", 0);
-            stats.total_checks = j.value("totalChecks", 0);
             stats.errors = j.value("errors", 0);
             stats.speed = j.value("speed", 0.0);
             stats.elapsed_time = j.value("elapsedTime", 0.0);
@@ -463,12 +459,6 @@ void RcloneRc::get_about(const std::string& remote, AsyncCallback<AboutInfo> cal
             info.used = j["used"].template get<int64_t>();
         if (j.contains("free") && !j["free"].is_null())
             info.free = j["free"].template get<int64_t>();
-        if (j.contains("trashed") && !j["trashed"].is_null())
-            info.trashed = j["trashed"].template get<int64_t>();
-        if (j.contains("other") && !j["other"].is_null())
-            info.other = j["other"].template get<int64_t>();
-        if (j.contains("objects") && !j["objects"].is_null())
-            info.objects = j["objects"].template get<int64_t>();
         callback(std::move(info));
     });
 }
@@ -492,7 +482,6 @@ void RcloneRc::job_status(int64_t jobid, AsyncCallback<JobStatus> callback) {
         status.finished = j.value("finished", false);
         status.success = j.value("success", false);
         status.error = j.value("error", std::string{});
-        status.duration = j.value("duration", 0.0);
         callback(std::move(status));
     });
 }

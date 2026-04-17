@@ -59,7 +59,7 @@ MtSyncWindow::MtSyncWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
 
     auto* page3 = adw::view_stack_add_titled(
         m_view_stack, &m_remotes_view, "backends", "Remotes");
-    adw_view_stack_page_set_icon_name(page3, "preferences-system-symbolic");
+    adw_view_stack_page_set_icon_name(page3, "network-server-symbolic");
 
     auto* page4 = adw::view_stack_add_titled(
         m_view_stack, &m_settings_view, "settings", "Settings");
@@ -95,10 +95,6 @@ MtSyncWindow::MtSyncWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_p
             m_daemon_proxy->quit();
         return false;
     }, false);
-}
-
-void MtSyncWindow::show_toast(const char* message) {
-    adw::toast_overlay_add_toast(m_toast_overlay, message);
 }
 
 } // namespace mtsync

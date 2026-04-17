@@ -52,12 +52,6 @@ bool try_notify_send(const std::string& title, const std::string& body) {
 
 namespace mtsync {
 
-Notification::~Notification() = default;
-
-void Notification::show(const std::string& title, const std::string& body) {
-    send_notification(title, body);
-}
-
 void send_notification(const std::string& title, const std::string& body) {
     if (!try_notify_send(title, body)) {
         g_message("Notification: %s - %s", title.c_str(), body.c_str());

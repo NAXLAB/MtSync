@@ -36,8 +36,6 @@ public:
     explicit MtSyncWindow(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy,
                           Settings& settings);
 
-    void show_toast(const char* message);
-
 private:
     Settings&     m_settings;
     DaemonProxy*  m_daemon_proxy  = nullptr;

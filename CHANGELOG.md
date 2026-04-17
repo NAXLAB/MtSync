@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.12 — Dead Code Removal
+- Removed `MtSyncWindow::show_toast()` — declared and defined but never called
+- Removed `class Notification` wrapper — never instantiated; free `send_notification()` function is still used
+- Removed 10 unused `adw_wrapper.hpp` helpers: `toolbar_view_add_bottom_bar`, the entire `AdwNavigationSplitView` block (`navigation_split_view_new/widget/set_sidebar/set_content/set_show_content/set_min_sidebar_width/set_sidebar_width_fraction`), and `header_bar_pack_start/end`
+- Removed unread struct fields: `AboutInfo::{trashed,other,objects}`, `SyncStats::{checks,total_checks}`, `JobStatus::duration` — all were parsed from rclone responses but never read by any caller
+- Deleted stale `Saddle.code-workspace` left over from the 0.7.0 project rename
+
 ## 0.7.11 — Sandbox Autostart, Snap Local Browse & App Icon Fixes
 - Added `src/sandbox.hpp` — runtime sandbox detection (`in_flatpak()`, `in_snap()`) plus `real_home()`, `real_config_dir()` and `autostart_exec()` helpers that bypass the sandbox's XDG redirection and emit the correct launcher command for the host session
 - **Flatpak – autostart**: `write_autostart()` now writes to the host's real `~/.config/autostart/` (via `--filesystem=home`, not the redirected `$XDG_CONFIG_HOME`) and emits `Exec=flatpak run --command=mtsync com.mtsync.MtSync --daemon` so the host session can launch the daemon on login
