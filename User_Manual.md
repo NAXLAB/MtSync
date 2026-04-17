@@ -114,12 +114,7 @@ Mounts the **left-pane remote location** as a virtual filesystem **at the right-
 - The **right pane** is the local folder where it will be mounted
 - Use the red **Stop** button on the job row to unmount
 
-**Mount-specific options:**
-
-| Option | Description |
-|--------|-------------|
-| **Mount at Start-up** | Automatically re-mount this location each time Mt. Sync's daemon starts |
-| **VFS Cache Mode** | Controls how files are cached locally. `off` = no cache (read-only streaming); `minimal` = cache file metadata; `writes` = cache writes; `full` = full read/write cache on disk (best performance, uses local storage) |
+Mount-specific options (**Mount at Start-up** and **VFS Cache Mode**) are available on the **Job** tab of the Add/Edit Job dialog.
 
 ---
 
@@ -127,7 +122,9 @@ Mounts the **left-pane remote location** as a virtual filesystem **at the right-
 
 Jobs can be added from the **Browser** tab (using the green action buttons) or directly from the **Jobs** tab using the **+** button.
 
-### Job Fields
+The Add/Edit Job dialog is split into three tabs.
+
+### Job Tab
 
 | Field | Description |
 |-------|-------------|
@@ -138,14 +135,36 @@ Jobs can be added from the **Browser** tab (using the green action buttons) or d
 | **Dry Run** | **On by default.** Simulates the transfer without moving any data — great for checking what would happen. Turn this **off** when you are ready to perform the real transfer |
 | **Bi-directional** | (Sync only) Sync changes in both directions |
 | **Enable Checksum** | Verifies every file's integrity byte-for-byte after transfer. Slower, but catches corruption |
+| **Mount at Start-up** | (Mount only) Automatically re-mount this location each time Mt. Sync's daemon starts |
+| **VFS Cache Mode** | (Mount only) Controls local file caching. `off` = no cache; `minimal` = metadata only; `writes` = cache writes; `full` = full read/write cache (best performance, uses local storage) |
+
+### Schedule Tab
+
+Toggle **Enable Schedule** on, then fill in the cron fields:
+
+| Field | Values | Example |
+|-------|--------|---------|
+| **Minute** | 0–59, `*/N`, or `*` | `30` = at the 30-minute mark; `*/15` = every 15 minutes |
+| **Hour** | 0–23, `*/N`, or `*` | `2` = 2 AM; `*/6` = every 6 hours |
+| **Day** | 1–31 or `*` | `*` = every day |
+| **Month** | 1–12 or `*` | `*` = every month |
+| **Weekday** | 0–6 (0 = Sunday) or `*` | `1` = Mondays only |
+
+You can also use ranges (`1–5`), lists (`1,3,5`), or step values (`*/2`). The **Schedule Summary** label updates as you type to show a plain-English description of your schedule (e.g. "Every day at 2:30 AM").
+
+### Advanced Tab
+
+| Field | Description |
+|-------|-------------|
 | **Bandwidth Limit** | Maximum transfer speed, e.g. `10M` for 10 MB/s. Leave blank for unlimited |
 | **Parallel Transfers** | How many files transfer at the same time. Higher values speed up transfers of many small files |
 | **Retries on Failure** | How many times to retry a file that fails to transfer before giving up |
 
 ### Running or Saving
 
-- **Run Now** — executes the job immediately and saves it
-- **Save** — saves the job without running it (useful for scheduling)
+- **Run Now** — executes the job immediately and saves it (shown when no schedule is set)
+- **Schedule** — saves the job with its schedule active (shown when Enable Schedule is on)
+- **Save** — saves the job without running it (available when no schedule is set)
 - **Cancel** — closes the dialog without saving
 
 ---
@@ -155,20 +174,11 @@ Jobs can be added from the **Browser** tab (using the green action buttons) or d
 Any job can be run automatically on a schedule.
 
 1. Open the job dialog (add new or edit existing)
-2. Toggle **Enable Schedule** on
-3. Fill in the cron fields:
+2. Switch to the **Schedule** tab
+3. Toggle **Enable Schedule** on
+4. Fill in the cron fields (see the Schedule Tab section above)
 
-| Field | Values | Example |
-|-------|--------|---------|
-| **Minute** | 0–59 or `*` | `30` = at the 30-minute mark |
-| **Hour** | 0–23 or `*` | `2` = 2 AM |
-| **Day** | 1–31 or `*` | `*` = every day |
-| **Month** | 1–12 or `*` | `*` = every month |
-| **Weekday** | 0–6 (0 = Sunday) or `*` | `1` = Mondays only |
-
-The **Schedule Summary** label updates as you type to show a plain-English description of your schedule (e.g. "Every day at 2:30 AM").
-
-Click **Schedule** to save. Scheduled jobs skip execution if the previous run is still in progress.
+The **Schedule Summary** label updates as you type. Click **Schedule** to save. Scheduled jobs skip execution if the previous run is still in progress.
 
 ---
 

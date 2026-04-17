@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3 — Job Dialog Tabbed Layout
+- Add/edit job dialog reorganised into three tabs: **Job** (`document-edit-symbolic`), **Schedule** (`alarm-symbolic`), and **Advanced** (`preferences-other-symbolic`)
+- **Job tab**: type, source, destination, file filters, dry run, bi-directional sync, checksum, mount options
+- **Schedule tab**: enable schedule switch, repeat schedule fields (Minute, Hour, Day of month, Month, Day of week), and live schedule summary — fields are always visible, no expand/collapse
+- **Advanced tab**: bandwidth limit, parallel transfers, retries on failure — previously hidden inside a collapsible expander on the Job tab
+- Button row (Run Now / Schedule, Save, Cancel) sits outside the tab stack so it is always accessible
+
 ## 0.8.2 — Schedule UI Improvements
 - Scheduling section group title renamed from "Schedule (cron)" to "Repeat Schedule"
 - Added group description explaining `*`, ranges (`1–5`), lists (`1,3,5`), and steps (`*/2`)

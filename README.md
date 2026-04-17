@@ -36,14 +36,16 @@ desktop application backed by a persistent daemon.
 - **Jobs system** — Define Sync, Copy, Move, and Mount jobs; run them on demand or on a cron
   schedule; real-time progress with transfer stats (files, speed, ETA); jobs persist across GUI
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer
-  with the job UUID and last status; Sync jobs support bi-directional sync mode (rclone bisync),
-  copy empty directories, and file include-pattern filters; Mount jobs show active state, can be
-  stopped/unmounted, and expose only mount-relevant options (irrelevant fields such as Dry Run,
-  Enable Checksum, Bandwidth Limit, and File Filters are hidden); checksum verification disabled
-  by default; Save button to store job without running; scheduled jobs skip execution if the previous
-  instance is still running; failed jobs are automatically retried up to a configurable count before
-  being marked as failed; activity log panel shows the last 100 entries in a structured column
-  view (Time, State, Job ID, Type, Contents) with colour-coded state labels, newest first
+  with the job UUID and last status; the add/edit dialog is split into three tabs — **Job**
+  (type, source, destination, filters, dry run, bi-directional sync, checksum, mount options),
+  **Schedule** (enable toggle, five cron fields with live human-readable summary), and **Advanced**
+  (bandwidth limit, parallel transfers, retries on failure); Sync jobs support bi-directional sync
+  mode (rclone bisync), copy empty directories, and file include-pattern filters; Mount jobs show
+  active state and can be stopped/unmounted; checksum verification disabled by default; Save button
+  to store job without running; scheduled jobs skip execution if the previous instance is still
+  running; failed jobs are automatically retried up to a configurable count before being marked as
+  failed; activity log panel shows the last 100 entries in a structured column view (Time, State,
+  Job ID, Type, Contents) with colour-coded state labels, newest first
 - **Background daemon** — `mtsync --daemon` keeps jobs running when the GUI is closed; GUI
   reconnects automatically on next launch; daemon starts rclone RC on startup
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
