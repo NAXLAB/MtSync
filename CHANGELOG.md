@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.10 — Provider Dropdown Filtering & Sorting
+- Removed unsupported internal rclone backends (Memory, Alias, Union, Cache, Crypt) from the Add/Edit Remote provider dropdown
+- Provider list is now sorted alphabetically
+
 ## 0.7.9 — Global rclone Flags Setting
 - Added **Global rclone flags** field to Settings → rclone group
 - Flags are parsed at job execution time and injected into every rclone RC call via the `_config` block (e.g. `--log-level DEBUG --checkers 8 --max-age 24h`)

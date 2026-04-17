@@ -18,6 +18,8 @@
 
 #include "views/backend_edit_view.hpp"
 #include "widgets/adw_wrapper.hpp"
+#include <algorithm>
+#include <unordered_set>
 #include <giomm.h>
 
 namespace mtsync {
@@ -253,6 +255,21 @@ void BackendEditView::load_providers() {
     m_manager.cli().get_providers([this](auto result) {
         if (!result.has_value()) return;
         m_providers = std::move(result.value());
+
+        static const std::unordered_set<std::string> excluded = {
+            "memory", "alias", "union", "cache", "crypt"
+        };
+        m_providers.erase(
+            std::remove_if(m_providers.begin(), m_providers.end(),
+                [](const rclone::ProviderInfo& p) {
+                    return excluded.count(p.name) > 0;
+                }),
+            m_providers.end());
+
+        std::sort(m_providers.begin(), m_providers.end(),
+            [](const rclone::ProviderInfo& a, const rclone::ProviderInfo& b) {
+                return a.name < b.name;
+            });
 
         m_provider_model->remove_all();
         for (size_t i = 0; i < m_providers.size(); ++i) {
