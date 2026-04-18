@@ -29,6 +29,18 @@ namespace mtsync {
 
 namespace {
 
+struct Preset { const char* label; const char* minute; const char* hour;
+                const char* dom;   const char* month;  const char* dow; };
+
+constexpr Preset k_presets[] = {
+    {"Every minute", "*", "*", "*", "*", "*"},
+    {"Hourly",       "0", "*", "*", "*", "*"},
+    {"Daily",        "0", "0", "*", "*", "*"},
+    {"Weekly",       "0", "0", "*", "*", "0"},
+    {"Monthly",      "0", "0", "1", "*", "*"},
+    {"Custom",       nullptr, nullptr, nullptr, nullptr, nullptr},
+};
+
 constexpr guint job_type_to_index(rclone::JobType t) {
     switch (t) {
         case rclone::JobType::Sync:  return 0;
@@ -73,7 +85,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
                                const std::string& initial_src,
                                const std::string& initial_dst) {
     set_title(m_editing ? "Edit Job" : "New Job");
-    set_default_size(460, -1);
+    set_default_size(840, -1);
     set_modal(true);
     set_destroy_with_parent(true);
 
@@ -208,66 +220,226 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     adw::preferences_group_add(group, m_cache_mode_row);
 
     // ── "Schedule" tab ────────────────────────────────────────────────────
-    auto* sched_clamp = Glib::wrap(GTK_WIDGET(adw_clamp_new()));
-    adw_clamp_set_maximum_size(ADW_CLAMP(sched_clamp->gobj()), 520);
-    sched_clamp->set_margin_top(24);
-    sched_clamp->set_margin_bottom(12);
-    sched_clamp->set_margin_start(12);
-    sched_clamp->set_margin_end(12);
+    auto* sched_outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 0);
     adw_view_stack_page_set_icon_name(
-        adw::view_stack_add_titled(stack, sched_clamp, "schedule", "Schedule"),
+        adw::view_stack_add_titled(stack, sched_outer, "schedule", "Schedule"),
         "alarm-symbolic");
 
-    auto* sched_vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 18);
-    adw_clamp_set_child(ADW_CLAMP(sched_clamp->gobj()), GTK_WIDGET(sched_vbox->gobj()));
-
-    // Enable Schedule switch
+    // Enable Schedule switch (full-width, above two-column area)
     auto* sched_enable_group = adw::preferences_group();
-    sched_vbox->append(*sched_enable_group);
+    sched_enable_group->set_margin_top(16);
+    sched_enable_group->set_margin_bottom(8);
+    sched_enable_group->set_margin_start(16);
+    sched_enable_group->set_margin_end(16);
+    sched_outer->append(*sched_enable_group);
+
     m_schedule_switch = adw::switch_row();
     adw::preferences_row_set_title(m_schedule_switch, "Enable Schedule");
     bool sched_on = m_editing && m_editing->schedule_enabled;
     adw::switch_row_set_active(m_schedule_switch, sched_on);
     adw::preferences_group_add(sched_enable_group, m_schedule_switch);
 
-    // Cron fields group (always visible on this tab)
-    m_cron_fields_group = adw::preferences_group();
-    adw::preferences_group_set_title(m_cron_fields_group, "Repeat Schedule");
-    adw_preferences_group_set_description(
-        ADW_PREFERENCES_GROUP(m_cron_fields_group->gobj()),
-        "Enter * to match every value, a number, a range (1–5), a list (1,3,5), or a step (*/2).");
-    sched_vbox->append(*m_cron_fields_group);
+    // Two-column layout
+    auto* sched_columns = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+    sched_columns->set_hexpand(true);
+    sched_columns->set_vexpand(true);
+    sched_outer->append(*sched_columns);
 
-    auto make_cron_row = [&](const char* title, const char* placeholder,
-                              const std::string& initial_val) -> Gtk::Widget* {
+    // ── LEFT: editor panel ────────────────────────────────────────────────
+    auto* left_scroll = Gtk::make_managed<Gtk::ScrolledWindow>();
+    left_scroll->set_hexpand(true);
+    left_scroll->set_vexpand(true);
+    left_scroll->set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
+    sched_columns->append(*left_scroll);
+
+    auto* left_vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 16);
+    left_vbox->set_margin_top(8);
+    left_vbox->set_margin_bottom(16);
+    left_vbox->set_margin_start(16);
+    left_vbox->set_margin_end(16);
+    left_scroll->set_child(*left_vbox);
+
+    // Presets group
+    auto* preset_group = adw::preferences_group();
+    left_vbox->append(*preset_group);
+
+    auto* preset_list = gtk_string_list_new(nullptr);
+    for (auto& p : k_presets) gtk_string_list_append(preset_list, p.label);
+    m_preset_combo = adw::combo_row();
+    adw::preferences_row_set_title(m_preset_combo, "Preset");
+    adw::combo_row_set_string_list_model(m_preset_combo, preset_list);
+    g_object_unref(preset_list);
+    adw::preferences_group_add(preset_group, m_preset_combo);
+
+    // Helper: make entry row with "clear to *" suffix button
+    auto make_cron_entry = [&](const char* title, const char* initial) -> Gtk::Widget* {
         auto* row = adw::entry_row();
         adw::preferences_row_set_title(row, title);
-        adw::entry_row_set_text(row, initial_val.c_str());
-        gtk_text_set_placeholder_text(
-            GTK_TEXT(gtk_editable_get_delegate(GTK_EDITABLE(row->gobj()))),
-            placeholder);
-        adw::preferences_group_add(m_cron_fields_group, row);
+        adw::entry_row_set_text(row, initial);
+        auto* btn = Gtk::make_managed<Gtk::Button>();
+        btn->set_icon_name("edit-clear-symbolic");
+        btn->add_css_class("flat");
+        btn->signal_clicked().connect([row]() { adw::entry_row_set_text(row, "*"); });
+        adw_entry_row_add_suffix(ADW_ENTRY_ROW(row->gobj()), GTK_WIDGET(btn->gobj()));
         return row;
     };
 
-    m_cron_minute_entry  = make_cron_row("Minute",       "0–59, */5, or *",
-        m_editing ? m_editing->cron_minute  : "*");
-    m_cron_hour_entry    = make_cron_row("Hour",         "0–23, */6, or *",
-        m_editing ? m_editing->cron_hour    : "*");
-    m_cron_day_entry     = make_cron_row("Day of month", "1–31 or *",
-        m_editing ? m_editing->cron_day     : "*");
-    m_cron_month_entry   = make_cron_row("Month",        "1–12 or *",
-        m_editing ? m_editing->cron_month   : "*");
-    m_cron_weekday_entry = make_cron_row("Day of week",  "0 (Sun) to 6 (Sat) or *",
-        m_editing ? m_editing->cron_weekday : "*");
+    // Minutes / Hours group
+    auto* time_group = adw::preferences_group();
+    adw::preferences_group_set_title(time_group, "Minutes / Hours");
+    adw_preferences_group_set_description(
+        ADW_PREFERENCES_GROUP(time_group->gobj()),
+        "Use * for every value, a number, a range (1-5), a list (1,3), or a step (*/2).");
+    left_vbox->append(*time_group);
 
-    // Summary label
-    m_schedule_summary = Gtk::make_managed<Gtk::Label>();
-    m_schedule_summary->add_css_class("dim-label");
-    m_schedule_summary->set_margin_top(4);
-    m_schedule_summary->set_margin_start(12);
-    m_schedule_summary->set_xalign(0.0f);
-    sched_vbox->append(*m_schedule_summary);
+    m_minute_entry = make_cron_entry("Minute", m_editing ? m_editing->cron_minute.c_str() : "0");
+    m_hour_entry   = make_cron_entry("Hour",   m_editing ? m_editing->cron_hour.c_str()   : "*");
+    adw::preferences_group_add(time_group, m_minute_entry);
+    adw::preferences_group_add(time_group, m_hour_entry);
+
+    // Days group
+    auto* days_group = adw::preferences_group();
+    adw::preferences_group_set_title(days_group, "Days");
+    left_vbox->append(*days_group);
+
+    m_dom_entry = make_cron_entry("Day of Month", m_editing ? m_editing->cron_day.c_str() : "*");
+    adw::preferences_group_add(days_group, m_dom_entry);
+
+    // Day-of-week checkboxes as a plain row inside the preferences group
+    auto* dow_row = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
+    dow_row->set_margin_top(8);
+    dow_row->set_margin_bottom(8);
+    dow_row->set_margin_start(12);
+    dow_row->set_margin_end(12);
+    auto* dow_label = Gtk::make_managed<Gtk::Label>("Day of Week");
+    dow_label->set_xalign(0.0f);
+    dow_label->add_css_class("caption");
+    dow_label->add_css_class("dim-label");
+    dow_row->append(*dow_label);
+    auto* dow_checks_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    constexpr const char* dow_names[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+    for (int i = 0; i < 7; ++i) {
+        m_dow_checks[i] = Gtk::make_managed<Gtk::CheckButton>(dow_names[i]);
+        m_dow_checks[i]->set_active(true);
+        dow_checks_box->append(*m_dow_checks[i]);
+    }
+    dow_row->append(*dow_checks_box);
+    adw::preferences_group_add(days_group, dow_row);
+
+    // Months group
+    auto* months_group = adw::preferences_group();
+    adw::preferences_group_set_title(months_group, "Months");
+    left_vbox->append(*months_group);
+
+    auto* months_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
+    months_box->set_margin_top(8);
+    months_box->set_margin_bottom(8);
+    months_box->set_margin_start(12);
+    months_box->set_margin_end(12);
+    constexpr const char* month_names[] = {
+        "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+    };
+    auto* months_row1 = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    auto* months_row2 = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    for (int i = 0; i < 12; ++i) {
+        m_month_checks[i] = Gtk::make_managed<Gtk::CheckButton>(month_names[i]);
+        m_month_checks[i]->set_active(true);
+        (i < 6 ? months_row1 : months_row2)->append(*m_month_checks[i]);
+    }
+    months_box->append(*months_row1);
+    months_box->append(*months_row2);
+    adw::preferences_group_add(months_group, months_box);
+
+    // Load existing cron values into checkboxes (if editing)
+    if (m_editing) {
+        set_dow_from_cron(m_editing->cron_weekday);
+        set_month_from_cron(m_editing->cron_month);
+    }
+
+    // Detect which preset matches (default to Custom = index 5)
+    {
+        std::string cur_min  = m_editing ? m_editing->cron_minute  : "0";
+        std::string cur_hour = m_editing ? m_editing->cron_hour    : "*";
+        std::string cur_dom  = m_editing ? m_editing->cron_day     : "*";
+        std::string cur_mo   = m_editing ? m_editing->cron_month   : "*";
+        std::string cur_dow  = m_editing ? m_editing->cron_weekday : "*";
+        guint preset_idx = 5; // Custom
+        for (guint i = 0; i < 5; ++i) {
+            if (cur_min  == k_presets[i].minute &&
+                cur_hour == k_presets[i].hour   &&
+                cur_dom  == k_presets[i].dom    &&
+                cur_mo   == k_presets[i].month  &&
+                cur_dow  == k_presets[i].dow) {
+                preset_idx = i;
+                break;
+            }
+        }
+        m_preset_updating = true;
+        adw_combo_row_set_selected(ADW_COMBO_ROW(m_preset_combo->gobj()), preset_idx);
+        m_preset_updating = false;
+    }
+
+    // ── RIGHT: preview panel ──────────────────────────────────────────────
+    auto* sep = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::VERTICAL);
+    sched_columns->append(*sep);
+
+    auto* right_vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 8);
+    right_vbox->set_size_request(270, -1);
+    right_vbox->set_margin_top(8);
+    right_vbox->set_margin_bottom(16);
+    right_vbox->set_margin_start(16);
+    right_vbox->set_margin_end(16);
+    sched_columns->append(*right_vbox);
+
+    auto* preview_title = Gtk::make_managed<Gtk::Label>("Schedule Preview");
+    preview_title->add_css_class("heading");
+    preview_title->set_xalign(0.0f);
+    right_vbox->append(*preview_title);
+
+    m_preview_cron_label = Gtk::make_managed<Gtk::Label>("");
+    m_preview_cron_label->add_css_class("monospace");
+    m_preview_cron_label->set_xalign(0.0f);
+    right_vbox->append(*m_preview_cron_label);
+
+    m_preview_desc_label = Gtk::make_managed<Gtk::Label>("");
+    m_preview_desc_label->add_css_class("dim-label");
+    m_preview_desc_label->set_xalign(0.0f);
+    m_preview_desc_label->set_wrap(true);
+    right_vbox->append(*m_preview_desc_label);
+
+    right_vbox->append(*Gtk::make_managed<Gtk::Separator>());
+
+    m_preview_calendar = Gtk::make_managed<Gtk::Calendar>();
+    m_preview_calendar->set_hexpand(true);
+    right_vbox->append(*m_preview_calendar);
+
+    {
+        GDateTime* now = g_date_time_new_now_local();
+        GTimeZone* tz  = g_date_time_get_timezone(now);
+        auto* tz_lbl = Gtk::make_managed<Gtk::Label>(
+            std::format("System Time Zone: {}", g_time_zone_get_identifier(tz)).c_str());
+        tz_lbl->add_css_class("dim-label");
+        tz_lbl->add_css_class("caption");
+        tz_lbl->set_xalign(0.0f);
+        tz_lbl->set_wrap(true);
+        right_vbox->append(*tz_lbl);
+        g_date_time_unref(now);
+    }
+
+    auto* upcoming_scroll = Gtk::make_managed<Gtk::ScrolledWindow>();
+    upcoming_scroll->set_size_request(-1, 150);
+    upcoming_scroll->set_vexpand(false);
+    upcoming_scroll->set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::AUTOMATIC);
+    right_vbox->append(*upcoming_scroll);
+
+    m_upcoming_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
+    upcoming_scroll->set_child(*m_upcoming_box);
+
+    // Calendar navigation → refresh marks
+    m_preview_calendar->property_year().signal_changed().connect(
+        sigc::mem_fun(*this, &JobEditDialog::refresh_calendar_marks));
+    m_preview_calendar->property_month().signal_changed().connect(
+        sigc::mem_fun(*this, &JobEditDialog::refresh_calendar_marks));
 
     // ── "Advanced" tab ────────────────────────────────────────────────────
     auto* adv_clamp = Glib::wrap(GTK_WIDGET(adw_clamp_new()));
@@ -351,39 +523,169 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
             self->set_default_size(460, 1);
         }), this);
 
-    // Update button label and save visibility when schedule switch changes
+    // Schedule switch → update button label and save visibility
     g_signal_connect(m_schedule_switch->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<JobEditDialog*>(data);
             bool on = adw::switch_row_get_active(self->m_schedule_switch);
             self->m_action_btn->set_label(on ? "Schedule" : "Run Now");
             self->m_save_btn->set_visible(!on);
-            self->update_summary();
         }), this);
 
-    // Update summary when any cron field changes
-    auto changed_cb = G_CALLBACK(+[](GtkEditable*, gpointer data) {
-        static_cast<JobEditDialog*>(data)->update_summary();
+    // Cron entry fields → update preview, switch preset to Custom
+    auto entry_changed_cb = G_CALLBACK(+[](GtkEditable*, gpointer data) {
+        auto* self = static_cast<JobEditDialog*>(data);
+        if (!self->m_preset_updating) {
+            self->m_preset_updating = true;
+            adw_combo_row_set_selected(ADW_COMBO_ROW(self->m_preset_combo->gobj()), 5);
+            self->m_preset_updating = false;
+        }
+        self->update_preview();
     });
-    g_signal_connect(m_cron_minute_entry->gobj(),  "changed", changed_cb, this);
-    g_signal_connect(m_cron_hour_entry->gobj(),    "changed", changed_cb, this);
-    g_signal_connect(m_cron_day_entry->gobj(),     "changed", changed_cb, this);
-    g_signal_connect(m_cron_month_entry->gobj(),   "changed", changed_cb, this);
-    g_signal_connect(m_cron_weekday_entry->gobj(), "changed", changed_cb, this);
+    g_signal_connect(m_minute_entry->gobj(), "changed", entry_changed_cb, this);
+    g_signal_connect(m_hour_entry->gobj(),   "changed", entry_changed_cb, this);
+    g_signal_connect(m_dom_entry->gobj(),    "changed", entry_changed_cb, this);
 
-    // Initial summary
-    update_summary();
+    // Checkboxes → update preview, switch preset to Custom
+    auto check_cb = [this]() {
+        if (!m_preset_updating) {
+            m_preset_updating = true;
+            adw_combo_row_set_selected(ADW_COMBO_ROW(m_preset_combo->gobj()), 5);
+            m_preset_updating = false;
+        }
+        update_preview();
+    };
+    for (auto* cb : m_dow_checks)   cb->signal_toggled().connect(check_cb);
+    for (auto* cb : m_month_checks) cb->signal_toggled().connect(check_cb);
+
+    // Preset combo → populate all fields
+    g_signal_connect(m_preset_combo->gobj(), "notify::selected",
+        G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
+            auto* self = static_cast<JobEditDialog*>(data);
+            if (self->m_preset_updating) return;
+            guint idx = adw::combo_row_get_selected(self->m_preset_combo);
+            if (idx >= 5) return;
+            self->m_preset_updating = true;
+            adw::entry_row_set_text(self->m_minute_entry, k_presets[idx].minute);
+            adw::entry_row_set_text(self->m_hour_entry,   k_presets[idx].hour);
+            adw::entry_row_set_text(self->m_dom_entry,    k_presets[idx].dom);
+            self->set_dow_from_cron(k_presets[idx].dow);
+            self->set_month_from_cron(k_presets[idx].month);
+            self->m_preset_updating = false;
+            self->update_preview();
+        }), this);
+
+    // Initial preview
+    update_preview();
 }
 
-void JobEditDialog::update_summary() {
-    if (!m_schedule_summary) return;
+rclone::Job JobEditDialog::get_cron_job() const {
     rclone::Job tmp;
-    tmp.cron_minute  = adw::entry_row_get_text(m_cron_minute_entry);
-    tmp.cron_hour    = adw::entry_row_get_text(m_cron_hour_entry);
-    tmp.cron_day     = adw::entry_row_get_text(m_cron_day_entry);
-    tmp.cron_month   = adw::entry_row_get_text(m_cron_month_entry);
-    tmp.cron_weekday = adw::entry_row_get_text(m_cron_weekday_entry);
-    m_schedule_summary->set_text("↻  " + cron::describe(tmp));
+    tmp.cron_minute  = adw::entry_row_get_text(m_minute_entry);
+    tmp.cron_hour    = adw::entry_row_get_text(m_hour_entry);
+    tmp.cron_day     = adw::entry_row_get_text(m_dom_entry);
+    tmp.cron_month   = month_to_cron();
+    tmp.cron_weekday = dow_to_cron();
+    if (tmp.cron_minute.empty())  tmp.cron_minute  = "*";
+    if (tmp.cron_hour.empty())    tmp.cron_hour    = "*";
+    if (tmp.cron_day.empty())     tmp.cron_day     = "*";
+    return tmp;
+}
+
+std::string JobEditDialog::dow_to_cron() const {
+    int count = 0;
+    std::string s;
+    for (int i = 0; i < 7; ++i) {
+        if (m_dow_checks[i]->get_active()) {
+            ++count;
+            if (!s.empty()) s += ',';
+            s += std::to_string(i);
+        }
+    }
+    return (count == 7) ? "*" : s;
+}
+
+std::string JobEditDialog::month_to_cron() const {
+    int count = 0;
+    std::string s;
+    for (int i = 0; i < 12; ++i) {
+        if (m_month_checks[i]->get_active()) {
+            ++count;
+            if (!s.empty()) s += ',';
+            s += std::to_string(i + 1);
+        }
+    }
+    return (count == 12) ? "*" : s;
+}
+
+void JobEditDialog::set_dow_from_cron(const std::string& s) {
+    auto vals = cron::detail::expand_field(s, 0, 6);
+    bool all = (vals.size() == 7) || s == "*";
+    for (int i = 0; i < 7; ++i)
+        m_dow_checks[i]->set_active(all ||
+            std::ranges::find(vals, i) != vals.end());
+}
+
+void JobEditDialog::set_month_from_cron(const std::string& s) {
+    auto vals = cron::detail::expand_field(s, 1, 12);
+    bool all = (vals.size() == 12) || s == "*";
+    for (int i = 0; i < 12; ++i)
+        m_month_checks[i]->set_active(all ||
+            std::ranges::find(vals, i + 1) != vals.end());
+}
+
+void JobEditDialog::update_preview() {
+    if (!m_preview_calendar) return;
+    rclone::Job tmp = get_cron_job();
+
+    m_preview_cron_label->set_text(std::format("{} {} {} {} {}",
+        tmp.cron_minute, tmp.cron_hour, tmp.cron_day,
+        tmp.cron_month,  tmp.cron_weekday));
+    m_preview_desc_label->set_text(cron::describe(tmp));
+
+    refresh_calendar_marks();
+
+    while (auto* child = m_upcoming_box->get_first_child())
+        m_upcoming_box->remove(*child);
+
+    GDateTime* cursor = g_date_time_new_now_local();
+    for (int i = 0; i < 15; ++i) {
+        GDateTime* nxt = cron::next_occurrence(tmp, cursor);
+        g_date_time_unref(cursor);
+        if (!nxt) break;
+        cursor = nxt;
+        gchar* fmt = g_date_time_format(nxt, "%Y-%m-%d %H:%M:%S");
+        auto* lbl = Gtk::make_managed<Gtk::Label>(fmt);
+        lbl->set_xalign(0.0f);
+        lbl->add_css_class("monospace");
+        m_upcoming_box->append(*lbl);
+        g_free(fmt);
+    }
+    if (cursor) g_date_time_unref(cursor);
+}
+
+void JobEditDialog::refresh_calendar_marks() {
+    m_preview_calendar->clear_marks();
+    rclone::Job tmp = get_cron_job();
+    auto date = m_preview_calendar->get_date();
+    int y  = date.get_year();
+    int mo = date.get_month();  // 1-based
+    int ndays = cron::detail::days_in_month(y, mo);
+
+    for (int d = 1; d <= ndays; ++d) {
+        GDateTime* midnight = g_date_time_new_local(y, mo, d, 0, 0, 0);
+        GDateTime* from = g_date_time_add_minutes(midnight, -1);
+        g_date_time_unref(midnight);
+        GDateTime* nxt = cron::next_occurrence(tmp, from);
+        g_date_time_unref(from);
+        if (nxt) {
+            bool same = (g_date_time_get_year(nxt) == y &&
+                         g_date_time_get_month(nxt) == mo &&
+                         g_date_time_get_day_of_month(nxt) == d);
+            g_date_time_unref(nxt);
+            if (same) m_preview_calendar->mark_day(d);
+        }
+    }
 }
 
 void JobEditDialog::on_commit() {
@@ -401,12 +703,15 @@ void JobEditDialog::on_commit() {
     catch (...) { job.parallel_transfers = -1; }
     try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
     catch (...) { job.retries = -1; }
-    job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
-    job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
-    job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
-    job.cron_day         = adw::entry_row_get_text(m_cron_day_entry);
-    job.cron_month       = adw::entry_row_get_text(m_cron_month_entry);
-    job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
+    {
+        auto cron = get_cron_job();
+        job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
+        job.cron_minute  = cron.cron_minute;
+        job.cron_hour    = cron.cron_hour;
+        job.cron_day     = cron.cron_day;
+        job.cron_month   = cron.cron_month;
+        job.cron_weekday = cron.cron_weekday;
+    }
     job.mount_at_startup = m_mount_startup_switch->get_visible()
                         && adw::switch_row_get_active(m_mount_startup_switch);
     if (m_cache_mode_row->get_visible()) {
@@ -416,9 +721,9 @@ void JobEditDialog::on_commit() {
     } else {
         job.vfs_cache_mode = "";
     }
-    job.last_start       = m_editing ? m_editing->last_start  : "";
-    job.last_run         = m_editing ? m_editing->last_run    : "";
-    job.last_status      = m_editing ? m_editing->last_status : "";
+    job.last_start  = m_editing ? m_editing->last_start  : "";
+    job.last_run    = m_editing ? m_editing->last_run    : "";
+    job.last_status = m_editing ? m_editing->last_status : "";
     {
         std::istringstream ss(adw::entry_row_get_text(m_includes_entry));
         std::string token;
@@ -450,12 +755,15 @@ void JobEditDialog::on_save() {
     catch (...) { job.parallel_transfers = -1; }
     try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
     catch (...) { job.retries = -1; }
-    job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
-    job.cron_minute      = adw::entry_row_get_text(m_cron_minute_entry);
-    job.cron_hour        = adw::entry_row_get_text(m_cron_hour_entry);
-    job.cron_day         = adw::entry_row_get_text(m_cron_day_entry);
-    job.cron_month       = adw::entry_row_get_text(m_cron_month_entry);
-    job.cron_weekday     = adw::entry_row_get_text(m_cron_weekday_entry);
+    {
+        auto cron = get_cron_job();
+        job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
+        job.cron_minute  = cron.cron_minute;
+        job.cron_hour    = cron.cron_hour;
+        job.cron_day     = cron.cron_day;
+        job.cron_month   = cron.cron_month;
+        job.cron_weekday = cron.cron_weekday;
+    }
     job.mount_at_startup = m_mount_startup_switch->get_visible()
                         && adw::switch_row_get_active(m_mount_startup_switch);
     if (m_cache_mode_row->get_visible()) {
@@ -465,9 +773,9 @@ void JobEditDialog::on_save() {
     } else {
         job.vfs_cache_mode = "";
     }
-    job.last_start       = m_editing ? m_editing->last_start  : "";
-    job.last_run         = m_editing ? m_editing->last_run    : "";
-    job.last_status      = m_editing ? m_editing->last_status : "";
+    job.last_start  = m_editing ? m_editing->last_start  : "";
+    job.last_run    = m_editing ? m_editing->last_run    : "";
+    job.last_status = m_editing ? m_editing->last_status : "";
     {
         std::istringstream ss(adw::entry_row_get_text(m_includes_entry));
         std::string token;

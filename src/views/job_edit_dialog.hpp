@@ -44,34 +44,60 @@ private:
     std::optional<rclone::Job> m_editing;
     std::vector<std::string>  m_includes;
 
-    Gtk::Widget* m_type_combo         = nullptr;
-    Gtk::Widget* m_source_entry       = nullptr;
-    Gtk::Widget* m_dest_entry         = nullptr;
-    Gtk::Widget* m_includes_entry     = nullptr;
-    Gtk::Widget* m_dry_run_switch        = nullptr;
-    Gtk::Widget* m_bisync_switch         = nullptr;
-    Gtk::Widget* m_enable_checksum_switch = nullptr;
-    Gtk::Widget* m_advanced_row             = nullptr;
+    // Job tab
+    Gtk::Widget* m_type_combo              = nullptr;
+    Gtk::Widget* m_source_entry            = nullptr;
+    Gtk::Widget* m_dest_entry              = nullptr;
+    Gtk::Widget* m_includes_entry          = nullptr;
+    Gtk::Widget* m_dry_run_switch          = nullptr;
+    Gtk::Widget* m_bisync_switch           = nullptr;
+    Gtk::Widget* m_enable_checksum_switch  = nullptr;
+    Gtk::Widget* m_advanced_row            = nullptr;
+    Gtk::Widget* m_mount_startup_switch    = nullptr;
+    Gtk::Widget* m_cache_mode_row          = nullptr;
+
+    // Advanced tab
     Gtk::Widget* m_bandwidth_entry          = nullptr;
     Gtk::Widget* m_parallel_transfers_entry = nullptr;
     Gtk::Widget* m_retries_entry            = nullptr;
-    Gtk::Widget* m_mount_startup_switch = nullptr;
-    Gtk::Widget* m_cache_mode_row       = nullptr;
-    Gtk::Widget* m_schedule_switch    = nullptr;
-    Gtk::Widget* m_cron_fields_group  = nullptr;
-    Gtk::Widget* m_cron_minute_entry  = nullptr;
-    Gtk::Widget* m_cron_hour_entry    = nullptr;
-    Gtk::Widget* m_cron_day_entry     = nullptr;
-    Gtk::Widget* m_cron_month_entry   = nullptr;
-    Gtk::Widget* m_cron_weekday_entry = nullptr;
-    Gtk::Label*  m_schedule_summary   = nullptr;
-    Gtk::Button* m_action_btn         = nullptr;
-    Gtk::Button* m_save_btn          = nullptr;
+
+    // Schedule tab — enable toggle
+    Gtk::Widget* m_schedule_switch = nullptr;
+
+    // Schedule tab — cron editor inputs
+    Gtk::Widget*      m_preset_combo     = nullptr;
+    Gtk::Widget*      m_minute_entry     = nullptr;
+    Gtk::Widget*      m_hour_entry       = nullptr;
+    Gtk::Widget*      m_dom_entry        = nullptr;
+    Gtk::CheckButton* m_dow_checks[7]    = {};
+    Gtk::CheckButton* m_month_checks[12] = {};
+    bool              m_preset_updating  = false;
+
+    // Schedule tab — preview panel
+    Gtk::Calendar* m_preview_calendar   = nullptr;
+    Gtk::Box*      m_upcoming_box       = nullptr;
+    Gtk::Label*    m_preview_cron_label = nullptr;
+    Gtk::Label*    m_preview_desc_label = nullptr;
+
+    // Buttons
+    Gtk::Button* m_action_btn = nullptr;
+    Gtk::Button* m_save_btn   = nullptr;
 
     void setup_ui(rclone::JobType initial_type,
                   const std::string& initial_src,
                   const std::string& initial_dst);
-    void update_summary();
+
+    // Cron helpers
+    rclone::Job get_cron_job() const;
+    std::string dow_to_cron() const;
+    std::string month_to_cron() const;
+    void set_dow_from_cron(const std::string& s);
+    void set_month_from_cron(const std::string& s);
+
+    // Preview
+    void update_preview();
+    void refresh_calendar_marks();
+
     void on_commit();
     void on_save();
     static std::string generate_uuid();

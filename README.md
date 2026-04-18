@@ -38,7 +38,11 @@ desktop application backed by a persistent daemon.
   restarts; each job row shows a type icon, a `SourceDir → DestDir` display name, and a footer
   with the job UUID and last status; the add/edit dialog is split into three tabs — **Job**
   (type, source, destination, filters, dry run, bi-directional sync, checksum, mount options),
-  **Schedule** (enable toggle, five cron fields with live human-readable summary), and **Advanced**
+  **Schedule** (enable toggle; preset dropdown — Every minute, Hourly, Daily, Weekly, Monthly,
+  Custom; text entries for Minute, Hour, and Day of Month each with a clear-to-`*` button;
+  Day of Week checkbox row Sun–Sat; Month checkbox grid Jan–Dec; live preview panel showing the
+  raw cron expression, a human-readable description, a calendar with run days marked for the
+  current month, and a scrollable list of the next 15 upcoming execution times), and **Advanced**
   (bandwidth limit, parallel transfers, retries on failure); Sync jobs support bi-directional sync
   mode (rclone bisync), copy empty directories, and file include-pattern filters; Mount jobs show
   active state and can be stopped/unmounted; checksum verification disabled by default; Save button

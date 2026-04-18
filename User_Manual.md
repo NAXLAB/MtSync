@@ -140,17 +140,42 @@ The Add/Edit Job dialog is split into three tabs.
 
 ### Schedule Tab
 
-Toggle **Enable Schedule** on, then fill in the cron fields:
+The Schedule tab is split into a **cron editor** on the left and a live **Schedule Preview** on the right.
 
-| Field | Values | Example |
-|-------|--------|---------|
-| **Minute** | 0–59, `*/N`, or `*` | `30` = at the 30-minute mark; `*/15` = every 15 minutes |
-| **Hour** | 0–23, `*/N`, or `*` | `2` = 2 AM; `*/6` = every 6 hours |
-| **Day** | 1–31 or `*` | `*` = every day |
-| **Month** | 1–12 or `*` | `*` = every month |
-| **Weekday** | 0–6 (0 = Sunday) or `*` | `1` = Mondays only |
+**Enable Schedule** — toggle at the top of the tab to activate scheduling for this job.
 
-You can also use ranges (`1–5`), lists (`1,3,5`), or step values (`*/2`). The **Schedule Summary** label updates as you type to show a plain-English description of your schedule (e.g. "Every day at 2:30 AM").
+**Preset** — choose a common schedule to fill all fields at once:
+
+| Preset | Runs |
+|--------|------|
+| Every minute | Every minute of every hour |
+| Hourly | Once per hour, at minute 0 |
+| Daily | Once per day, at midnight |
+| Weekly | Once per week, Sunday midnight |
+| Monthly | Once per month, on the 1st at midnight |
+| Custom | Fill in the fields below manually |
+
+Selecting a preset fills all fields instantly. Editing any field automatically switches the preset to **Custom**.
+
+**Minutes / Hours** — text entry for each field. The × button resets the field to `*` (every value). You can enter a single number, a range (`9-17`), a list (`0,15,30,45`), or a step (`*/5`).
+
+| Field | Valid values |
+|-------|-------------|
+| **Minute** | 0–59, `*/N`, or `*` |
+| **Hour** | 0–23, `*/N`, or `*` |
+
+**Days** — two controls:
+- **Day of Month** — text entry (1–31 or `*`), with a × clear button
+- **Day of Week** — seven checkboxes (Sun Mon Tue Wed Thu Fri Sat); all checked means `*` (every day); uncheck days to restrict the schedule
+
+**Months** — twelve checkboxes (Jan–Dec) in two rows; all checked means `*` (every month); uncheck months to restrict the schedule.
+
+**Schedule Preview** (right panel) updates live as you edit:
+- The raw cron expression (e.g. `0 2 * * 1`)
+- A plain-English description (e.g. "Every Monday at 02:00")
+- A calendar with run days marked for the current month; use the calendar's navigation arrows to browse other months
+- Your system timezone
+- A scrollable list of the next 15 upcoming execution times
 
 ### Advanced Tab
 
@@ -176,9 +201,13 @@ Any job can be run automatically on a schedule.
 1. Open the job dialog (add new or edit existing)
 2. Switch to the **Schedule** tab
 3. Toggle **Enable Schedule** on
-4. Fill in the cron fields (see the Schedule Tab section above)
+4. Choose a **Preset** for common schedules, or set the fields manually:
+   - Enter values in **Minute** and **Hour**; use the × button to reset a field to `*`
+   - Tick/untick **Day of Week** checkboxes and **Month** checkboxes to limit which days or months the job runs
+5. Watch the **Schedule Preview** panel on the right — it shows the cron expression, a plain-English description, a calendar with run days highlighted, and the next 15 upcoming times
+6. Click **Schedule** to save
 
-The **Schedule Summary** label updates as you type. Click **Schedule** to save. Scheduled jobs skip execution if the previous run is still in progress.
+Scheduled jobs skip execution if the previous run is still in progress.
 
 ---
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.4 — Schedule Tab Cron Builder & Preview
+
+- Schedule tab rebuilt as a two-column layout: **cron editor** on the left, **live preview** on the right
+- **Presets** dropdown (Every minute, Hourly, Daily, Weekly, Monthly, Custom) — selecting a preset fills all fields instantly; editing any field switches the preset to Custom automatically
+- **Minutes / Hours** group replaces the old single-line minute/hour rows; each field has a clear (×) button that resets it to `*`
+- **Days** group: Day of Month text entry + **Day of Week** checkbox row (Sun Mon Tue Wed Thu Fri Sat) — all checked = `*`; partial selection generates a comma-separated cron value
+- **Months** group: twelve checkboxes (Jan–Dec) in two rows — same all/partial logic
+- **Schedule Preview** panel shows the live cron expression, a human-readable description, a `Gtk::Calendar` with run days marked for the displayed month, the system timezone, and a scrollable list of the next 15 upcoming execution times
+- Calendar marks update when navigating months; upcoming list rebuilds on every field change
+- Dialog widened to 840 px; Job and Advanced tab content remains centred via AdwClamp(520)
+- All existing save/load paths updated to use the new checkbox-derived cron fields
+
 ## 0.8.3 — Job Dialog Tabbed Layout
 - Add/edit job dialog reorganised into three tabs: **Job** (`document-edit-symbolic`), **Schedule** (`alarm-symbolic`), and **Advanced** (`preferences-other-symbolic`)
 - **Job tab**: type, source, destination, file filters, dry run, bi-directional sync, checksum, mount options
