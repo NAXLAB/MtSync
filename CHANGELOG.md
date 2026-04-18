@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.5 — Per-Job Extra rclone Flags
+- Added **Extra rclone Flags** field to the Advanced tab of the add/edit job dialog
+- Flags are parsed at run time and injected into the rclone RC `_config` block alongside the job's other options (e.g. `--min-size 10M --max-age 7d --checkers 16`)
+- Supports `--flag value`, `--flag=value`, and boolean `--flag` forms; flag names are converted from CLI kebab-case to rclone's internal PascalCase automatically
+- Persisted as `extra_flags` in `jobs.json`
+- Priority order: explicit job fields (bandwidth, dry-run, etc.) > per-job extra flags > global rclone flags from Settings
+
 ## 0.8.4 — Schedule Tab Cron Builder & Preview
 
 - Schedule tab rebuilt as a two-column layout: **cron editor** on the left, **live preview** on the right

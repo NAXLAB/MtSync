@@ -484,6 +484,13 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         adw::preferences_group_add(adv_group, m_retries_entry);
     }
 
+    m_extra_flags_entry = adw::entry_row();
+    adw::preferences_row_set_title(m_extra_flags_entry, "Extra rclone Flags");
+    adw_entry_row_set_input_hints(ADW_ENTRY_ROW(m_extra_flags_entry->gobj()), GTK_INPUT_HINT_NO_SPELLCHECK);
+    if (m_editing && !m_editing->extra_flags.empty())
+        adw::entry_row_set_text(m_extra_flags_entry, m_editing->extra_flags.c_str());
+    adw::preferences_group_add(adv_group, m_extra_flags_entry);
+
     // ── Buttons (outside tab stack) ───────────────────────────────────────
     m_action_btn = Gtk::make_managed<Gtk::Button>(sched_on ? "Schedule" : "Run Now");
     m_action_btn->add_css_class("destructive-action");
@@ -703,6 +710,7 @@ void JobEditDialog::on_commit() {
     catch (...) { job.parallel_transfers = -1; }
     try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
     catch (...) { job.retries = -1; }
+    job.extra_flags      = adw::entry_row_get_text(m_extra_flags_entry);
     {
         auto cron = get_cron_job();
         job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
@@ -755,6 +763,7 @@ void JobEditDialog::on_save() {
     catch (...) { job.parallel_transfers = -1; }
     try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
     catch (...) { job.retries = -1; }
+    job.extra_flags      = adw::entry_row_get_text(m_extra_flags_entry);
     {
         auto cron = get_cron_job();
         job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);

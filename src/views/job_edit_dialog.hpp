@@ -60,6 +60,7 @@ private:
     Gtk::Widget* m_bandwidth_entry          = nullptr;
     Gtk::Widget* m_parallel_transfers_entry = nullptr;
     Gtk::Widget* m_retries_entry            = nullptr;
+    Gtk::Widget* m_extra_flags_entry        = nullptr;
 
     // Schedule tab — enable toggle
     Gtk::Widget* m_schedule_switch = nullptr;

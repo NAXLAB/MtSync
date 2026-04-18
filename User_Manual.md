@@ -184,6 +184,7 @@ Selecting a preset fills all fields instantly. Editing any field automatically s
 | **Bandwidth Limit** | Maximum transfer speed, e.g. `10M` for 10 MB/s. Leave blank for unlimited |
 | **Parallel Transfers** | How many files transfer at the same time. Higher values speed up transfers of many small files |
 | **Retries on Failure** | How many times to retry a file that fails to transfer before giving up |
+| **Extra rclone Flags** | Arbitrary rclone flags appended to this job's RC call at run time. Enter them in standard rclone CLI format, space-separated (e.g. `--min-size 10M --max-age 7d --checkers 16`). Supports `--flag value`, `--flag=value`, and boolean `--flag` forms. These take priority over **Global rclone flags** in Settings but do not override the job's own explicit fields (bandwidth, dry run, etc.) |
 
 ### Running or Saving
 

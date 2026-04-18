@@ -43,7 +43,8 @@ desktop application backed by a persistent daemon.
   Day of Week checkbox row Sun–Sat; Month checkbox grid Jan–Dec; live preview panel showing the
   raw cron expression, a human-readable description, a calendar with run days marked for the
   current month, and a scrollable list of the next 15 upcoming execution times), and **Advanced**
-  (bandwidth limit, parallel transfers, retries on failure); Sync jobs support bi-directional sync
+  (bandwidth limit, parallel transfers, retries on failure, extra rclone flags appended to the RC
+  call at run time — supports `--flag value`, `--flag=value`, and boolean `--flag` forms); Sync jobs support bi-directional sync
   mode (rclone bisync), copy empty directories, and file include-pattern filters; Mount jobs show
   active state and can be stopped/unmounted; checksum verification disabled by default; Save button
   to store job without running; scheduled jobs skip execution if the previous instance is still
@@ -59,7 +60,8 @@ desktop application backed by a persistent daemon.
   configurable for job start, successful completion, and completion with errors/warnings
 - **Settings** — Startup & shutdown behaviour (autostart, tray), notification toggles, transfer
   defaults (bandwidth limit, checksums, parallel transfers, retries on failure), rclone binary path
-  override, global rclone flags applied to every job at execution time; persisted to
+  override, global rclone flags applied to every job at execution time (lowest priority — per-job
+  extra flags and explicit job settings take precedence); persisted to
   `~/.config/mtsync/settings.json`
 
 ## Dependencies

@@ -138,13 +138,15 @@ struct Job {
     std::vector<std::string> includes;  // Files to include; empty = entire directory
     int         parallel_transfers = -1; // -1 = use global settings default
     int         retries            = -1; // -1 = use global settings default
+    std::string extra_flags;             // arbitrary rclone flags appended at run time
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Job,
     id, type, source, destination, dry_run, bisync, ignore_checksum, bandwidth,
     schedule_enabled, mount_at_startup, active, running, vfs_cache_mode,
     cron_minute, cron_hour, cron_day, cron_month, cron_weekday,
-    last_start, last_run, last_status, includes, parallel_transfers, retries)
+    last_start, last_run, last_status, includes, parallel_transfers, retries,
+    extra_flags)
 
 // Async callback type used throughout
 template <typename T>
