@@ -208,14 +208,15 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     adw::combo_row_set_string_list_model(m_cache_mode_row, cache_list);
     g_object_unref(cache_list);
     m_cache_mode_row->set_visible(initial_type == rclone::JobType::Mount);
-    if (m_editing && !m_editing->vfs_cache_mode.empty()) {
+    {
         const char* modes[] = {"off", "minimal", "writes", "full"};
-        for (int i = 0; i < 4; i++) {
-            if (m_editing->vfs_cache_mode == modes[i]) {
-                adw_combo_row_set_selected(ADW_COMBO_ROW(m_cache_mode_row->gobj()), i);
-                break;
+        int sel = 1; // default: minimal
+        if (m_editing && !m_editing->vfs_cache_mode.empty()) {
+            for (int i = 0; i < 4; i++) {
+                if (m_editing->vfs_cache_mode == modes[i]) { sel = i; break; }
             }
         }
+        adw_combo_row_set_selected(ADW_COMBO_ROW(m_cache_mode_row->gobj()), sel);
     }
     adw::preferences_group_add(group, m_cache_mode_row);
 

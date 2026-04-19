@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.6 — Mount Cache Mode Default
+- VFS Cache Mode for new Mount jobs now defaults to **minimal** instead of `off`
+- Existing jobs load their saved cache mode unchanged
+
 ## 0.8.5 — Per-Job Extra rclone Flags
 - Added **Extra rclone Flags** field to the Advanced tab of the add/edit job dialog
 - Flags are parsed at run time and injected into the rclone RC `_config` block alongside the job's other options (e.g. `--min-size 10M --max-age 7d --checkers 16`)

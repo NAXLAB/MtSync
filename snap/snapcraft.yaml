@@ -1,6 +1,6 @@
 name: mtsync
-version: '0.8.5'
-summary: GTK4 frontend to rclone
+version: '0.8.6'
+summary: Mount or sync cloud storage in comfort
 description: |
   Mount network storage in comfort. Mt. Sync is a GTK4/libadwaita
   frontend to rclone for managing remote storage, sync jobs,

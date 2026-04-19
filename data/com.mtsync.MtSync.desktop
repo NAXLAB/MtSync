@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Mt. Sync
-Comment=GTK4 frontend to rclone
+Comment=Mount or sync cloud storage in comfort
 Exec=mtsync
 Icon=com.mtsync.MtSync
 Type=Application
