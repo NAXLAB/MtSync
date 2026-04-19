@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.7 — Correctness & Safety Fixes
+- **Atomic config writes**: `jobs.json` and `settings.json` are now written to a `.tmp` sibling file and renamed into place — a crash or I/O error during a save no longer corrupts the existing file
+- **Config read TOCTOU**: removed `fs::exists()` pre-checks before opening config files; file is now opened directly and a missing file is treated as an empty config, eliminating the check-then-open race window
+- **Use-after-free on IPC quit**: `stop()` was previously called synchronously from inside `IpcServer::read_from_client()`, destroying the server's iterator mid-execution; it is now deferred to the next event-loop tick via `Glib::signal_idle()`
+- **Stale index in async callbacks**: every async callback that captures a job `index` now also captures the job's UUID (`job.id`) and verifies the match at callback entry — prevents a deleted job from shifting vector indices and causing a different job's state to be overwritten by an in-flight HTTP response
+- **Running-job counter on delete**: deleting a job that is actively running now immediately decrements `m_running_job_count` and updates the tray animation; previously the counter could stay elevated until an orphaned callback eventually fired
+- **Pending IPC callbacks on disconnect**: `DaemonProxy::disconnect()` now drains `m_pending_callbacks` by invoking each with a `"disconnected"` error response before clearing the map, so callers receive a proper error instead of silently hanging
+
 ## 0.8.6 — Mount Cache Mode Default
 - VFS Cache Mode for new Mount jobs now defaults to **minimal** instead of `off`
 - Existing jobs load their saved cache mode unchanged

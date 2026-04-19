@@ -57,9 +57,9 @@ inline std::filesystem::path settings_file_path() {
 
 inline Settings load_settings() {
     auto path = settings_file_path();
-    if (!std::filesystem::exists(path)) return {};
     try {
         std::ifstream f(path);
+        if (!f) return {};
         return nlohmann::json::parse(f).get<Settings>();
     } catch (...) { return {}; }
 }
@@ -67,8 +67,15 @@ inline Settings load_settings() {
 inline void save_settings(const Settings& s) {
     auto path = settings_file_path();
     std::filesystem::create_directories(path.parent_path());
-    std::ofstream f(path);
-    f << nlohmann::json(s).dump(2);
+    auto tmp = path.parent_path() / (path.filename().string() + ".tmp");
+    {
+        std::ofstream f(tmp);
+        if (!f) return;
+        f << nlohmann::json(s).dump(2);
+        if (!f.good()) { std::filesystem::remove(tmp); return; }
+    }
+    try { std::filesystem::rename(tmp, path); }
+    catch (...) { std::filesystem::remove(tmp); }
 }
 
 } // namespace mtsync

@@ -50,7 +50,10 @@ void DaemonProxy::disconnect() {
         m_client->disconnect();
         m_client.reset();
     }
-    m_pending_callbacks.clear();
+    // Drain pending callbacks with an error response so callers don't hang.
+    auto callbacks = std::move(m_pending_callbacks);
+    for (auto& [id, cb] : callbacks)
+        cb(nlohmann::json{{"payload", {{"error", "disconnected"}}}});
 }
 
 void DaemonProxy::send_request(ipc::RequestType type, const json& payload,

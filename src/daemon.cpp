@@ -147,6 +147,14 @@ MtSyncDaemon::MtSyncDaemon() {
             } else if (type_str == "delete_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
+                    // If a non-mount job is actively running, its in-flight HTTP callbacks
+                    // will be ignored (UUID mismatch after erasure), so adjust the counter now.
+                    if (m_jobs[index].type != rclone::JobType::Mount
+                        && index < m_job_ids.size() && m_job_ids[index] >= 0) {
+                        m_running_job_count--;
+                        if (m_running_job_count < 0) m_running_job_count = 0;
+                        update_tray_animation();
+                    }
                     // Disconnect timers and clean up all parallel vectors before erasing
                     if (index < m_sched_timers.size()) m_sched_timers[index].disconnect();
                     if (index < m_poll_timers.size())  m_poll_timers[index].disconnect();
@@ -175,19 +183,23 @@ MtSyncDaemon::MtSyncDaemon() {
             } else if (type_str == "stop_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount) {
-                    m_manager.rc().unmount_async(m_jobs[index].destination, [this, index](auto) {
-                        if (index < m_jobs.size()) m_jobs[index].active = false;
+                    std::string job_uuid = m_jobs[index].id;
+                    m_manager.rc().unmount_async(m_jobs[index].destination, [this, index, job_uuid](auto) {
+                        if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
+                        m_jobs[index].active = false;
                         json response_payload = {{"index", index}, {"success", true}};
                         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
                     });
                 } else if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
-                    m_manager.rc().job_stop(m_job_ids[index], [this, index, msg](auto) {
+                    std::string job_uuid = m_jobs[index].id;
+                    m_manager.rc().job_stop(m_job_ids[index], [this, index, msg, job_uuid](auto) {
+                        if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                         if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                         if (index < m_poll_timers.size()) {
                             m_poll_timers[index].disconnect();
                         }
                         m_job_ids[index] = -1;
-                        if (index < m_jobs.size()) m_jobs[index].running = false;
+                        m_jobs[index].running = false;
                         save_jobs();
                         m_running_job_count--;
                         if (m_running_job_count < 0) m_running_job_count = 0;
@@ -215,7 +227,10 @@ MtSyncDaemon::MtSyncDaemon() {
                 });
 
             } else if (type_str == "quit") {
-                stop();
+                // Defer stop() to the next event-loop tick so we don't destroy
+                // the IpcServer (and its m_clients map) while still inside
+                // IpcServer::read_from_client() — which would be use-after-free.
+                Glib::signal_idle().connect_once([this]() { stop(); });
 
             } else {
                 json response_payload = {{"error", "Unknown request type: " + type_str}};
@@ -299,17 +314,17 @@ void MtSyncDaemon::run() {
 }
 
 void MtSyncDaemon::load_jobs() {
-    if (fs::exists(m_config_path)) {
-        try {
-            std::ifstream f(m_config_path);
+    try {
+        std::ifstream f(m_config_path);
+        if (f) {
             auto j = json::parse(f);
             if (j.contains("jobs")) {
                 for (auto& p : j["jobs"])
                     m_jobs.push_back(p.get<rclone::Job>());
             }
-        } catch (const std::exception& e) {
-            g_warning("Failed to load jobs: %s", e.what());
         }
+    } catch (const std::exception& e) {
+        g_warning("Failed to load jobs: %s", e.what());
     }
     // In-flight state is not valid across daemon restarts — reset unconditionally.
     for (auto& job : m_jobs) {
@@ -325,9 +340,20 @@ void MtSyncDaemon::save_jobs() {
     for (auto& job : m_jobs)
         j["jobs"].push_back(job);
 
-    fs::create_directories(fs::path(m_config_path).parent_path());
-    std::ofstream f(m_config_path);
-    f << j.dump(2);
+    auto target = fs::path(m_config_path);
+    fs::create_directories(target.parent_path());
+    auto tmp = target.parent_path() / (target.filename().string() + ".tmp");
+    {
+        std::ofstream f(tmp);
+        if (!f) { g_warning("save_jobs: cannot write to %s", tmp.c_str()); return; }
+        f << j.dump(2);
+        if (!f.good()) { g_warning("save_jobs: write error on %s", tmp.c_str()); fs::remove(tmp); return; }
+    }
+    try { fs::rename(tmp, target); }
+    catch (const fs::filesystem_error& e) {
+        g_warning("save_jobs: rename failed: %s", e.what());
+        fs::remove(tmp);
+    }
 }
 
 void MtSyncDaemon::schedule_all_jobs() {
@@ -392,6 +418,9 @@ void MtSyncDaemon::on_run_job(size_t index) {
 
     if (index >= m_job_submitting.size()) m_job_submitting.resize(index + 1);
     m_job_submitting[index] = true;
+    // Capture the job's stable ID so async callbacks can detect if the job was
+    // deleted and a different job shifted into this index slot.
+    std::string job_uuid = job.id;
 
     auto start_time = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
     if (index < m_jobs.size()) {
@@ -414,23 +443,21 @@ void MtSyncDaemon::on_run_job(size_t index) {
         json response_payload = {{"index", index}};
         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload));
         m_manager.rc().mount_async(job.source, job.destination, job.vfs_cache_mode,
-            [this, index](auto result) {
+            [this, index, job_uuid](auto result) {
                 if (index < m_job_submitting.size()) m_job_submitting[index] = false;
+                if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                 json response_payload = {{"index", index}};
                 if (result.has_value()) {
                     response_payload["success"] = true;
-                    if (index < m_jobs.size()) m_jobs[index].active = true;
+                    m_jobs[index].active = true;
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
-                    if (index < m_jobs.size())
-                        append_log(std::format("COMPLETED {} [MOUNT] SUCCESS",
-                            m_jobs[index].id));
+                    append_log(std::format("COMPLETED {} [MOUNT] SUCCESS", m_jobs[index].id));
                 } else {
                     response_payload["success"] = false;
-                    if (index < m_jobs.size()) m_jobs[index].active = false;
+                    m_jobs[index].active = false;
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
-                    if (index < m_jobs.size())
-                        append_log(std::format("COMPLETED {} [MOUNT] FAILED -- {}",
-                            m_jobs[index].id, result.error()));
+                    append_log(std::format("COMPLETED {} [MOUNT] FAILED -- {}",
+                        m_jobs[index].id, result.error()));
                     g_warning("Mount %zu failed: %s", index, result.error().c_str());
                 }
             });
@@ -512,14 +539,14 @@ void MtSyncDaemon::on_run_job(size_t index) {
     if (!load_settings().global_rclone_flags.empty())
         inject_flags(load_settings().global_rclone_flags);
 
-    auto done_cb = [this, index](auto result) {
+    auto done_cb = [this, index, job_uuid](auto result) {
         if (index < m_job_submitting.size()) m_job_submitting[index] = false;
         if (!result.has_value()) {
             // Job never received an RC job ID — on_job_completed() would return early
             // on its m_job_ids guard, leaking job.running and m_running_job_count.
             // Clean up directly instead.
             g_warning("Job %zu failed to submit: %s", index, result.error().c_str());
-            if (index < m_jobs.size()) {
+            if (index < m_jobs.size() && m_jobs[index].id == job_uuid) {
                 m_jobs[index].running = false;
                 m_jobs[index].last_status = "error";
                 save_jobs();
@@ -532,6 +559,14 @@ void MtSyncDaemon::on_run_job(size_t index) {
             return;
         }
 
+        if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) {
+            // Job was deleted while the submission was in-flight.
+            m_running_job_count--;
+            if (m_running_job_count < 0) m_running_job_count = 0;
+            update_tray_animation();
+            return;
+        }
+
         if (index >= m_job_ids.size()) m_job_ids.resize(index + 1, -1);
         m_job_ids[index] = result.value();
 
@@ -540,13 +575,15 @@ void MtSyncDaemon::on_run_job(size_t index) {
         if (index >= m_last_stats.size()) m_last_stats.resize(index + 1);
 
         m_poll_timers[index] = Glib::signal_timeout().connect(
-            [this, index]() -> bool {
+            [this, index, job_uuid]() -> bool {
+                if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return false;
                 if (index >= m_job_ids.size() || m_job_ids[index] < 0) return false;
 
                 int64_t current_job_id = m_job_ids[index];
                 // Check job status first; if finished, stop polling immediately
-                m_manager.rc().job_status(current_job_id, [this, index](auto status) {
-                    // Guard against duplicate completion callbacks from overlapping poll cycles
+                m_manager.rc().job_status(current_job_id, [this, index, job_uuid](auto status) {
+                    // Guard against stale index (job deleted) or duplicate completion
+                    if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                     if (!status.has_value()) {
                         // rclone rcd is unreachable or doesn't know this job ID
@@ -560,8 +597,9 @@ void MtSyncDaemon::on_run_job(size_t index) {
                         return;
                     }
                 });
-                m_manager.rc().get_stats(current_job_id, [this, index](auto result) {
+                m_manager.rc().get_stats(current_job_id, [this, index, job_uuid](auto result) {
                     if (!result.has_value()) return;
+                    if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                     auto& stats = result.value();
                     if (index < m_last_stats.size()) m_last_stats[index] = stats;
                     if (stats.bytes == 0 && stats.total_bytes == 0 && stats.transfers == 0) return;
@@ -602,6 +640,8 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success) {
     // Atomically claim ownership: if the job_id is already cleared, another
     // completion path beat us here (duplicate from overlapping poll cycles).
     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
+    if (index >= m_jobs.size()) return;
+    std::string job_uuid = m_jobs[index].id;
     int64_t job_id = m_job_ids[index];
     // Clear the job_id FIRST so subsequent callbacks see it as done
     m_job_ids[index] = -1;
@@ -628,7 +668,14 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success) {
 
     // Fetch final stats from rclone to ensure the log has the most up-to-date
     // transfer count (the cached m_last_stats may be from a previous poll cycle).
-    m_manager.rc().get_stats(job_id, [this, index, success, job_id](auto result) {
+    m_manager.rc().get_stats(job_id, [this, index, success, job_id, job_uuid](auto result) {
+        if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) {
+            // Job was deleted while the stats fetch was in-flight; just clean up the counter.
+            m_running_job_count--;
+            if (m_running_job_count < 0) m_running_job_count = 0;
+            update_tray_animation();
+            return;
+        }
         if (result.has_value() && index < m_last_stats.size())
             m_last_stats[index] = result.value();
 

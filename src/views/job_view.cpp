@@ -255,19 +255,17 @@ JobView::~JobView() {
 
 void JobView::load_jobs() {
     m_jobs.clear();
-
-    if (fs::exists(m_config_path)) {
-        try {
-            std::ifstream f(m_config_path);
+    try {
+        std::ifstream f(m_config_path);
+        if (f) {
             auto j = json::parse(f);
             if (j.contains("jobs")) {
                 for (auto& p : j["jobs"])
                     m_jobs.push_back(p.get<rclone::Job>());
             }
-        } catch (const std::exception& e) {
-            g_warning("Failed to load jobs: %s", e.what());
         }
-        return;
+    } catch (const std::exception& e) {
+        g_warning("Failed to load jobs: %s", e.what());
     }
 }
 
@@ -277,9 +275,20 @@ void JobView::save_jobs() {
     for (auto& job : m_jobs)
         j["jobs"].push_back(job);
 
-    fs::create_directories(fs::path(m_config_path).parent_path());
-    std::ofstream f(m_config_path);
-    f << j.dump(2);
+    auto target = fs::path(m_config_path);
+    fs::create_directories(target.parent_path());
+    auto tmp = target.parent_path() / (target.filename().string() + ".tmp");
+    {
+        std::ofstream f(tmp);
+        if (!f) { g_warning("save_jobs: cannot write to %s", tmp.c_str()); return; }
+        f << j.dump(2);
+        if (!f.good()) { g_warning("save_jobs: write error on %s", tmp.c_str()); fs::remove(tmp); return; }
+    }
+    try { fs::rename(tmp, target); }
+    catch (const fs::filesystem_error& e) {
+        g_warning("save_jobs: rename failed: %s", e.what());
+        fs::remove(tmp);
+    }
 }
 
 void JobView::rebuild_ui() {
