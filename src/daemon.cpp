@@ -243,10 +243,12 @@ MtSyncDaemon::MtSyncDaemon() {
     });
 
     m_manager.rc().ensure_daemon([this](auto result) {
+        if (!m_running) return;
         if (!result.has_value()) return;
 
         // First, check which mount points are already active (e.g. from a previous session)
         m_manager.rc().list_mounts([this](auto result) {
+            if (!m_running) return;
             std::set<std::string> active_mounts;
             if (result.has_value()) {
                 active_mounts = std::set<std::string>(result.value().begin(), result.value().end());

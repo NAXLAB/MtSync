@@ -101,13 +101,29 @@ void IpcClient::send_message(const nlohmann::json& msg) {
     if (!is_connected()) return;
 
     auto data = msg.dump();
+    if (data.size() > 1024 * 1024) {
+        g_warning("Outbound message too large: %zu bytes, dropping", data.size());
+        return;
+    }
     uint32_t len = static_cast<uint32_t>(data.size());
 
     std::string packet;
     packet.append(reinterpret_cast<const char*>(&len), sizeof(len));
     packet += data;
 
-    ::send(m_fd, packet.data(), packet.size(), 0);
+    const char* buf = packet.data();
+    size_t remaining = packet.size();
+    while (remaining > 0) {
+        ssize_t n = ::send(m_fd, buf, remaining, MSG_NOSIGNAL);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            g_warning("send to daemon: %s", g_strerror(errno));
+            disconnect();
+            return;
+        }
+        buf += n;
+        remaining -= static_cast<size_t>(n);
+    }
 }
 
 bool IpcClient::on_io_watch(Glib::IOCondition condition) {
@@ -129,7 +145,7 @@ void IpcClient::read_message() {
     auto n = ::recv(m_fd, buf, sizeof(buf), 0);
     
     if (n <= 0) {
-        if (n < 0 && errno == EAGAIN) return;
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return;
         disconnect();
         return;
     }

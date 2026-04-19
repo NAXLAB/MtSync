@@ -34,6 +34,19 @@ namespace fs = std::filesystem;
 
 namespace mtsync::ipc {
 
+static bool write_all(int fd, const char* buf, size_t len) {
+    while (len > 0) {
+        ssize_t n = ::send(fd, buf, len, MSG_NOSIGNAL);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        buf += n;
+        len -= static_cast<size_t>(n);
+    }
+    return true;
+}
+
 IpcServer::IpcServer() = default;
 
 IpcServer::~IpcServer() {
@@ -43,14 +56,7 @@ IpcServer::~IpcServer() {
 bool IpcServer::start() {
     auto socket_path = get_socket_path();
     
-    fs::path dir(fs::path(socket_path).parent_path());
-    if (!fs::exists(dir)) {
-        fs::create_directories(dir);
-    }
-    
-    if (fs::exists(socket_path)) {
-        fs::remove(socket_path);
-    }
+    fs::create_directories(fs::path(socket_path).parent_path());
 
     m_server_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
     if (m_server_fd < 0) {
@@ -71,10 +77,33 @@ bool IpcServer::start() {
     std::strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
 
     if (::bind(m_server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        g_warning("Failed to bind socket: %s", g_strerror(errno));
-        ::close(m_server_fd);
-        m_server_fd = -1;
-        return false;
+        if (errno == EADDRINUSE) {
+            // Test whether a live daemon already owns this socket
+            int probe = ::socket(AF_UNIX, SOCK_STREAM, 0);
+            if (probe >= 0) {
+                bool live = (::connect(probe, (struct sockaddr*)&addr, sizeof(addr)) == 0);
+                ::close(probe);
+                if (live) {
+                    g_warning("Another daemon instance is already running at %s", socket_path.c_str());
+                    ::close(m_server_fd);
+                    m_server_fd = -1;
+                    return false;
+                }
+            }
+            // Stale socket — remove and retry
+            ::unlink(socket_path.c_str());
+            if (::bind(m_server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+                g_warning("Failed to bind socket after removing stale socket: %s", g_strerror(errno));
+                ::close(m_server_fd);
+                m_server_fd = -1;
+                return false;
+            }
+        } else {
+            g_warning("Failed to bind socket: %s", g_strerror(errno));
+            ::close(m_server_fd);
+            m_server_fd = -1;
+            return false;
+        }
     }
 
     ::chmod(socket_path.c_str(), 0600);
@@ -117,21 +146,23 @@ void IpcServer::stop() {
         m_server_fd = -1;
     }
     
-    auto socket_path = get_socket_path();
-    if (fs::exists(socket_path)) {
-        fs::remove(socket_path);
-    }
+    ::unlink(get_socket_path().c_str());
 }
 
 void IpcServer::send_to(int client_fd, const nlohmann::json& msg) {
     auto data = msg.dump();
+    if (data.size() > 1024 * 1024) {
+        g_warning("Outbound message too large: %zu bytes, dropping", data.size());
+        return;
+    }
     uint32_t len = static_cast<uint32_t>(data.size());
 
     std::string packet;
     packet.append(reinterpret_cast<const char*>(&len), sizeof(len));
     packet += data;
 
-    ::send(client_fd, packet.data(), packet.size(), 0);
+    if (!write_all(client_fd, packet.data(), packet.size()))
+        g_warning("send to client fd=%d: %s (will be removed on next HUP/ERR)", client_fd, g_strerror(errno));
 }
 
 void IpcServer::send_to_all(const nlohmann::json& msg) {
@@ -203,7 +234,7 @@ void IpcServer::read_from_client(int fd) {
     auto n = ::recv(fd, buf, sizeof(buf), 0);
     
     if (n <= 0) {
-        if (n < 0 && errno == EAGAIN) return;
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return;
         remove_client(fd);
         return;
     }

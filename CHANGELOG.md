@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.8 — IPC & Daemon Safety Fixes
+- **IPC send reliability**: `::send()` return values are now checked on both server and client paths; a `write_all()` loop with `MSG_NOSIGNAL` retries on `EINTR` and handles partial writes — previously a failed or partial send was silently dropped
+- **Outbound message size guard**: both server and client now reject outbound messages larger than 1 MB before the `uint32_t` length cast, preventing silent truncation on the wire
+- **Socket TOCTOU on bind**: removed the `fs::exists()` + `fs::remove()` pre-check before `bind()` — server now calls `bind()` directly; on `EADDRINUSE` it probes with `connect()` to distinguish a live daemon (returns an error) from a stale socket (unlinks and retries bind), eliminating the check-then-act race window; `stop()` uses `::unlink()` directly instead of an existence check
+- **Startup callback liveness guard**: `ensure_daemon` and `list_mounts` async callbacks now check `m_running` on entry — if the daemon was stopped before the HTTP response arrived, the callbacks return immediately rather than accessing freed `m_jobs` state or a reset `m_ipc_server`
+- **`EWOULDBLOCK` alongside `EAGAIN`**: both `read_from_client` (server) and `read_message` (client) now treat `EWOULDBLOCK` as a non-fatal would-block condition, matching POSIX allowance for the two values to differ
+
 ## 0.8.7 — Correctness & Safety Fixes
 - **Atomic config writes**: `jobs.json` and `settings.json` are now written to a `.tmp` sibling file and renamed into place — a crash or I/O error during a save no longer corrupts the existing file
 - **Config read TOCTOU**: removed `fs::exists()` pre-checks before opening config files; file is now opened directly and a missing file is treated as an empty config, eliminating the check-then-open race window
