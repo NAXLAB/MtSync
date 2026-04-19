@@ -227,10 +227,13 @@ MtSyncDaemon::MtSyncDaemon() {
                 });
 
             } else if (type_str == "quit") {
-                // Defer stop() to the next event-loop tick so we don't destroy
-                // the IpcServer (and its m_clients map) while still inside
-                // IpcServer::read_from_client() — which would be use-after-free.
-                Glib::signal_idle().connect_once([this]() { stop(); });
+                if (!m_quit_pending) {
+                    m_quit_pending = true;
+                    // Defer stop() to the next event-loop tick so we don't destroy
+                    // the IpcServer (and its m_clients map) while still inside
+                    // IpcServer::read_from_client() — which would be use-after-free.
+                    Glib::signal_idle().connect_once([this]() { stop(); });
+                }
 
             } else {
                 json response_payload = {{"error", "Unknown request type: " + type_str}};
@@ -538,8 +541,11 @@ void MtSyncDaemon::on_run_job(size_t index) {
     if (!job.extra_flags.empty()) inject_flags(job.extra_flags);
 
     // Inject global rclone flags (lower priority — do not overwrite per-job opts)
-    if (!load_settings().global_rclone_flags.empty())
-        inject_flags(load_settings().global_rclone_flags);
+    {
+        auto global_flags = load_settings().global_rclone_flags;
+        if (!global_flags.empty())
+            inject_flags(global_flags);
+    }
 
     auto done_cb = [this, index, job_uuid](auto result) {
         if (index < m_job_submitting.size()) m_job_submitting[index] = false;

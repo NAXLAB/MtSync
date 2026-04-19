@@ -660,9 +660,9 @@ void JobEditDialog::update_preview() {
     for (int i = 0; i < 15; ++i) {
         GDateTime* nxt = cron::next_occurrence(tmp, cursor);
         g_date_time_unref(cursor);
-        if (!nxt) break;
         cursor = nxt;
-        gchar* fmt = g_date_time_format(nxt, "%Y-%m-%d %H:%M:%S");
+        if (!cursor) break;
+        gchar* fmt = g_date_time_format(cursor, "%Y-%m-%d %H:%M:%S");
         auto* lbl = Gtk::make_managed<Gtk::Label>(fmt);
         lbl->set_xalign(0.0f);
         lbl->add_css_class("monospace");
@@ -696,22 +696,22 @@ void JobEditDialog::refresh_calendar_marks() {
     }
 }
 
-void JobEditDialog::on_commit() {
+rclone::Job JobEditDialog::build_job() const {
     rclone::Job job;
-    job.id               = m_editing ? m_editing->id : generate_uuid();
-    job.type             = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
-    job.source           = adw::entry_row_get_text(m_source_entry);
-    job.destination      = adw::entry_row_get_text(m_dest_entry);
-    job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
-    job.bisync           = m_bisync_switch->get_visible()
-                        && adw::switch_row_get_active(m_bisync_switch);
-    job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
-    job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
+    job.id              = m_editing ? m_editing->id : generate_uuid();
+    job.type            = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
+    job.source          = adw::entry_row_get_text(m_source_entry);
+    job.destination     = adw::entry_row_get_text(m_dest_entry);
+    job.dry_run         = adw::switch_row_get_active(m_dry_run_switch);
+    job.bisync          = m_bisync_switch->get_visible()
+                       && adw::switch_row_get_active(m_bisync_switch);
+    job.ignore_checksum = !adw::switch_row_get_active(m_enable_checksum_switch);
+    job.bandwidth       = adw::entry_row_get_text(m_bandwidth_entry);
     try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
     catch (...) { job.parallel_transfers = -1; }
     try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
     catch (...) { job.retries = -1; }
-    job.extra_flags      = adw::entry_row_get_text(m_extra_flags_entry);
+    job.extra_flags     = adw::entry_row_get_text(m_extra_flags_entry);
     {
         auto cron = get_cron_job();
         job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
@@ -738,9 +738,12 @@ void JobEditDialog::on_commit() {
         std::string token;
         while (ss >> token) job.includes.push_back(token);
     }
+    return job;
+}
 
+void JobEditDialog::on_commit() {
+    auto job = build_job();
     if (job.source.empty() || job.destination.empty()) return;
-
     if (m_on_done) m_on_done(std::move(job));
     close();
 }
@@ -750,50 +753,8 @@ void JobEditDialog::set_save_callback(DoneCallback cb) {
 }
 
 void JobEditDialog::on_save() {
-    rclone::Job job;
-    job.id               = m_editing ? m_editing->id : generate_uuid();
-    job.type             = index_to_job_type(adw::combo_row_get_selected(m_type_combo));
-    job.source           = adw::entry_row_get_text(m_source_entry);
-    job.destination      = adw::entry_row_get_text(m_dest_entry);
-    job.dry_run          = adw::switch_row_get_active(m_dry_run_switch);
-    job.bisync           = m_bisync_switch->get_visible()
-                        && adw::switch_row_get_active(m_bisync_switch);
-    job.ignore_checksum  = !adw::switch_row_get_active(m_enable_checksum_switch);
-    job.bandwidth        = adw::entry_row_get_text(m_bandwidth_entry);
-    try { job.parallel_transfers = std::stoi(adw::entry_row_get_text(m_parallel_transfers_entry)); }
-    catch (...) { job.parallel_transfers = -1; }
-    try { job.retries = std::stoi(adw::entry_row_get_text(m_retries_entry)); }
-    catch (...) { job.retries = -1; }
-    job.extra_flags      = adw::entry_row_get_text(m_extra_flags_entry);
-    {
-        auto cron = get_cron_job();
-        job.schedule_enabled = adw::switch_row_get_active(m_schedule_switch);
-        job.cron_minute  = cron.cron_minute;
-        job.cron_hour    = cron.cron_hour;
-        job.cron_day     = cron.cron_day;
-        job.cron_month   = cron.cron_month;
-        job.cron_weekday = cron.cron_weekday;
-    }
-    job.mount_at_startup = m_mount_startup_switch->get_visible()
-                        && adw::switch_row_get_active(m_mount_startup_switch);
-    if (m_cache_mode_row->get_visible()) {
-        guint idx = adw::combo_row_get_selected(m_cache_mode_row);
-        const char* modes[] = {"off", "minimal", "writes", "full"};
-        job.vfs_cache_mode = idx < 4 ? modes[idx] : "off";
-    } else {
-        job.vfs_cache_mode = "";
-    }
-    job.last_start  = m_editing ? m_editing->last_start  : "";
-    job.last_run    = m_editing ? m_editing->last_run    : "";
-    job.last_status = m_editing ? m_editing->last_status : "";
-    {
-        std::istringstream ss(adw::entry_row_get_text(m_includes_entry));
-        std::string token;
-        while (ss >> token) job.includes.push_back(token);
-    }
-
+    auto job = build_job();
     if (job.source.empty() || job.destination.empty()) return;
-
     if (m_on_save) m_on_save(std::move(job));
     close();
 }

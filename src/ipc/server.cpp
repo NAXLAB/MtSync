@@ -80,15 +80,19 @@ bool IpcServer::start() {
         if (errno == EADDRINUSE) {
             // Test whether a live daemon already owns this socket
             int probe = ::socket(AF_UNIX, SOCK_STREAM, 0);
-            if (probe >= 0) {
-                bool live = (::connect(probe, (struct sockaddr*)&addr, sizeof(addr)) == 0);
-                ::close(probe);
-                if (live) {
-                    g_warning("Another daemon instance is already running at %s", socket_path.c_str());
-                    ::close(m_server_fd);
-                    m_server_fd = -1;
-                    return false;
-                }
+            if (probe < 0) {
+                g_warning("Failed to create probe socket: %s", g_strerror(errno));
+                ::close(m_server_fd);
+                m_server_fd = -1;
+                return false;
+            }
+            bool live = (::connect(probe, (struct sockaddr*)&addr, sizeof(addr)) == 0);
+            ::close(probe);
+            if (live) {
+                g_warning("Another daemon instance is already running at %s", socket_path.c_str());
+                ::close(m_server_fd);
+                m_server_fd = -1;
+                return false;
             }
             // Stale socket — remove and retry
             ::unlink(socket_path.c_str());

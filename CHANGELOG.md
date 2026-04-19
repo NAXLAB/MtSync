@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.9 — Code Review Fixes
+- **Double-free in schedule preview**: `update_preview` now assigns `cursor = nxt` before the null check so the post-loop `g_date_time_unref` never fires on an already-freed pointer
+- **Probe socket failure on bind**: `IpcServer::start` now returns `false` when the liveness-probe `socket()` call itself fails, instead of falling through to `::unlink` a potentially live daemon's socket
+- **Double settings file read**: `on_run_job` now loads `global_rclone_flags` once into a local before calling `inject_flags`, eliminating a redundant `settings.json` parse
+- **Duplicate quit handling**: a `m_quit_pending` flag prevents multiple simultaneous `"quit"` IPC messages from each queuing a separate deferred `stop()` call
+- **Duplicate build-job logic**: `on_commit` and `on_save` now delegate to a shared `build_job()` helper; removed the dead `m_advanced_row` field left over from the pre-tab layout
+
 ## 0.8.8 — IPC & Daemon Safety Fixes
 - **IPC send reliability**: `::send()` return values are now checked on both server and client paths; a `write_all()` loop with `MSG_NOSIGNAL` retries on `EINTR` and handles partial writes — previously a failed or partial send was silently dropped
 - **Outbound message size guard**: both server and client now reject outbound messages larger than 1 MB before the `uint32_t` length cast, preventing silent truncation on the wire

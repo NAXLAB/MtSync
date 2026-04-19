@@ -52,7 +52,6 @@ private:
     Gtk::Widget* m_dry_run_switch          = nullptr;
     Gtk::Widget* m_bisync_switch           = nullptr;
     Gtk::Widget* m_enable_checksum_switch  = nullptr;
-    Gtk::Widget* m_advanced_row            = nullptr;
     Gtk::Widget* m_mount_startup_switch    = nullptr;
     Gtk::Widget* m_cache_mode_row          = nullptr;
 
@@ -87,6 +86,9 @@ private:
     void setup_ui(rclone::JobType initial_type,
                   const std::string& initial_src,
                   const std::string& initial_dst);
+
+    // Form helpers
+    rclone::Job build_job() const;
 
     // Cron helpers
     rclone::Job get_cron_job() const;

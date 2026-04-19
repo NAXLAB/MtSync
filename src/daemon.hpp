@@ -66,7 +66,8 @@ private:
 
     void update_tray_animation();
 
-    bool m_running = true;
+    bool m_running      = true;
+    bool m_quit_pending = false;
 };
 
 } // namespace mtsync
