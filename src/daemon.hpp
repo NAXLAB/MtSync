@@ -47,7 +47,7 @@ private:
     void schedule_all_jobs();
     void schedule_job(size_t index);
     void on_run_job(size_t index);
-    void on_job_completed(size_t index, bool success);
+    void on_job_completed(size_t index, bool success, const std::string& error_msg = "");
 
     rclone::RcloneManager m_manager;
     std::vector<rclone::Job> m_jobs;

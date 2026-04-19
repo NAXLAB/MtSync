@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.10 — Error Log Files & Failure Reporting
+- **Error log files**: failed sync/copy/move/mount jobs now write a structured log to `~/.local/state/mtsync/errors/<source>-<timestamp>.log` containing the timestamp, job ID, type, source, destination, and rclone error message
+- **Clickable log link**: the activity log shows a `document-open` icon button on failed entries; clicking it opens the error log file in the system default text viewer
+- **Activity log on submission failure**: jobs that fail before receiving an rclone RC job ID (e.g. invalid remote, daemon unreachable) now always write a `FAILED` activity log entry — previously these failures were silent
+- **Actual rclone errors surfaced**: `rc_post` now checks the HTTP status code and extracts rclone's `"error"` field from non-200 responses; callers previously received a generic "No jobid in response" message instead of the real error
+- **Duration flag coercion**: `inject_flags` now converts Go duration strings (e.g. `--timeout 5m`, `--contimeout 30s`) to nanoseconds before placing them in the `_config` block — rclone's `time.Duration` fields reject string input and previously caused all jobs to fail with a Reshape unmarshal error; integer flags are also stored as JSON numbers rather than strings
+- **FAILED state in activity log**: failed jobs now log with state `FAILED` (red) instead of `COMPLETED` (green); the redundant "FAILED --" prefix is removed from the contents column since the state column already indicates failure
+
 ## 0.8.9 — Code Review Fixes
 - **Double-free in schedule preview**: `update_preview` now assigns `cursor = nxt` before the null check so the post-loop `g_date_time_unref` never fires on an already-freed pointer
 - **Probe socket failure on bind**: `IpcServer::start` now returns `false` when the liveness-probe `socket()` call itself fails, instead of falling through to `::unlink` a potentially live daemon's socket

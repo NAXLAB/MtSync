@@ -65,33 +65,54 @@ void RcloneRc::rc_post(const std::string& endpoint,
     soup_message_set_request_body_from_bytes(msg, "application/json", bytes);
     g_bytes_unref(bytes);
 
-    // Store callback in a shared_ptr so the C closure can own it
-    auto cb_ptr = std::make_shared<AsyncCallback<json>>(std::move(callback));
+    struct Pack {
+        std::shared_ptr<AsyncCallback<json>> cb;
+        SoupMessage* msg;
+    };
+
+    // Retain a reference so we can read the HTTP status code in the callback.
+    // The session holds its own ref during the async op, but we need ours to
+    // survive past g_object_unref(msg) below.
+    g_object_ref(msg);
+    auto* pack = new Pack{std::make_shared<AsyncCallback<json>>(std::move(callback)), msg};
 
     soup_session_send_and_read_async(m_session, msg, G_PRIORITY_DEFAULT, nullptr,
         [](GObject* source, GAsyncResult* result, gpointer user_data) {
-            auto* cb = static_cast<std::shared_ptr<AsyncCallback<json>>*>(user_data);
+            auto* pack = static_cast<Pack*>(user_data);
             GError* error = nullptr;
             auto* bytes = soup_session_send_and_read_finish(
                 SOUP_SESSION(source), result, &error);
 
             if (error) {
-                (**cb)(std::unexpected(std::string("HTTP error: ") + error->message));
+                (*pack->cb)(std::unexpected(std::string("HTTP error: ") + error->message));
                 g_error_free(error);
             } else {
+                auto http_status = soup_message_get_status(pack->msg);
                 gsize size = 0;
                 auto* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
                 try {
                     auto j = json::parse(std::string_view(data, size));
-                    (**cb)(std::move(j));
+                    // rclone RC error responses use non-200 HTTP status and include
+                    // an "error" string field in the body. Surface that as an error
+                    // rather than passing the raw JSON through (which would produce
+                    // confusing "No jobid in response" errors at the call sites).
+                    if (http_status != 200
+                            && j.is_object()
+                            && j.contains("error")
+                            && j["error"].is_string()) {
+                        (*pack->cb)(std::unexpected(j["error"].get<std::string>()));
+                    } else {
+                        (*pack->cb)(std::move(j));
+                    }
                 } catch (const json::exception& e) {
-                    (**cb)(std::unexpected(std::string("JSON parse error: ") + e.what()));
+                    (*pack->cb)(std::unexpected(std::string("JSON parse error: ") + e.what()));
                 }
                 g_bytes_unref(bytes);
             }
-            delete cb;
+            g_object_unref(pack->msg);
+            delete pack;
         },
-        new std::shared_ptr<AsyncCallback<json>>(cb_ptr));
+        pack);
 
     g_object_unref(msg);
 }

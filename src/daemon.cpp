@@ -86,6 +86,40 @@ void append_log(const std::string& line) {
     f << "[" << ts.raw() << "] " << line << "\n";
 }
 
+static std::string sanitize_filename(const std::string& s) {
+    std::string out;
+    for (unsigned char c : s)
+        out += (std::isalnum(c) || c == '-' || c == '_' || c == '.') ? (char)c : '_';
+    return out.empty() ? "job" : out;
+}
+
+static std::string write_error_log(const rclone::Job& job, const std::string& error_msg) {
+    auto dir = fs::path(g_get_user_state_dir()) / "mtsync" / "errors";
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    if (ec) return "";
+
+    auto ts  = Glib::DateTime::create_now_local().format("%Y-%m-%d-%H-%M-%S");
+    auto pos = job.source.rfind('/');
+    auto src = (pos != std::string::npos) ? job.source.substr(pos + 1) : job.source;
+    auto fname = sanitize_filename(src) + "-" + std::string(ts.raw()) + ".log";
+    auto path  = dir / fname;
+
+    std::ofstream f(path);
+    if (!f) return "";
+
+    auto human_ts = Glib::DateTime::create_now_local().format("%Y-%m-%d %H:%M:%S");
+    f << "MtSync Error Log\n================\n"
+      << "Timestamp:   " << human_ts.raw()     << "\n"
+      << "Job ID:      " << job.id             << "\n"
+      << "Type:        " << type_str(job.type) << "\n"
+      << "Source:      " << job.source         << "\n"
+      << "Destination: " << job.destination    << "\n"
+      << "\nError:\n"    << error_msg          << "\n";
+
+    return f.good() ? path.string() : "";
+}
+
 } // namespace
 
 namespace mtsync {
@@ -461,7 +495,7 @@ void MtSyncDaemon::on_run_job(size_t index) {
                     response_payload["success"] = false;
                     m_jobs[index].active = false;
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
-                    append_log(std::format("COMPLETED {} [MOUNT] FAILED -- {}",
+                    append_log(std::format("FAILED    {} [MOUNT] {}",
                         m_jobs[index].id, result.error()));
                     g_warning("Mount %zu failed: %s", index, result.error().c_str());
                 }
@@ -508,6 +542,38 @@ void MtSyncDaemon::on_run_job(size_t index) {
         return result;
     };
 
+    // Coerce a string flag value to the appropriate JSON type for rclone's _config.
+    // - Pure integers → JSON number (rclone int/bool fields)
+    // - Go duration strings (5m, 1h30s, 300ms) → nanoseconds as JSON int64
+    //   (required for fields typed time.Duration, which rejects string input)
+    // - Everything else (e.g. "1M" bandwidth) → kept as JSON string
+    auto coerce_value = [](const std::string& val) -> json {
+        if (val.empty()) return val;
+        // Pure integer
+        if (val.find_first_not_of("0123456789") == std::string::npos) {
+            try { return std::stoll(val); } catch (...) {}
+        }
+        // Go duration: digits followed by a unit (ns/us/ms/s/m/h), possibly repeated
+        int64_t total_ns = 0;
+        size_t i = 0;
+        while (i < val.size()) {
+            if (!std::isdigit(static_cast<unsigned char>(val[i]))) goto not_duration;
+            int64_t num = 0;
+            while (i < val.size() && std::isdigit(static_cast<unsigned char>(val[i])))
+                num = num * 10 + (val[i++] - '0');
+            if (i + 1 < val.size() && val[i] == 'n' && val[i+1] == 's') { total_ns += num;                           i += 2; }
+            else if (i + 1 < val.size() && val[i] == 'u' && val[i+1] == 's') { total_ns += num * 1'000LL;           i += 2; }
+            else if (i + 1 < val.size() && val[i] == 'm' && val[i+1] == 's') { total_ns += num * 1'000'000LL;       i += 2; }
+            else if (i < val.size() && val[i] == 's') { total_ns += num * 1'000'000'000LL;                          i += 1; }
+            else if (i < val.size() && val[i] == 'm') { total_ns += num * 60LL  * 1'000'000'000LL;                  i += 1; }
+            else if (i < val.size() && val[i] == 'h') { total_ns += num * 3600LL * 1'000'000'000LL;                 i += 1; }
+            else goto not_duration;
+        }
+        if (i == val.size() && i > 0) return total_ns;
+        not_duration:
+        return val;
+    };
+
     auto inject_flags = [&](const std::string& flags) {
         std::vector<std::string> tokens;
         std::istringstream iss(flags);
@@ -521,12 +587,12 @@ void MtSyncDaemon::on_run_job(size_t index) {
                 std::string key = to_pascal(key_raw.substr(0, eq));
                 std::string val = key_raw.substr(eq + 1);
                 if (!opts["_config"].contains(key))
-                    opts["_config"][key] = val;
+                    opts["_config"][key] = coerce_value(val);
                 ++i;
             } else if (i + 1 < tokens.size() && tokens[i + 1][0] != '-') {
                 std::string key = to_pascal(key_raw);
                 if (!opts["_config"].contains(key))
-                    opts["_config"][key] = tokens[i + 1];
+                    opts["_config"][key] = coerce_value(tokens[i + 1]);
                 i += 2;
             } else {
                 std::string key = to_pascal(key_raw);
@@ -554,15 +620,21 @@ void MtSyncDaemon::on_run_job(size_t index) {
             // on its m_job_ids guard, leaking job.running and m_running_job_count.
             // Clean up directly instead.
             g_warning("Job %zu failed to submit: %s", index, result.error().c_str());
+            std::string log_path;
             if (index < m_jobs.size() && m_jobs[index].id == job_uuid) {
+                log_path = write_error_log(m_jobs[index], result.error());
                 m_jobs[index].running = false;
                 m_jobs[index].last_status = "error";
                 save_jobs();
+                std::string log_suffix = log_path.empty() ? "" : " | log:" + log_path;
+                append_log(std::format("FAILED    {} [{}] {}{}",
+                    m_jobs[index].id, type_str(m_jobs[index].type),
+                    result.error(), log_suffix));
             }
             m_running_job_count--;
             if (m_running_job_count < 0) m_running_job_count = 0;
             update_tray_animation();
-            json response_payload = {{"index", index}, {"success", false}};
+            json response_payload = {{"index", index}, {"success", false}, {"log_path", log_path}};
             m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
             return;
         }
@@ -597,11 +669,12 @@ void MtSyncDaemon::on_run_job(size_t index) {
                         // rclone rcd is unreachable or doesn't know this job ID
                         // (e.g. rcd crashed or was restarted). Treat as failure so the
                         // stale job ID is cleared and the job can run again.
-                        on_job_completed(index, false);
+                        on_job_completed(index, false, "rclone rcd unreachable");
                         return;
                     }
                     if (status->finished) {
-                        on_job_completed(index, status->success);
+                        on_job_completed(index, status->success,
+                            status->success ? std::string{} : status->error);
                         return;
                     }
                 });
@@ -644,7 +717,7 @@ void MtSyncDaemon::on_run_job(size_t index) {
     }
 }
 
-void MtSyncDaemon::on_job_completed(size_t index, bool success) {
+void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::string& error_msg) {
     // Atomically claim ownership: if the job_id is already cleared, another
     // completion path beat us here (duplicate from overlapping poll cycles).
     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
@@ -676,7 +749,7 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success) {
 
     // Fetch final stats from rclone to ensure the log has the most up-to-date
     // transfer count (the cached m_last_stats may be from a previous poll cycle).
-    m_manager.rc().get_stats(job_id, [this, index, success, job_id, job_uuid](auto result) {
+    m_manager.rc().get_stats(job_id, [this, index, success, job_id, job_uuid, error_msg](auto result) {
         if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) {
             // Job was deleted while the stats fetch was in-flight; just clean up the counter.
             m_running_job_count--;
@@ -697,7 +770,13 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success) {
             job.last_run = now;
             save_jobs();
 
+            std::string log_path;
+            if (!success && !error_msg.empty())
+                log_path = write_error_log(job, error_msg);
+            std::string log_suffix = log_path.empty() ? "" : " | log:" + log_path;
+
             json response_payload = {{"index", index}, {"success", success}};
+            if (!log_path.empty()) response_payload["log_path"] = log_path;
 
             // Include stats text for GUI display
             if (index < m_last_stats.size()) {
@@ -710,16 +789,21 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success) {
 
             m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
 
+            // Always write a log entry regardless of stats availability
+            std::string state  = success ? "COMPLETED" : "FAILED   ";
+            std::string detail;
             if (index < m_last_stats.size()) {
                 auto& s = m_last_stats[index];
-                std::string detail = success
+                detail = success
                     ? std::format("SUCCESS -- {} files, {}, {}, ran for {}",
                         s.transfers, format_bytes(s.bytes), format_speed(s.speed),
                         format_duration(s.elapsed_time))
-                    : "FAILED";
-                append_log(std::format("COMPLETED {} [{}] {}",
-                    job.id, type_str(job.type), detail));
+                    : std::format("{}{}", error_msg.empty() ? "see log" : error_msg, log_suffix);
+            } else {
+                detail = success ? "SUCCESS"
+                    : std::format("{}{}", error_msg.empty() ? "see log" : error_msg, log_suffix);
             }
+            append_log(std::format("{} {} [{}] {}", state, job.id, type_str(job.type), detail));
 
             if (success) {
                 if (load_settings().notify_on_completion)

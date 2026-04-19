@@ -157,10 +157,11 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
         auto state = std::string(obj->property_state.get_value());
         lbl->set_text(state);
-        for (auto cls : {"log-started","log-completed","log-skipped","log-retrying"})
+        for (auto cls : {"log-started","log-completed","log-failed","log-skipped","log-retrying"})
             lbl->remove_css_class(cls);
         if      (state == "STARTED")   lbl->add_css_class("log-started");
         else if (state == "COMPLETED") lbl->add_css_class("log-completed");
+        else if (state == "FAILED")    lbl->add_css_class("log-failed");
         else if (state == "SKIPPED")   lbl->add_css_class("log-skipped");
         else if (state == "RETRYING")  lbl->add_css_class("log-retrying");
     });
@@ -205,16 +206,41 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     // --- Contents column (expands) ---
     auto contents_factory = Gtk::SignalListItemFactory::create();
     contents_factory->signal_setup().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
+        auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 4);
+        box->set_hexpand(true);
+
         auto* lbl = Gtk::make_managed<Gtk::Label>();
         lbl->set_xalign(0.0f);
         lbl->set_hexpand(true);
         lbl->set_ellipsize(Pango::EllipsizeMode::END);
-        item->set_child(*lbl);
+        box->append(*lbl);
+
+        auto* btn = Gtk::make_managed<Gtk::Button>();
+        btn->set_icon_name("document-open-symbolic");
+        btn->add_css_class("flat");
+        btn->set_visible(false);
+        btn->set_valign(Gtk::Align::CENTER);
+        // Single permanent handler; path stored as GObject data to survive cell recycling
+        btn->signal_clicked().connect([btn]() {
+            const char* p = static_cast<const char*>(
+                g_object_get_data(G_OBJECT(btn->gobj()), "log-path"));
+            if (p && *p)
+                Gio::AppInfo::launch_default_for_uri(Glib::filename_to_uri(p));
+        });
+        box->append(*btn);
+        item->set_child(*box);
     });
     contents_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
         auto obj = std::dynamic_pointer_cast<LogEntry>(item->get_item());
         if (!obj) return;
-        dynamic_cast<Gtk::Label*>(item->get_child())->set_text(obj->property_contents.get_value());
+        auto* box = dynamic_cast<Gtk::Box*>(item->get_child());
+        auto* lbl = dynamic_cast<Gtk::Label*>(box->get_first_child());
+        auto* btn = dynamic_cast<Gtk::Button*>(lbl->get_next_sibling());
+        lbl->set_text(obj->property_contents.get_value());
+        std::string log_path = obj->property_log_path.get_value();
+        g_object_set_data_full(G_OBJECT(btn->gobj()), "log-path",
+            g_strdup(log_path.c_str()), g_free);
+        btn->set_visible(!log_path.empty());
     });
     auto contents_col = Gtk::ColumnViewColumn::create("Activity", contents_factory);
     contents_col->set_expand(true);
@@ -229,6 +255,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
             "columnview.job-log label.monospace { font-size: 0.8em; }\n"
             ".log-started   { color: @blue_3;  }\n"
             ".log-completed { color: @green_4; }\n"
+            ".log-failed    { color: @red_3;   }\n"
             ".log-skipped   { color: @orange_3; }\n"
             ".log-retrying  { color: @orange_3; }\n"
         );
@@ -660,8 +687,15 @@ void JobView::refresh_log() {
     for (auto it = lines.rbegin(); it != lines.rend(); ++it) {
         std::smatch m;
         if (std::regex_match(*it, m, re)) {
+            std::string raw_contents = m[5].str();
+            std::string log_path;
+            auto sep = raw_contents.find(" | log:");
+            if (sep != std::string::npos) {
+                log_path     = raw_contents.substr(sep + 7);
+                raw_contents = raw_contents.substr(0, sep);
+            }
             m_log_store->append(LogEntry::create(
-                m[1].str(), m[2].str(), m[3].str(), m[4].str(), m[5].str()));
+                m[1].str(), m[2].str(), m[3].str(), m[4].str(), raw_contents, log_path));
         } else if (!it->empty()) {
             m_log_store->append(LogEntry::create("", "", "", "", *it));
         }
