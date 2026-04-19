@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.11 — Sprite Sheet Tray Icon Animation
+- **Sprite sheet animation**: tray icon animation now uses the artist-created 8-frame sprite sheet instead of a procedurally generated Cairo spinner overlay — idle state shows frame 1; active jobs cycle through all 8 frames at 100 ms per frame
+- **Icon resolution**: `ICON_SIZE` increased from 22 to 47 px to match the sprite dimensions; the system tray compositor scales as needed, preserving crispness at HiDPI
+- **Spritesheet resource**: `MtSync_smoke_spritesheet_8frames_47px.png` embedded via GLib resources at `/io/github/mtsync/icons/spritesheet.png`
+
 ## 0.8.10 — Error Log Files & Failure Reporting
 - **Error log files**: failed sync/copy/move/mount jobs now write a structured log to `~/.local/state/mtsync/errors/<source>-<timestamp>.log` containing the timestamp, job ID, type, source, destination, and rclone error message
 - **Clickable log link**: the activity log shows a `document-open` icon button on failed entries; clicking it opens the error log file in the system default text viewer

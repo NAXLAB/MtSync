@@ -535,28 +535,8 @@ void TrayIcon::build_frames() {
         cairo_paint(cr);
 
         if (m_idle_surface) {
-            cairo_set_source_surface(cr, m_idle_surface, 0, 0);
+            cairo_set_source_surface(cr, m_idle_surface, -(frame * ICON_SIZE), 0);
             cairo_paint(cr);
-        }
-
-        for (int seg = 0; seg < ANIM_FRAMES; ++seg) {
-            int dist    = (frame - seg + ANIM_FRAMES) % ANIM_FRAMES;
-            double a    = 1.0 - dist * (0.85 / ANIM_FRAMES);
-            double angle = seg * (2.0 * M_PI / ANIM_FRAMES) - M_PI / 2.0;
-
-            cairo_save(cr);
-            cairo_translate(cr, ICON_SIZE / 2.0, ICON_SIZE / 2.0);
-            cairo_rotate(cr, angle);
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, a);
-            const double rx = -1.0, ry = 4.0, rw = 2.0, rh = 4.0, rc = 1.0;
-            cairo_new_path(cr);
-            cairo_arc(cr, rx+rc,    ry+rc,    rc,  M_PI,    -M_PI/2);
-            cairo_arc(cr, rx+rw-rc, ry+rc,    rc, -M_PI/2,  0);
-            cairo_arc(cr, rx+rw-rc, ry+rh-rc, rc,  0,       M_PI/2);
-            cairo_arc(cr, rx+rc,    ry+rh-rc, rc,  M_PI/2,  M_PI);
-            cairo_close_path(cr);
-            cairo_fill(cr);
-            cairo_restore(cr);
         }
 
         cairo_surface_flush(surf);
@@ -568,10 +548,10 @@ void TrayIcon::build_frames() {
             for (int x = 0; x < ICON_SIZE; ++x) {
                 uint32_t p; std::memcpy(&p, px + y * stride + x * 4, 4);
                 int i = (y * ICON_SIZE + x) * 4;
-                m_frames[frame][i+0] = (p >> 24) & 0xFF; // A
-                m_frames[frame][i+1] = (p >> 16) & 0xFF; // R
-                m_frames[frame][i+2] = (p >>  8) & 0xFF; // G
-                m_frames[frame][i+3] = (p >>  0) & 0xFF; // B
+                m_frames[frame][i+0] = (p >> 24) & 0xFF;
+                m_frames[frame][i+1] = (p >> 16) & 0xFF;
+                m_frames[frame][i+2] = (p >>  8) & 0xFF;
+                m_frames[frame][i+3] = (p >>  0) & 0xFF;
             }
         }
         cairo_destroy(cr);
@@ -585,89 +565,54 @@ void TrayIcon::build_frames() {
 }
 
 void TrayIcon::load_idle_icon() {
-    g_message("Tray: attempting to load idle icon from resource");
     GError* error = nullptr;
-    GBytes* data = g_resources_lookup_data("/io/github/mtsync/icons/idle.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+    GBytes* data = g_resources_lookup_data(
+        "/io/github/mtsync/icons/spritesheet.png",
+        G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
     if (!data) {
-        g_warning("Tray: failed to lookup idle icon resource: %s", error ? error->message : "unknown");
+        g_warning("Tray: failed to load spritesheet: %s", error ? error->message : "unknown");
         if (error) g_error_free(error);
         return;
     }
 
     gsize size;
     const guint8* bytes = reinterpret_cast<const guint8*>(g_bytes_get_data(data, &size));
-    g_message("Tray: resource found, %zu bytes", size);
-
     PngReadClosure closure = { bytes, size, 0 };
-    cairo_surface_t* src_surface = cairo_image_surface_create_from_png_stream(png_read_func, &closure);
+    m_idle_surface = cairo_image_surface_create_from_png_stream(png_read_func, &closure);
     g_bytes_unref(data);
 
-    if (!src_surface || cairo_surface_status(src_surface) != CAIRO_STATUS_SUCCESS) {
-        g_warning("Tray: failed to parse idle icon PNG: %s",
-                  src_surface ? cairo_status_to_string(cairo_surface_status(src_surface)) : "null surface");
-        if (src_surface) cairo_surface_destroy(src_surface);
+    if (!m_idle_surface || cairo_surface_status(m_idle_surface) != CAIRO_STATUS_SUCCESS) {
+        g_warning("Tray: failed to decode spritesheet PNG");
+        if (m_idle_surface) { cairo_surface_destroy(m_idle_surface); m_idle_surface = nullptr; }
         return;
     }
 
-    int src_width = cairo_image_surface_get_width(src_surface);
-    int src_height = cairo_image_surface_get_height(src_surface);
-    g_message("Tray: source icon size %dx%d", src_width, src_height);
+    // Extract frame 0 (x=0) pixels for the idle icon pixmap
+    cairo_surface_flush(m_idle_surface);
+    unsigned char* px = cairo_image_surface_get_data(m_idle_surface);
+    int stride = cairo_image_surface_get_stride(m_idle_surface);
 
-    // Create destination surface at ICON_SIZE x ICON_SIZE to match animation frames
-    cairo_surface_t* dst_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ICON_SIZE, ICON_SIZE);
-    cairo_t* cr = cairo_create(dst_surface);
-
-    // Scale the source image to fit ICON_SIZE x ICON_SIZE
-    double scale_x = (double)ICON_SIZE / src_width;
-    double scale_y = (double)ICON_SIZE / src_height;
-    double scale = std::min(scale_x, scale_y);
-
-    double scaled_w = src_width * scale;
-    double scaled_h = src_height * scale;
-    double offset_x = (ICON_SIZE - scaled_w) / 2.0;
-    double offset_y = (ICON_SIZE - scaled_h) / 2.0;
-
-    cairo_translate(cr, offset_x, offset_y);
-    cairo_scale(cr, scale, scale);
-    cairo_set_source_surface(cr, src_surface, 0, 0);
-    cairo_paint(cr);
-
-    cairo_destroy(cr);
-    cairo_surface_destroy(src_surface);
-
-    cairo_surface_flush(dst_surface);
-    unsigned char* px = cairo_image_surface_get_data(dst_surface);
-    int stride = cairo_image_surface_get_stride(dst_surface);
-
-    // Convert to ARGB32 format matching animation frames
     m_idle_icon.resize(ICON_SIZE * ICON_SIZE * 4);
     for (int y = 0; y < ICON_SIZE; ++y) {
         for (int x = 0; x < ICON_SIZE; ++x) {
             uint32_t p;
             std::memcpy(&p, px + y * stride + x * 4, 4);
             int i = (y * ICON_SIZE + x) * 4;
-            m_idle_icon[i+0] = (p >> 24) & 0xFF; // A
-            m_idle_icon[i+1] = (p >> 16) & 0xFF; // R
-            m_idle_icon[i+2] = (p >>  8) & 0xFF; // G
-            m_idle_icon[i+3] = (p >>  0) & 0xFF; // B
+            m_idle_icon[i+0] = (p >> 24) & 0xFF;
+            m_idle_icon[i+1] = (p >> 16) & 0xFF;
+            m_idle_icon[i+2] = (p >>  8) & 0xFF;
+            m_idle_icon[i+3] = (p >>  0) & 0xFF;
         }
     }
-
-    // Retain the surface so build_frames() can composite spinner frames over it
-    m_idle_surface = dst_surface;
-    g_message("Tray: loaded idle icon %dx%d -> scaled to %dx%d ARGB32 (%zu bytes)",
-              src_width, src_height, ICON_SIZE, ICON_SIZE, m_idle_icon.size());
+    // m_idle_surface kept alive for build_frames() to slice remaining frames
 }
 
 GVariant* TrayIcon::idle_icon_pixmap() const {
-    size_t total_pixels = m_idle_icon.size() / 4;
-    int size = static_cast<int>(std::sqrt(total_pixels));
-
     GVariantBuilder b;
     g_variant_builder_init(&b, G_VARIANT_TYPE("a(iiay)"));
     g_variant_builder_open(&b, G_VARIANT_TYPE("(iiay)"));
-    g_variant_builder_add(&b, "i", size);
-    g_variant_builder_add(&b, "i", size);
+    g_variant_builder_add(&b, "i", ICON_SIZE);
+    g_variant_builder_add(&b, "i", ICON_SIZE);
     GVariantBuilder bytes;
     g_variant_builder_init(&bytes, G_VARIANT_TYPE("ay"));
     for (uint8_t byte : m_idle_icon)
