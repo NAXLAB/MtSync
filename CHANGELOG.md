@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.14 — Stopped Job Logging & Browse Nav Polish
+
+- **Stopped job activity log**: manually stopping a job now writes a `STOPPED` entry to the activity log for both mount and non-mount jobs — previously the log showed `STARTED` with no corresponding terminal entry; `STOPPED` is displayed in purple to distinguish it from `COMPLETED` (green) and `FAILED` (red)
+- **Compact browse nav buttons**: Back and Up buttons on the Browse tab now use the `circular` CSS class for a tighter, icon-button appearance
+
 ## 0.8.13 — Tray Animation & Package Description
 
 - **16-frame sprite sheet**: tray icon animation now uses the 16-frame sprite sheet (`MtSync_smoke_spritesheet_16frames_47px.png`) — `ANIM_FRAMES` increased from 8 to 16 and `ANIM_INTERVAL_MS` set to 100 ms for a smooth 50 fps cycle

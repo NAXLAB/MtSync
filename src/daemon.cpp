@@ -153,22 +153,22 @@ MtSyncDaemon::MtSyncDaemon() {
 
     m_ipc_server = std::make_unique<ipc::IpcServer>();
     m_ipc_server->signal_message().connect([this](const json& msg) {
-        auto type_str = msg.value("type", "");
+        auto msg_type = msg.value("type", "");
         auto payload = msg.value("payload", json{});
 
         try {
-            if (type_str == "get_jobs") {
+            if (msg_type == "get_jobs") {
                 json response_payload = {{"jobs", m_jobs}};
                 m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobsList, response_payload, msg));
 
-            } else if (type_str == "add_job") {
+            } else if (msg_type == "add_job") {
                 m_jobs.push_back(payload.get<rclone::Job>());
                 save_jobs();
                 schedule_all_jobs();
                 json response_payload = {{"index", m_jobs.size() - 1}, {"job", m_jobs.back()}};
                 m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobAdded, response_payload, msg));
 
-            } else if (type_str == "update_job") {
+            } else if (msg_type == "update_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
                     m_jobs[index] = payload.value("job", rclone::Job{});
@@ -178,7 +178,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobUpdated, response_payload, msg));
                 }
 
-            } else if (type_str == "delete_job") {
+            } else if (msg_type == "delete_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
                     // If a non-mount job is actively running, its in-flight HTTP callbacks
@@ -206,7 +206,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobDeleted, response_payload, msg));
                 }
 
-            } else if (type_str == "run_job") {
+            } else if (msg_type == "run_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size()) {
                     on_run_job(index);
@@ -214,13 +214,15 @@ MtSyncDaemon::MtSyncDaemon() {
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobStarted, response_payload, msg));
                 }
 
-            } else if (type_str == "stop_job") {
+            } else if (msg_type == "stop_job") {
                 auto index = payload.value("index", static_cast<size_t>(-1));
                 if (index < m_jobs.size() && m_jobs[index].type == rclone::JobType::Mount) {
                     std::string job_uuid = m_jobs[index].id;
                     m_manager.rc().unmount_async(m_jobs[index].destination, [this, index, job_uuid](auto) {
                         if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                         m_jobs[index].active = false;
+                        append_log(std::format("STOPPED   {} [{}] user stopped",
+                            m_jobs[index].id, type_str(m_jobs[index].type)));
                         json response_payload = {{"index", index}, {"success", true}};
                         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
                     });
@@ -235,6 +237,8 @@ MtSyncDaemon::MtSyncDaemon() {
                         m_job_ids[index] = -1;
                         m_jobs[index].running = false;
                         save_jobs();
+                        append_log(std::format("STOPPED   {} [{}] user stopped",
+                            m_jobs[index].id, type_str(m_jobs[index].type)));
                         m_running_job_count--;
                         if (m_running_job_count < 0) m_running_job_count = 0;
                         update_tray_animation();
@@ -243,7 +247,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     });
                 }
 
-            } else if (type_str == "get_remotes") {
+            } else if (msg_type == "get_remotes") {
                 m_manager.cli().list_remotes([this, msg](std::expected<std::vector<rclone::RemoteInfo>, std::string> result) {
                     json response_payload;
                     if (result.has_value()) {
@@ -260,7 +264,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::RemotesList, response_payload, msg));
                 });
 
-            } else if (type_str == "quit") {
+            } else if (msg_type == "quit") {
                 if (!m_quit_pending) {
                     m_quit_pending = true;
                     // Defer stop() to the next event-loop tick so we don't destroy
@@ -270,7 +274,7 @@ MtSyncDaemon::MtSyncDaemon() {
                 }
 
             } else {
-                json response_payload = {{"error", "Unknown request type: " + type_str}};
+                json response_payload = {{"error", "Unknown request type: " + msg_type}};
                 m_ipc_server->send_to_all(make_response(ipc::ResponseType::Error, response_payload, msg));
             }
         } catch (const std::exception& e) {

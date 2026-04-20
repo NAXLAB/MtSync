@@ -157,13 +157,14 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         auto* lbl = dynamic_cast<Gtk::Label*>(item->get_child());
         auto state = std::string(obj->property_state.get_value());
         lbl->set_text(state);
-        for (auto cls : {"log-started","log-completed","log-failed","log-skipped","log-retrying"})
+        for (auto cls : {"log-started","log-completed","log-failed","log-skipped","log-retrying","log-stopped"})
             lbl->remove_css_class(cls);
         if      (state == "STARTED")   lbl->add_css_class("log-started");
         else if (state == "COMPLETED") lbl->add_css_class("log-completed");
         else if (state == "FAILED")    lbl->add_css_class("log-failed");
         else if (state == "SKIPPED")   lbl->add_css_class("log-skipped");
         else if (state == "RETRYING")  lbl->add_css_class("log-retrying");
+        else if (state == "STOPPED")   lbl->add_css_class("log-stopped");
     });
     auto state_col = Gtk::ColumnViewColumn::create("State", state_factory);
     state_col->set_fixed_width(110);
@@ -253,11 +254,12 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         css->load_from_data(
             "columnview.job-log label { font-family: monospace; font-size: 0.8em; }\n"
             "columnview.job-log label.monospace { font-size: 0.8em; }\n"
-            ".log-started   { color: @blue_3;  }\n"
-            ".log-completed { color: @green_4; }\n"
-            ".log-failed    { color: @red_3;   }\n"
+            ".log-started   { color: @blue_3;   }\n"
+            ".log-completed { color: @green_4;  }\n"
+            ".log-failed    { color: @red_3;    }\n"
             ".log-skipped   { color: @orange_3; }\n"
             ".log-retrying  { color: @orange_3; }\n"
+            ".log-stopped   { color: @purple_3; }\n"
         );
         Gtk::StyleContext::add_provider_for_display(
             Gdk::Display::get_default(), css,
