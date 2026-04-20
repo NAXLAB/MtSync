@@ -328,171 +328,176 @@ void JobView::rebuild_ui() {
     m_ui_rows.clear();
 
     for (size_t i = 0; i < m_jobs.size(); ++i) {
-        auto& job = m_jobs[i];
+        append_job_row(i);
+    }
+}
 
-        auto* row = adw::preferences_row_new();
-        adw::preferences_row_set_title(row, job_display_name(job).c_str());
+void JobView::append_job_row(size_t index) {
+    if (index >= m_jobs.size()) return;
+    auto& job = m_jobs[index];
+    const size_t i = index;
 
-        // Outer vertical container
-        auto* outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
-        outer->set_margin_top(10);
-        outer->set_margin_bottom(10);
-        outer->set_margin_start(12);
-        outer->set_margin_end(12);
+    auto* row = adw::preferences_row_new();
+    adw::preferences_row_set_title(row, job_display_name(job).c_str());
 
-        // Header row: type badge | job id (expands) | buttons
-        auto* header = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
+    // Outer vertical container
+    auto* outer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
+    outer->set_margin_top(10);
+    outer->set_margin_bottom(10);
+    outer->set_margin_start(12);
+    outer->set_margin_end(12);
 
-        auto* type_img = Gtk::make_managed<Gtk::Image>();
-        type_img->set_from_icon_name(type_icon(job.type));
-        type_img->set_icon_size(Gtk::IconSize::NORMAL);
-        type_img->set_valign(Gtk::Align::CENTER);
-        header->append(*type_img);
+    // Header row: type badge | job id (expands) | buttons
+    auto* header = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 8);
 
-        auto* id_label = Gtk::make_managed<Gtk::Label>(job_display_name(job));
-        id_label->add_css_class("heading");
-        id_label->set_halign(Gtk::Align::START);
-        id_label->set_hexpand(true);
-        header->append(*id_label);
+    auto* type_img = Gtk::make_managed<Gtk::Image>();
+    type_img->set_from_icon_name(type_icon(job.type));
+    type_img->set_icon_size(Gtk::IconSize::NORMAL);
+    type_img->set_valign(Gtk::Align::CENTER);
+    header->append(*type_img);
 
-        auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+    auto* id_label = Gtk::make_managed<Gtk::Label>(job_display_name(job));
+    id_label->add_css_class("heading");
+    id_label->set_halign(Gtk::Align::START);
+    id_label->set_hexpand(true);
+    header->append(*id_label);
 
-        JobUI ui;
-        ui.row = row;
+    auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
 
-        ui.run_btn = std::make_unique<Gtk::Button>();
-        ui.run_btn->set_icon_name("media-playback-start-symbolic");
-        ui.run_btn->set_valign(Gtk::Align::CENTER);
-        ui.run_btn->add_css_class("flat");
-        ui.run_btn->add_css_class("success");
-        ui.run_btn->signal_clicked().connect([this, i]() { on_run_job(i); });
+    JobUI ui;
+    ui.row = row;
 
-        ui.stop_btn = std::make_unique<Gtk::Button>();
-        ui.stop_btn->set_icon_name("media-playback-stop-symbolic");
-        ui.stop_btn->set_valign(Gtk::Align::CENTER);
-        ui.stop_btn->add_css_class("flat");
-        ui.stop_btn->add_css_class("destructive-action");
-        ui.stop_btn->set_visible(false);
-        ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
+    ui.run_btn = std::make_unique<Gtk::Button>();
+    ui.run_btn->set_icon_name("media-playback-start-symbolic");
+    ui.run_btn->set_valign(Gtk::Align::CENTER);
+    ui.run_btn->add_css_class("flat");
+    ui.run_btn->add_css_class("success");
+    ui.run_btn->signal_clicked().connect([this, i]() { on_run_job(i); });
 
-        ui.edit_btn = std::make_unique<Gtk::Button>();
-        ui.edit_btn->set_icon_name("document-edit-symbolic");
-        ui.edit_btn->set_valign(Gtk::Align::CENTER);
-        ui.edit_btn->add_css_class("flat");
-        ui.edit_btn->signal_clicked().connect([this, i]() { show_edit_dialog(i); });
+    ui.stop_btn = std::make_unique<Gtk::Button>();
+    ui.stop_btn->set_icon_name("media-playback-stop-symbolic");
+    ui.stop_btn->set_valign(Gtk::Align::CENTER);
+    ui.stop_btn->add_css_class("flat");
+    ui.stop_btn->add_css_class("destructive-action");
+    ui.stop_btn->set_visible(false);
+    ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
 
-        ui.del_btn = std::make_unique<Gtk::Button>();
-        ui.del_btn->set_icon_name("user-trash-symbolic");
-        ui.del_btn->set_valign(Gtk::Align::CENTER);
-        ui.del_btn->add_css_class("flat");
-        ui.del_btn->add_css_class("destructive-action");
-        ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
+    ui.edit_btn = std::make_unique<Gtk::Button>();
+    ui.edit_btn->set_icon_name("document-edit-symbolic");
+    ui.edit_btn->set_valign(Gtk::Align::CENTER);
+    ui.edit_btn->add_css_class("flat");
+    ui.edit_btn->signal_clicked().connect([this, i]() { show_edit_dialog(i); });
 
-        // Disclosure toggle button (chevron), placed after delete button
-        auto* expand_btn = Gtk::make_managed<Gtk::ToggleButton>();
-        expand_btn->set_icon_name("pan-end-symbolic");
-        expand_btn->set_valign(Gtk::Align::CENTER);
-        expand_btn->add_css_class("flat");
+    ui.del_btn = std::make_unique<Gtk::Button>();
+    ui.del_btn->set_icon_name("user-trash-symbolic");
+    ui.del_btn->set_valign(Gtk::Align::CENTER);
+    ui.del_btn->add_css_class("flat");
+    ui.del_btn->add_css_class("destructive-action");
+    ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
 
-        btn_box->append(*ui.run_btn);
-        btn_box->append(*ui.stop_btn);
-        btn_box->append(*ui.edit_btn);
-        btn_box->append(*ui.del_btn);
-        btn_box->append(*expand_btn);
-        header->append(*btn_box);
-        outer->append(*header);
+    // Disclosure toggle button (chevron), placed after delete button
+    auto* expand_btn = Gtk::make_managed<Gtk::ToggleButton>();
+    expand_btn->set_icon_name("pan-end-symbolic");
+    expand_btn->set_valign(Gtk::Align::CENTER);
+    expand_btn->add_css_class("flat");
 
-        // Collapsible detail section: UUID + full paths
-        auto* revealer = Gtk::make_managed<Gtk::Revealer>();
-        revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_DOWN);
-        revealer->set_reveal_child(false);
+    btn_box->append(*ui.run_btn);
+    btn_box->append(*ui.stop_btn);
+    btn_box->append(*ui.edit_btn);
+    btn_box->append(*ui.del_btn);
+    btn_box->append(*expand_btn);
+    header->append(*btn_box);
+    outer->append(*header);
 
-        auto* detail_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
-        detail_box->set_margin_top(4);
+    // Collapsible detail section: UUID + full paths
+    auto* revealer = Gtk::make_managed<Gtk::Revealer>();
+    revealer->set_transition_type(Gtk::RevealerTransitionType::SLIDE_DOWN);
+    revealer->set_reveal_child(false);
 
-        auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
-        uuid_label->set_halign(Gtk::Align::START);
-        uuid_label->set_hexpand(true);
-        uuid_label->add_css_class("caption");
-        uuid_label->add_css_class("dim-label");
-        detail_box->append(*uuid_label);
+    auto* detail_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 4);
+    detail_box->set_margin_top(4);
 
-        auto* path_label = Gtk::make_managed<Gtk::Label>(job.source + " → " + job.destination);
-        path_label->set_halign(Gtk::Align::START);
-        path_label->add_css_class("caption");
-        path_label->add_css_class("dim-label");
-        detail_box->append(*path_label);
+    auto* uuid_label = Gtk::make_managed<Gtk::Label>(job.id);
+    uuid_label->set_halign(Gtk::Align::START);
+    uuid_label->set_hexpand(true);
+    uuid_label->add_css_class("caption");
+    uuid_label->add_css_class("dim-label");
+    detail_box->append(*uuid_label);
 
-        revealer->set_child(*detail_box);
-        outer->append(*revealer);
+    auto* path_label = Gtk::make_managed<Gtk::Label>(job.source + " → " + job.destination);
+    path_label->set_halign(Gtk::Align::START);
+    path_label->add_css_class("caption");
+    path_label->add_css_class("dim-label");
+    detail_box->append(*path_label);
 
-        expand_btn->signal_toggled().connect([expand_btn, revealer]() {
-            bool open = expand_btn->get_active();
-            revealer->set_reveal_child(open);
-            expand_btn->set_icon_name(open ? "pan-down-symbolic" : "pan-end-symbolic");
-        });
+    revealer->set_child(*detail_box);
+    outer->append(*revealer);
 
-        // Progress bar — only visible while a non-mount job is running
-        ui.progress = std::make_unique<Gtk::ProgressBar>();
-        ui.progress->set_fraction(0.0);
-        ui.progress->set_hexpand(true);
+    expand_btn->signal_toggled().connect([expand_btn, revealer]() {
+        bool open = expand_btn->get_active();
+        revealer->set_reveal_child(open);
+        expand_btn->set_icon_name(open ? "pan-down-symbolic" : "pan-end-symbolic");
+    });
+
+    // Progress bar — only visible while a non-mount job is running
+    ui.progress = std::make_unique<Gtk::ProgressBar>();
+    ui.progress->set_fraction(0.0);
+    ui.progress->set_hexpand(true);
+    ui.progress->set_visible(false);
+    outer->append(*ui.progress);
+
+    // Footer row: status (left) | stats (right)
+    auto* footer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
+
+    ui.status_label = std::make_unique<Gtk::Label>();
+    ui.status_label->set_halign(Gtk::Align::START);
+    ui.status_label->add_css_class("caption");
+    ui.status_label->add_css_class("dim-label");
+    if (!job.last_status.empty()) {
+        ui.status_label->set_text("Last run: " + job.last_status);
+        ui.status_label->set_visible(true);
+    } else {
+        ui.status_label->set_visible(false);
+    }
+    footer->append(*ui.status_label);
+
+    auto* spacer = Gtk::make_managed<Gtk::Label>();
+    spacer->set_hexpand(true);
+    footer->append(*spacer);
+
+    ui.stats_label = std::make_unique<Gtk::Label>();
+    ui.stats_label->set_halign(Gtk::Align::END);
+    ui.stats_label->add_css_class("caption");
+    ui.stats_label->add_css_class("dim-label");
+    ui.stats_label->set_visible(false);
+    footer->append(*ui.stats_label);
+
+    outer->append(*footer);
+
+    // Restore UI state for running or mounted jobs
+    if (job.type == rclone::JobType::Mount && job.running) {
+        ui.run_btn->set_visible(false);
+        ui.stop_btn->set_visible(true);
         ui.progress->set_visible(false);
-        outer->append(*ui.progress);
-
-        // Footer row: status (left) | stats (right)
-        auto* footer = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 0);
-
-        ui.status_label = std::make_unique<Gtk::Label>();
-        ui.status_label->set_halign(Gtk::Align::START);
-        ui.status_label->add_css_class("caption");
-        ui.status_label->add_css_class("dim-label");
-        if (!job.last_status.empty()) {
-            ui.status_label->set_text("Last run: " + job.last_status);
-            ui.status_label->set_visible(true);
-        } else {
-            ui.status_label->set_visible(false);
-        }
-        footer->append(*ui.status_label);
-
-        auto* spacer = Gtk::make_managed<Gtk::Label>();
-        spacer->set_hexpand(true);
-        footer->append(*spacer);
-
-        ui.stats_label = std::make_unique<Gtk::Label>();
-        ui.stats_label->set_halign(Gtk::Align::END);
-        ui.stats_label->add_css_class("caption");
-        ui.stats_label->add_css_class("dim-label");
-        ui.stats_label->set_visible(false);
-        footer->append(*ui.stats_label);
-
-        outer->append(*footer);
-
-        // Restore UI state for running or mounted jobs
-        if (job.type == rclone::JobType::Mount && job.running) {
-            ui.run_btn->set_visible(false);
-            ui.stop_btn->set_visible(true);
-            ui.progress->set_visible(false);
-            ui.status_label->set_text("Mounted");
-            ui.status_label->set_visible(true);
-        } else if (job.running) {
-            ui.run_btn->set_visible(false);
-            ui.stop_btn->set_visible(true);
-            ui.progress->set_visible(true);
-            ui.status_label->set_text("Running...");
-            ui.status_label->set_visible(true);
-        } else if (job.type == rclone::JobType::Mount && job.active) {
-            ui.run_btn->set_visible(false);
-            ui.stop_btn->set_visible(true);
-            ui.status_label->set_text("Mounted");
-            ui.status_label->set_visible(true);
-        }
-
-        gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row->gobj()), GTK_WIDGET(outer->gobj()));
-
-        adw::preferences_group_add(m_prefs_group, row);
-        m_ui_rows.push_back(std::move(ui));
+        ui.status_label->set_text("Mounted");
+        ui.status_label->set_visible(true);
+    } else if (job.running) {
+        ui.run_btn->set_visible(false);
+        ui.stop_btn->set_visible(true);
+        ui.progress->set_visible(true);
+        ui.status_label->set_text("Running...");
+        ui.status_label->set_visible(true);
+    } else if (job.type == rclone::JobType::Mount && job.active) {
+        ui.run_btn->set_visible(false);
+        ui.stop_btn->set_visible(true);
+        ui.status_label->set_text("Mounted");
+        ui.status_label->set_visible(true);
     }
 
+    gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row->gobj()), GTK_WIDGET(outer->gobj()));
+
+    adw::preferences_group_add(m_prefs_group, row);
+    m_ui_rows.push_back(std::move(ui));
 }
 
 void JobView::show_add_dialog() {
@@ -537,33 +542,33 @@ void JobView::show_edit_dialog(size_t index) {
 }
 
 void JobView::add_job(rclone::Job job) {
-    m_jobs.push_back(job);
+    m_jobs.push_back(std::move(job));
     save_jobs();
-    rebuild_ui();
-
     size_t index = m_jobs.size() - 1;
+    append_job_row(index);
+
     if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
-        m_daemon_proxy->add_job(job, [this, index](auto result) {
+        m_daemon_proxy->add_job(m_jobs[index], [this, index](auto result) {
             if (!result.has_value()) {
                 g_warning("Failed to add job to daemon: %s", result.error().c_str());
                 return;
             }
-            // Now run the job after daemon has acknowledged it
             if (!m_jobs[index].schedule_enabled)
                 on_run_job(index);
         });
-    } else if (!job.schedule_enabled) {
+    } else if (!m_jobs[index].schedule_enabled) {
         on_run_job(index);
     }
 }
 
 void JobView::add_job_no_run(rclone::Job job) {
-    m_jobs.push_back(job);
+    m_jobs.push_back(std::move(job));
     save_jobs();
-    rebuild_ui();
+    size_t index = m_jobs.size() - 1;
+    append_job_row(index);
 
     if (m_daemon_proxy && m_daemon_proxy->is_connected()) {
-        m_daemon_proxy->add_job(job, [](auto) {});
+        m_daemon_proxy->add_job(m_jobs[index], [](auto) {});
     }
 }
 
@@ -719,15 +724,31 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         }
         rebuild_ui();
     } else if (type == "job_added") {
-        // Incremental: reload job list and add the new row only
-        load_jobs();
-        rebuild_ui();
+        auto new_index = payload.value("index", static_cast<size_t>(0));
+        if (payload.contains("job")) {
+            auto job = payload["job"].get<rclone::Job>();
+            if (new_index >= m_jobs.size()) {
+                m_jobs.push_back(std::move(job));
+            } else {
+                m_jobs[new_index] = std::move(job);
+            }
+        }
+        if (m_ui_rows.size() < m_jobs.size())
+            append_job_row(m_ui_rows.size());
     } else if (type == "job_updated") {
-        load_jobs();
-        rebuild_ui();
+        auto index = payload.value("index", static_cast<size_t>(0));
+        if (index < m_jobs.size() && payload.contains("job")) {
+            m_jobs[index] = payload["job"].get<rclone::Job>();
+            rebuild_ui();
+        }
     } else if (type == "job_deleted") {
-        load_jobs();
-        rebuild_ui();
+        auto index = payload.value("index", static_cast<size_t>(0));
+        if (index < m_jobs.size()) {
+            if (index < m_ui_rows.size())
+                m_ui_rows[index].poll_timer.disconnect();
+            m_jobs.erase(m_jobs.begin() + static_cast<ptrdiff_t>(index));
+            rebuild_ui();
+        }
     } else if (type == "job_started") {
         auto index = payload.value("index", static_cast<size_t>(0));
         if (index < m_ui_rows.size()) {

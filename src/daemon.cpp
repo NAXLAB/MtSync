@@ -165,7 +165,7 @@ MtSyncDaemon::MtSyncDaemon() {
                 m_jobs.push_back(payload.get<rclone::Job>());
                 save_jobs();
                 schedule_all_jobs();
-                json response_payload = {{"index", m_jobs.size() - 1}};
+                json response_payload = {{"index", m_jobs.size() - 1}, {"job", m_jobs.back()}};
                 m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobAdded, response_payload, msg));
 
             } else if (type_str == "update_job") {
@@ -174,7 +174,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     m_jobs[index] = payload.value("job", rclone::Job{});
                     save_jobs();
                     schedule_all_jobs();
-                    json response_payload = {{"index", index}};
+                    json response_payload = {{"index", index}, {"job", m_jobs[index]}};
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobUpdated, response_payload, msg));
                 }
 
@@ -471,7 +471,8 @@ void MtSyncDaemon::on_run_job(size_t index) {
     append_log(std::format("STARTED   {} [{}] {} -> {}",
         job.id, type_str(job.type), job.source, job.destination));
 
-    if (load_settings().notify_on_start)
+    auto settings = load_settings();
+    if (settings.notify_on_start)
         send_notification("Job Started", job.source + " → " + job.destination);
 
     m_tray->set_attention(false);
@@ -517,7 +518,7 @@ void MtSyncDaemon::on_run_job(size_t index) {
     {
         int pt = job.parallel_transfers > 0
                  ? job.parallel_transfers
-                 : load_settings().parallel_transfers;
+                 : settings.parallel_transfers;
         if (pt > 0) opts["_config"]["Transfers"] = pt;
     }
     if (job.type == rclone::JobType::Sync) {
@@ -607,11 +608,8 @@ void MtSyncDaemon::on_run_job(size_t index) {
     if (!job.extra_flags.empty()) inject_flags(job.extra_flags);
 
     // Inject global rclone flags (lower priority — do not overwrite per-job opts)
-    {
-        auto global_flags = load_settings().global_rclone_flags;
-        if (!global_flags.empty())
-            inject_flags(global_flags);
-    }
+    if (!settings.global_rclone_flags.empty())
+        inject_flags(settings.global_rclone_flags);
 
     auto done_cb = [this, index, job_uuid](auto result) {
         if (index < m_job_submitting.size()) m_job_submitting[index] = false;
@@ -660,15 +658,12 @@ void MtSyncDaemon::on_run_job(size_t index) {
                 if (index >= m_job_ids.size() || m_job_ids[index] < 0) return false;
 
                 int64_t current_job_id = m_job_ids[index];
-                // Check job status first; if finished, stop polling immediately
-                m_manager.rc().job_status(current_job_id, [this, index, job_uuid](auto status) {
+                // Check job status; if still running, fetch stats in the same callback
+                m_manager.rc().job_status(current_job_id, [this, index, job_uuid, current_job_id](auto status) {
                     // Guard against stale index (job deleted) or duplicate completion
                     if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
                     if (!status.has_value()) {
-                        // rclone rcd is unreachable or doesn't know this job ID
-                        // (e.g. rcd crashed or was restarted). Treat as failure so the
-                        // stale job ID is cleared and the job can run again.
                         on_job_completed(index, false, "rclone rcd unreachable");
                         return;
                     }
@@ -677,23 +672,24 @@ void MtSyncDaemon::on_run_job(size_t index) {
                             status->success ? std::string{} : status->error);
                         return;
                     }
-                });
-                m_manager.rc().get_stats(current_job_id, [this, index, job_uuid](auto result) {
-                    if (!result.has_value()) return;
-                    if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
-                    auto& stats = result.value();
-                    if (index < m_last_stats.size()) m_last_stats[index] = stats;
-                    if (stats.bytes == 0 && stats.total_bytes == 0 && stats.transfers == 0) return;
-                    json response_payload = {
-                        {"index", index},
-                        {"bytes", stats.bytes},
-                        {"total_bytes", stats.total_bytes},
-                        {"transfers", stats.transfers},
-                        {"total_transfers", stats.total_transfers},
-                        {"speed", stats.speed}
-                    };
-                    if (stats.eta) response_payload["eta"] = *stats.eta;
-                    m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobProgress, response_payload));
+                    // Job still running — fetch stats for progress display
+                    m_manager.rc().get_stats(current_job_id, [this, index, job_uuid](auto result) {
+                        if (!result.has_value()) return;
+                        if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
+                        auto& stats = result.value();
+                        if (index < m_last_stats.size()) m_last_stats[index] = stats;
+                        if (stats.bytes == 0 && stats.total_bytes == 0 && stats.transfers == 0) return;
+                        json response_payload = {
+                            {"index", index},
+                            {"bytes", stats.bytes},
+                            {"total_bytes", stats.total_bytes},
+                            {"transfers", stats.transfers},
+                            {"total_transfers", stats.total_transfers},
+                            {"speed", stats.speed}
+                        };
+                        if (stats.eta) response_payload["eta"] = *stats.eta;
+                        m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobProgress, response_payload));
+                    });
                 });
                 return true;
             }, 500);
@@ -731,10 +727,11 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
         m_poll_timers[index].disconnect();
     }
 
+    auto settings = load_settings();
     if (!success && index < m_jobs.size()) {
         int max_retries = (m_jobs[index].retries >= 0)
             ? m_jobs[index].retries
-            : load_settings().retries;
+            : settings.retries;
         if (index >= m_retry_counts.size()) m_retry_counts.resize(index + 1, 0);
         if (m_retry_counts[index] < max_retries) {
             m_retry_counts[index]++;
@@ -749,7 +746,7 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
 
     // Fetch final stats from rclone to ensure the log has the most up-to-date
     // transfer count (the cached m_last_stats may be from a previous poll cycle).
-    m_manager.rc().get_stats(job_id, [this, index, success, job_id, job_uuid, error_msg](auto result) {
+    m_manager.rc().get_stats(job_id, [this, index, success, job_id, job_uuid, error_msg, settings](auto result) {
         if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) {
             // Job was deleted while the stats fetch was in-flight; just clean up the counter.
             m_running_job_count--;
@@ -806,10 +803,10 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
             append_log(std::format("{} {} [{}] {}", state, job.id, type_str(job.type), detail));
 
             if (success) {
-                if (load_settings().notify_on_completion)
+                if (settings.notify_on_completion)
                     send_notification("Sync Complete", job.source + " → " + job.destination);
             } else {
-                if (load_settings().notify_on_errors)
+                if (settings.notify_on_errors)
                     send_notification("Sync Failed", job.source + " → " + job.destination);
             }
 

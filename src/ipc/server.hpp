@@ -35,6 +35,7 @@ public:
 
     void send_to_all(const nlohmann::json& msg);
     void send_to(int client_fd, const nlohmann::json& msg);
+    void send_to(int client_fd, const std::string& serialized);
     size_t client_count() const { return m_clients.size(); }
 
     sigc::signal<void()>& signal_client_connected() { return m_signal_client_connected; }
@@ -44,7 +45,8 @@ public:
 private:
     struct ClientData {
         std::string buffer;
-        guint watch_id;
+        size_t      read_pos = 0;
+        guint       watch_id = 0;
     };
 
     static gboolean on_server_watch_static(GIOChannel*, GIOCondition, gpointer);

@@ -153,25 +153,25 @@ void IpcServer::stop() {
     ::unlink(get_socket_path().c_str());
 }
 
-void IpcServer::send_to(int client_fd, const nlohmann::json& msg) {
-    auto data = msg.dump();
-    if (data.size() > 1024 * 1024) {
-        g_warning("Outbound message too large: %zu bytes, dropping", data.size());
+void IpcServer::send_to(int client_fd, const std::string& serialized) {
+    if (serialized.size() > 1024 * 1024) {
+        g_warning("Outbound message too large: %zu bytes, dropping", serialized.size());
         return;
     }
-    uint32_t len = static_cast<uint32_t>(data.size());
-
-    std::string packet;
-    packet.append(reinterpret_cast<const char*>(&len), sizeof(len));
-    packet += data;
-
-    if (!write_all(client_fd, packet.data(), packet.size()))
+    uint32_t len = static_cast<uint32_t>(serialized.size());
+    if (!write_all(client_fd, reinterpret_cast<const char*>(&len), sizeof(len)) ||
+        !write_all(client_fd, serialized.data(), serialized.size()))
         g_warning("send to client fd=%d: %s (will be removed on next HUP/ERR)", client_fd, g_strerror(errno));
 }
 
+void IpcServer::send_to(int client_fd, const nlohmann::json& msg) {
+    send_to(client_fd, msg.dump());
+}
+
 void IpcServer::send_to_all(const nlohmann::json& msg) {
-    for (auto& [fd, data] : m_clients) {
-        send_to(fd, msg);
+    auto serialized = msg.dump();
+    for (auto& [fd, _] : m_clients) {
+        send_to(fd, serialized);
     }
 }
 
@@ -245,12 +245,15 @@ void IpcServer::read_from_client(int fd) {
 
     auto it = m_clients.find(fd);
     if (it == m_clients.end()) return;
-    
-    it->second.buffer.append(buf, n);
 
-    while (it->second.buffer.size() >= 4) {
+    auto& cbuf = it->second.buffer;
+    auto& pos  = it->second.read_pos;
+
+    cbuf.append(buf, n);
+
+    while (cbuf.size() - pos >= 4) {
         uint32_t size;
-        std::memcpy(&size, it->second.buffer.data(), sizeof(size));
+        std::memcpy(&size, cbuf.data() + pos, sizeof(size));
 
         if (size > 1024 * 1024) {
             g_warning("Message too large: %u bytes", size);
@@ -258,17 +261,27 @@ void IpcServer::read_from_client(int fd) {
             return;
         }
 
-        if (it->second.buffer.size() < 4 + size) return;
+        if (cbuf.size() - pos < 4 + size) break;
 
-        auto msg_str = it->second.buffer.substr(4, size);
-        it->second.buffer.erase(0, 4 + size);
+        auto msg_sv = std::string_view(cbuf.data() + pos + 4, size);
+        pos += 4 + size;
 
         try {
-            auto msg = nlohmann::json::parse(msg_str);
+            auto msg = nlohmann::json::parse(msg_sv);
             m_signal_message.emit(msg);
         } catch (const nlohmann::json::parse_error& e) {
             g_warning("JSON parse error: %s", e.what());
         }
+    }
+
+    // Compact consumed bytes: O(1) when fully drained, O(remaining) otherwise
+    if (pos > 0) {
+        if (pos == cbuf.size()) {
+            cbuf.clear();
+        } else {
+            cbuf.erase(0, pos);
+        }
+        pos = 0;
     }
 }
 

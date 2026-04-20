@@ -95,6 +95,20 @@ void IpcClient::disconnect() {
         m_fd = -1;
     }
     m_buffer.clear();
+    m_buffer_pos = 0;
+}
+
+static bool client_write_all(int fd, const char* buf, size_t len) {
+    while (len > 0) {
+        ssize_t n = ::send(fd, buf, len, MSG_NOSIGNAL);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        buf += n;
+        len -= static_cast<size_t>(n);
+    }
+    return true;
 }
 
 void IpcClient::send_message(const nlohmann::json& msg) {
@@ -107,22 +121,10 @@ void IpcClient::send_message(const nlohmann::json& msg) {
     }
     uint32_t len = static_cast<uint32_t>(data.size());
 
-    std::string packet;
-    packet.append(reinterpret_cast<const char*>(&len), sizeof(len));
-    packet += data;
-
-    const char* buf = packet.data();
-    size_t remaining = packet.size();
-    while (remaining > 0) {
-        ssize_t n = ::send(m_fd, buf, remaining, MSG_NOSIGNAL);
-        if (n < 0) {
-            if (errno == EINTR) continue;
-            g_warning("send to daemon: %s", g_strerror(errno));
-            disconnect();
-            return;
-        }
-        buf += n;
-        remaining -= static_cast<size_t>(n);
+    if (!client_write_all(m_fd, reinterpret_cast<const char*>(&len), sizeof(len)) ||
+        !client_write_all(m_fd, data.data(), data.size())) {
+        g_warning("send to daemon: %s", g_strerror(errno));
+        disconnect();
     }
 }
 
@@ -152,9 +154,9 @@ void IpcClient::read_message() {
 
     m_buffer.append(buf, n);
 
-    while (m_buffer.size() >= 4) {
+    while (m_buffer.size() - m_buffer_pos >= 4) {
         uint32_t size;
-        std::memcpy(&size, m_buffer.data(), sizeof(size));
+        std::memcpy(&size, m_buffer.data() + m_buffer_pos, sizeof(size));
 
         if (size > 1024 * 1024) {
             g_warning("Message too large: %u bytes", size);
@@ -162,17 +164,26 @@ void IpcClient::read_message() {
             return;
         }
 
-        if (m_buffer.size() < 4 + size) return;
+        if (m_buffer.size() - m_buffer_pos < 4 + size) break;
 
-        auto msg_str = m_buffer.substr(4, size);
-        m_buffer.erase(0, 4 + size);
+        auto msg_sv = std::string_view(m_buffer.data() + m_buffer_pos + 4, size);
+        m_buffer_pos += 4 + size;
 
         try {
-            auto msg = nlohmann::json::parse(msg_str);
+            auto msg = nlohmann::json::parse(msg_sv);
             m_signal_received.emit(msg);
         } catch (const nlohmann::json::parse_error& e) {
             g_warning("JSON parse error: %s", e.what());
         }
+    }
+
+    if (m_buffer_pos > 0) {
+        if (m_buffer_pos == m_buffer.size()) {
+            m_buffer.clear();
+        } else {
+            m_buffer.erase(0, m_buffer_pos);
+        }
+        m_buffer_pos = 0;
     }
 }
 

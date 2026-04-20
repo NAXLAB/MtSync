@@ -613,11 +613,9 @@ GVariant* TrayIcon::idle_icon_pixmap() const {
     g_variant_builder_open(&b, G_VARIANT_TYPE("(iiay)"));
     g_variant_builder_add(&b, "i", ICON_SIZE);
     g_variant_builder_add(&b, "i", ICON_SIZE);
-    GVariantBuilder bytes;
-    g_variant_builder_init(&bytes, G_VARIANT_TYPE("ay"));
-    for (uint8_t byte : m_idle_icon)
-        g_variant_builder_add(&bytes, "y", byte);
-    g_variant_builder_add_value(&b, g_variant_builder_end(&bytes));
+    g_variant_builder_add_value(&b,
+        g_variant_new_fixed_array(G_VARIANT_TYPE_BYTE,
+            m_idle_icon.data(), m_idle_icon.size(), sizeof(uint8_t)));
     g_variant_builder_close(&b);
     return g_variant_builder_end(&b);
 }
@@ -628,11 +626,10 @@ GVariant* TrayIcon::frame_pixmap() const {
     g_variant_builder_open(&b, G_VARIANT_TYPE("(iiay)"));
     g_variant_builder_add(&b, "i", ICON_SIZE);
     g_variant_builder_add(&b, "i", ICON_SIZE);
-    GVariantBuilder bytes;
-    g_variant_builder_init(&bytes, G_VARIANT_TYPE("ay"));
-    for (uint8_t byte : m_frames[m_anim_frame])
-        g_variant_builder_add(&bytes, "y", byte);
-    g_variant_builder_add_value(&b, g_variant_builder_end(&bytes));
+    const auto& frame = m_frames[m_anim_frame];
+    g_variant_builder_add_value(&b,
+        g_variant_new_fixed_array(G_VARIANT_TYPE_BYTE,
+            frame.data(), frame.size(), sizeof(uint8_t)));
     g_variant_builder_close(&b);
     return g_variant_builder_end(&b);
 }

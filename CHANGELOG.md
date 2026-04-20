@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.12 — Performance Improvements
+
+- **Settings loaded once per job**: `on_run_job` and `on_job_completed` now call `load_settings()` once and reuse the result — previously `settings.json` was parsed 3–5× per job cycle (notify, parallel transfers, retries, notify on completion, notify on errors)
+- **IPC buffer O(n²) → O(1)**: `read_from_client` (server) and `read_message` (client) now track a read offset instead of calling `buffer.erase(0, n)` after each message — a burst of N messages went from O(N²) total bytes shifted to a single compaction at the end of each read call
+- **Incremental job list updates**: `job_added`, `job_updated`, and `job_deleted` daemon messages no longer trigger a disk read (`load_jobs`) before rebuilding the UI — job data is now included in the daemon broadcast payload and applied in-place; `job_added` appends a single row without tearing down and recreating the full list
+- **JSON serialised once in `send_to_all`**: previously each connected GUI client caused a separate `msg.dump()` call; now the JSON is serialised once and the string is sent to each client
+- **Zero-copy IPC send**: `send_to` (server) and `send_message` (client) now issue two `write_all` calls (header then body) instead of building a concatenated packet string, eliminating one full payload copy per message
+- **Sequential poll calls**: `get_stats` now fires only after `job_status` confirms the job is still running — on completion, the redundant stats HTTP round-trip is skipped entirely; `get_stats` results are unchanged for running jobs
+- **Tray icon pixmap in one allocation**: `idle_icon_pixmap()` and `frame_pixmap()` now use `g_variant_new_fixed_array` to build the byte array in a single allocation — previously ~1936 individual `g_variant_builder_add` calls fired per animation frame (47×47×4 bytes at 100 ms intervals)
+- **Reduced `Job` copies on add**: `add_job` and `add_job_no_run` now move the job into `m_jobs` and pass `m_jobs.back()` to the daemon, reducing three copies to one move plus one copy
+
 ## 0.8.11 — Sprite Sheet Tray Icon Animation
 - **Sprite sheet animation**: tray icon animation now uses the artist-created 8-frame sprite sheet instead of a procedurally generated Cairo spinner overlay — idle state shows frame 1; active jobs cycle through all 8 frames at 100 ms per frame
 - **Icon resolution**: `ICON_SIZE` increased from 22 to 47 px to match the sprite dimensions; the system tray compositor scales as needed, preserving crispness at HiDPI

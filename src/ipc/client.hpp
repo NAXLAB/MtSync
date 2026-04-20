@@ -43,8 +43,9 @@ private:
     bool on_io_watch(Glib::IOCondition condition);
     void read_message();
 
-    int m_fd = -1;
-    guint m_watch_id = 0;
+    int    m_fd         = -1;
+    guint  m_watch_id   = 0;
+    size_t m_buffer_pos = 0;
     std::string m_buffer;
     sigc::signal<void(const nlohmann::json&)> m_signal_received;
 };
