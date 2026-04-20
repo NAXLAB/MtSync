@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.13 — Tray Animation & Package Description
+
+- **16-frame sprite sheet**: tray icon animation now uses the 16-frame sprite sheet (`MtSync_smoke_spritesheet_16frames_47px.png`) — `ANIM_FRAMES` increased from 8 to 16 and `ANIM_INTERVAL_MS` set to 100 ms for a smooth 50 fps cycle
+- **DEB package description**: `CPACK_PACKAGE_DESCRIPTION_SUMMARY` updated to "Mount or sync network storage in comfort"
+
 ## 0.8.12 — Performance Improvements
 
 - **Settings loaded once per job**: `on_run_job` and `on_job_completed` now call `load_settings()` once and reuse the result — previously `settings.json` was parsed 3–5× per job cycle (notify, parallel transfers, retries, notify on completion, notify on errors)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(MtSync VERSION 0.8.12 LANGUAGES C CXX)
+project(MtSync VERSION 0.8.13 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,6 +63,7 @@ add_custom_command(
         "${RESOURCE_XML}"
         "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.png"
         "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync App Indicator Icon 1.png"
+        "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync_smoke_spritesheet_16frames_47px.png"
         ${PROVIDER_ICONS}
     COMMENT "Compiling GLib resources"
 )
@@ -103,7 +104,7 @@ install(FILES
 # ── Packaging (CPack) ──────────────────────────────────────────────────────
 set(CPACK_PACKAGE_NAME             "mtsync")
 set(CPACK_PACKAGE_VENDOR           "Mt. Sync")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GTK4 frontend to rclone")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Mount or sync network storage in comfort")
 set(CPACK_PACKAGE_CONTACT          "https://github.com/gavindi/MtSync")
 set(CPACK_RESOURCE_FILE_LICENSE    "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_FILE_NAME

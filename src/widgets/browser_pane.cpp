@@ -236,12 +236,14 @@ void BrowserPane::setup_header() {
     m_back_btn.set_icon_name("go-previous-symbolic");
     m_back_btn.set_tooltip_text("Go Back");
     m_back_btn.add_css_class("flat");
+    m_back_btn.add_css_class("circular");
     m_back_btn.signal_clicked().connect([this]() { go_back(); });
     nav_bar->append(m_back_btn);
 
     m_up_btn.set_icon_name("go-up-symbolic");
     m_up_btn.set_tooltip_text("Go Up");
     m_up_btn.add_css_class("flat");
+    m_up_btn.add_css_class("circular");
     m_up_btn.signal_clicked().connect([this]() { go_up(); });
     nav_bar->append(m_up_btn);
 

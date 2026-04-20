@@ -49,7 +49,7 @@ public:
     sigc::signal<void()>& signal_quit() { return m_signal_quit; }
 
 private:
-    static constexpr int   ANIM_FRAMES      = 8;
+    static constexpr int   ANIM_FRAMES      = 16;
     static constexpr int   ICON_SIZE        = 47;
     static constexpr guint ANIM_INTERVAL_MS = 100;
 
