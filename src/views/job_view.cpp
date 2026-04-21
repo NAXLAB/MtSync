@@ -87,16 +87,32 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     clamp->set_margin_end(12);
     m_scroll.set_child(*clamp);
 
-    m_prefs_group = adw::preferences_group();
-    adw::preferences_group_set_title(m_prefs_group, "Jobs");
+    auto* groups_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 12);
 
+    auto* header_group = adw::preferences_group();
+    adw::preferences_group_set_title(header_group, "Jobs");
     auto* add_btn = Gtk::make_managed<Gtk::Button>();
     add_btn->set_icon_name("list-add-symbolic");
     add_btn->add_css_class("flat");
+    add_btn->add_css_class("circular");
     add_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobView::show_add_dialog));
-    adw::preferences_group_set_header_suffix(m_prefs_group, add_btn);
+    adw::preferences_group_set_header_suffix(header_group, add_btn);
+    groups_box->append(*header_group);
 
-    adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), m_prefs_group->gobj());
+    m_group_sync  = adw::preferences_group();
+    adw::preferences_group_set_title(m_group_sync,  "Sync");
+    m_group_copy  = adw::preferences_group();
+    adw::preferences_group_set_title(m_group_copy,  "Copy");
+    m_group_move  = adw::preferences_group();
+    adw::preferences_group_set_title(m_group_move,  "Move");
+    m_group_mount = adw::preferences_group();
+    adw::preferences_group_set_title(m_group_mount, "Mount");
+    groups_box->append(*m_group_sync);
+    groups_box->append(*m_group_copy);
+    groups_box->append(*m_group_move);
+    groups_box->append(*m_group_mount);
+
+    adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), GTK_WIDGET(groups_box->gobj()));
 
     if (m_daemon_proxy) {
         m_daemon_proxy->signal_message().connect(
@@ -320,18 +336,44 @@ void JobView::save_jobs() {
     }
 }
 
+Gtk::Widget* JobView::group_for_type(rclone::JobType t) {
+    switch (t) {
+        case rclone::JobType::Copy:  return m_group_copy;
+        case rclone::JobType::Move:  return m_group_move;
+        case rclone::JobType::Mount: return m_group_mount;
+        default:                     return m_group_sync;
+    }
+}
+
+void JobView::update_group_visibility() {
+    int counts[4] = {};
+    for (auto& job : m_jobs) {
+        switch (job.type) {
+            case rclone::JobType::Sync:  counts[0]++; break;
+            case rclone::JobType::Copy:  counts[1]++; break;
+            case rclone::JobType::Move:  counts[2]++; break;
+            case rclone::JobType::Mount: counts[3]++; break;
+        }
+    }
+    m_group_sync ->set_visible(counts[0] > 0);
+    m_group_copy ->set_visible(counts[1] > 0);
+    m_group_move ->set_visible(counts[2] > 0);
+    m_group_mount->set_visible(counts[3] > 0);
+}
+
 void JobView::rebuild_ui() {
     for (auto& ui : m_ui_rows) {
         ui.poll_timer.disconnect();
-        adw_preferences_group_remove(
-            ADW_PREFERENCES_GROUP(m_prefs_group->gobj()),
-            ui.row->gobj());
+        if (ui.group)
+            adw_preferences_group_remove(
+                ADW_PREFERENCES_GROUP(ui.group->gobj()),
+                ui.row->gobj());
     }
     m_ui_rows.clear();
 
-    for (size_t i = 0; i < m_jobs.size(); ++i) {
+    for (size_t i = 0; i < m_jobs.size(); ++i)
         append_job_row(i);
-    }
+    update_group_visibility();
 }
 
 void JobView::append_job_row(size_t index) {
@@ -498,8 +540,11 @@ void JobView::append_job_row(size_t index) {
 
     gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row->gobj()), GTK_WIDGET(outer->gobj()));
 
-    adw::preferences_group_add(m_prefs_group, row);
+    auto* grp = group_for_type(job.type);
+    ui.group = grp;
+    adw::preferences_group_add(grp, row);
     m_ui_rows.push_back(std::move(ui));
+    update_group_visibility();
 }
 
 void JobView::show_add_dialog() {

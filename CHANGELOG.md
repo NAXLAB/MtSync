@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 — Jobs Tab Grouped by Type
+
+- **Job type grouping**: the Jobs tab now organises jobs into four `AdwPreferencesGroup` sections — **Sync**, **Copy**, **Move**, and **Mount** — in a fixed order below the "Jobs" header; sections with no jobs are hidden automatically
+
 ## 0.8.14 — Stopped Job Logging & Browse Nav Polish
 
 - **Stopped job activity log**: manually stopping a job now writes a `STOPPED` entry to the activity log for both mount and non-mount jobs — previously the log showed `STARTED` with no corresponding terminal entry; `STOPPED` is displayed in purple to distinguish it from `COMPLETED` (green) and `FAILED` (red)

@@ -43,7 +43,10 @@ private:
     DaemonProxy* m_daemon_proxy = nullptr;
 
     Gtk::ScrolledWindow m_scroll;
-    Gtk::Widget*        m_prefs_group    = nullptr;
+    Gtk::Widget* m_group_sync  = nullptr;
+    Gtk::Widget* m_group_copy  = nullptr;
+    Gtk::Widget* m_group_move  = nullptr;
+    Gtk::Widget* m_group_mount = nullptr;
 
     Gtk::ScrolledWindow                        m_log_scroll;
     Gtk::ColumnView*                           m_log_column_view = nullptr;
@@ -54,6 +57,7 @@ private:
 
     struct JobUI {
         Gtk::Widget*                      row          = nullptr;
+        Gtk::Widget*                      group        = nullptr;
         std::unique_ptr<Gtk::Button>      run_btn;
         std::unique_ptr<Gtk::Button>      stop_btn;
         std::unique_ptr<Gtk::Button>      edit_btn;
@@ -68,6 +72,8 @@ private:
 
     std::unique_ptr<JobEditDialog> m_edit_dialog;
 
+    Gtk::Widget* group_for_type(rclone::JobType t);
+    void update_group_visibility();
     void load_jobs();
     void save_jobs();
     void rebuild_ui();
