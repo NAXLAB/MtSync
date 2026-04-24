@@ -116,6 +116,15 @@ frame and did not update on `NewIcon` alone.
 **Async model**: Both `Gio::Subprocess::communicate_utf8_async()` and
 `soup_session_send_and_read_async()` dispatch on GLib main loop = GTK thread. No manual
 threading needed. All async callbacks use `std::expected<T, std::string>` (C++23).
+The `SoupSession` has a 15-second timeout to prevent unbounded request accumulation on
+network hangs.
+
+**Fault tolerance**: Job retries use exponential backoff (2 s, 4 s, … capped at 60 s) via
+`m_retry_timers`. The 500 ms job-status poll skips a tick when the previous HTTP request is
+still in-flight (`m_poll_in_flight` guard). A 60-second `m_mount_health_timer` polls
+`list_mounts` via rclone RC and marks stale FUSE mounts inactive. All parallel vectors
+(`m_poll_timers`, `m_sched_timers`, `m_retry_timers`, `m_job_ids`, `m_job_submitting`,
+`m_poll_in_flight`, `m_retry_counts`, `m_last_stats`) are erased in lockstep on job deletion.
 
 ---
 

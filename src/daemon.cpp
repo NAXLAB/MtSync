@@ -192,6 +192,7 @@ MtSyncDaemon::MtSyncDaemon() {
                     // Disconnect timers and clean up all parallel vectors before erasing
                     if (index < m_sched_timers.size()) m_sched_timers[index].disconnect();
                     if (index < m_poll_timers.size())  m_poll_timers[index].disconnect();
+                    if (index < m_retry_timers.size()) m_retry_timers[index].disconnect();
                     auto erase_at = [](auto& vec, size_t i) {
                         if (i < vec.size()) vec.erase(vec.begin() + i);
                     };
@@ -199,8 +200,11 @@ MtSyncDaemon::MtSyncDaemon() {
                     erase_at(m_job_ids,        index);
                     erase_at(m_job_submitting, index);
                     erase_at(m_poll_timers,    index);
+                    erase_at(m_poll_in_flight, index);
                     erase_at(m_last_stats,     index);
                     erase_at(m_sched_timers,   index);
+                    erase_at(m_retry_timers,   index);
+                    erase_at(m_retry_counts,   index);
                     save_jobs();
                     json response_payload = {{"index", index}};
                     m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobDeleted, response_payload, msg));
@@ -227,6 +231,7 @@ MtSyncDaemon::MtSyncDaemon() {
                         m_ipc_server->send_to_all(make_response(ipc::ResponseType::JobCompleted, response_payload));
                     });
                 } else if (index < m_job_ids.size() && m_job_ids[index] >= 0) {
+                    if (index < m_retry_timers.size()) m_retry_timers[index].disconnect();
                     std::string job_uuid = m_jobs[index].id;
                     m_manager.rc().job_stop(m_job_ids[index], [this, index, msg, job_uuid](auto) {
                         if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
@@ -321,6 +326,38 @@ MtSyncDaemon::MtSyncDaemon() {
     });
 
     schedule_all_jobs();
+
+    // Periodically verify mount liveness via rclone RC (every 60s).
+    // Detects mounts that silently died (network loss, rclone crash)
+    // so users/file managers don't access dead FUSE mount points.
+    m_mount_health_timer = Glib::signal_timeout().connect([this]() -> bool {
+        if (!m_running) return false;
+        m_manager.rc().list_mounts([this](auto result) {
+            if (!m_running) return;
+            std::set<std::string> live_mounts;
+            if (result.has_value()) {
+                live_mounts = std::set<std::string>(
+                    result.value().begin(), result.value().end());
+            }
+            bool changed = false;
+            for (size_t i = 0; i < m_jobs.size(); ++i) {
+                if (m_jobs[i].type != rclone::JobType::Mount) continue;
+                if (!m_jobs[i].active) continue;
+                if (!live_mounts.count(m_jobs[i].destination)) {
+                    m_jobs[i].active = false;
+                    m_jobs[i].running = false;
+                    changed = true;
+                    append_log(std::format("STALE     {} [MOUNT] {} no longer mounted",
+                        m_jobs[i].id, m_jobs[i].destination));
+                    json rp = {{"index", i}, {"success", false}};
+                    m_ipc_server->send_to_all(
+                        make_response(ipc::ResponseType::JobCompleted, rp));
+                }
+            }
+            if (changed) save_jobs();
+        });
+        return true;
+    }, 60000);
 }
 
 MtSyncDaemon::~MtSyncDaemon() {
@@ -332,8 +369,11 @@ void MtSyncDaemon::stop() {
 
     for (auto& conn : m_poll_timers) conn.disconnect();
     for (auto& conn : m_sched_timers) conn.disconnect();
+    for (auto& conn : m_retry_timers) conn.disconnect();
+    m_mount_health_timer.disconnect();
     m_poll_timers.clear();
     m_sched_timers.clear();
+    m_retry_timers.clear();
 
     m_ipc_server.reset();
     m_tray.reset();
@@ -661,9 +701,14 @@ void MtSyncDaemon::on_run_job(size_t index) {
                 if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return false;
                 if (index >= m_job_ids.size() || m_job_ids[index] < 0) return false;
 
+                if (index >= m_poll_in_flight.size()) m_poll_in_flight.resize(index + 1, false);
+                if (m_poll_in_flight[index]) return true; // previous request still pending
+                m_poll_in_flight[index] = true;
+
                 int64_t current_job_id = m_job_ids[index];
                 // Check job status; if still running, fetch stats in the same callback
                 m_manager.rc().job_status(current_job_id, [this, index, job_uuid, current_job_id](auto status) {
+                    if (index < m_poll_in_flight.size()) m_poll_in_flight[index] = false;
                     // Guard against stale index (job deleted) or duplicate completion
                     if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
@@ -726,6 +771,7 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
     int64_t job_id = m_job_ids[index];
     // Clear the job_id FIRST so subsequent callbacks see it as done
     m_job_ids[index] = -1;
+    if (index < m_poll_in_flight.size()) m_poll_in_flight[index] = false;
 
     if (index < m_poll_timers.size()) {
         m_poll_timers[index].disconnect();
@@ -739,10 +785,21 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
         if (index >= m_retry_counts.size()) m_retry_counts.resize(index + 1, 0);
         if (m_retry_counts[index] < max_retries) {
             m_retry_counts[index]++;
-            append_log(std::format("RETRYING  {} [{}] attempt {}/{}",
+            unsigned int delay_ms = std::min(
+                static_cast<unsigned int>(2000u << (m_retry_counts[index] - 1)),
+                60000u);
+            append_log(std::format("RETRYING  {} [{}] attempt {}/{} in {}s",
                 m_jobs[index].id, type_str(m_jobs[index].type),
-                m_retry_counts[index], max_retries));
-            on_run_job(index);
+                m_retry_counts[index], max_retries, delay_ms / 1000));
+            std::string retry_uuid = m_jobs[index].id;
+            if (index >= m_retry_timers.size()) m_retry_timers.resize(index + 1);
+            m_retry_timers[index] = Glib::signal_timeout().connect(
+                [this, index, retry_uuid]() -> bool {
+                    if (index >= m_jobs.size() || m_jobs[index].id != retry_uuid)
+                        return false;
+                    on_run_job(index);
+                    return false;
+                }, delay_ms);
             return;
         }
         m_retry_counts[index] = 0;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1 — Network Fault Tolerance
+
+- **HTTP request timeout**: all rclone RC HTTP requests now have a 15-second timeout — previously requests could hang indefinitely on an unresponsive network, causing unbounded memory growth in the libsoup session as the 500 ms poll timer queued new requests each tick
+- **Exponential retry backoff**: failed jobs with retries enabled now wait 2 s, 4 s, 8 s, … (capped at 60 s) between attempts — previously retries fired immediately, creating a tight CPU-burning loop when the network was down
+- **Poll in-flight guard**: the 500 ms job-status poll now skips a tick if the previous HTTP request is still pending — prevents request pile-up during slow or hanging network conditions
+- **Mount liveness monitoring**: a 60-second periodic health check via rclone RC `list_mounts` now detects mounts that silently died (network loss, rclone crash) and marks them inactive — previously dead FUSE mount points stayed marked active, risking uninterruptible-sleep hangs when accessed
+- **Parallel vector erase fix**: `m_retry_counts` is now erased alongside other parallel vectors on job deletion — previously the missing erase caused index drift after deleting a job that had retried
+
 ## 0.9.0 — Jobs Tab Grouped by Type
 
 - **Job type grouping**: the Jobs tab now organises jobs into four `AdwPreferencesGroup` sections — **Sync**, **Copy**, **Move**, and **Mount** — in a fixed order below the "Jobs" header; sections with no jobs are hidden automatically

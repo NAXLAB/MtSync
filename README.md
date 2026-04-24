@@ -48,11 +48,13 @@ desktop application backed by a persistent daemon.
   mode (rclone bisync), copy empty directories, and file include-pattern filters; Mount jobs show
   active state and can be stopped/unmounted; checksum verification disabled by default; Save button
   to store job without running; scheduled jobs skip execution if the previous instance is still
-  running; failed jobs are automatically retried up to a configurable count before being marked as
-  failed; activity log panel shows the last 100 entries in a structured column view (Time, State,
+  running; failed jobs are automatically retried up to a configurable count with exponential backoff
+  (2 s, 4 s, 8 s, … capped at 60 s) before being marked as failed; activity log panel shows the last 100 entries in a structured column view (Time, State,
   Job ID, Type, Contents) with colour-coded state labels, newest first
 - **Background daemon** — `mtsync --daemon` keeps jobs running when the GUI is closed; GUI
-  reconnects automatically on next launch; daemon starts rclone RC on startup
+  reconnects automatically on next launch; daemon starts rclone RC on startup; periodic mount
+  liveness checks detect and mark stale FUSE mounts; HTTP request timeouts and poll-rate
+  guards prevent resource exhaustion during network outages
 - **System tray icon** — StatusNotifierItem tray icon with Open/Quit menu; Open re-launches the
   GUI if it is not running; animated spinner shown while any job is active; custom Mt. Sync-branded
   idle icon rendered via Cairo and bundled as a GLib resource
