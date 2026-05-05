@@ -17,6 +17,7 @@
  */
 
 #include "rclone_cli.hpp"
+#include "rclone_path.hpp"
 #include <glibmm.h>
 #include <nlohmann/json.hpp>
 #include <sstream>
@@ -26,8 +27,14 @@ namespace mtsync::rclone {
 using json = nlohmann::json;
 
 RcloneCli::RcloneCli(std::string rclone_path) {
-    auto resolved = Glib::find_program_in_path(rclone_path);
-    m_rclone_path = resolved.empty() ? std::move(rclone_path) : std::move(resolved);
+    if (rclone_path == "rclone")
+        rclone_path = find_rclone_binary();
+    if (rclone_path == "rclone") {
+        auto resolved = Glib::find_program_in_path("rclone");
+        m_rclone_path = resolved.empty() ? "rclone" : std::move(resolved);
+    } else {
+        m_rclone_path = std::move(rclone_path);
+    }
 
     // Explicitly pass --config on every invocation so rclone uses the real user config
     // regardless of $XDG_CONFIG_HOME (which Flatpak redirects to ~/.var/app/…/config).

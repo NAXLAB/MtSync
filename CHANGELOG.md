@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2 — Bundled rclone
+
+- **Bundled rclone binary**: DEB, RPM, and AppImage packages now ship rclone v1.74.0 directly — no separate `rclone` package required; the `rclone` runtime dependency has been removed from DEB and RPM package metadata
+- **Runtime discovery**: the bundled binary is installed to `/usr/lib/mtsync/rclone` (off PATH to avoid conflicts); MtSync locates it at runtime by deriving the install prefix from `/proc/self/exe` — dev builds and Flatpak/Snap fall back to PATH as before
+- **Flatpak/Snap rclone updated**: both sandbox formats bumped from v1.68.2 to v1.74.0 for consistency
+- **`MTSYNC_BUNDLE_RCLONE` CMake option**: defaults `ON`; distro packagers can pass `-DMTSYNC_BUNDLE_RCLONE=OFF` to restore the system rclone dependency
+
 ## 0.9.1 — Network Fault Tolerance
 
 - **HTTP request timeout**: all rclone RC HTTP requests now have a 15-second timeout — previously requests could hang indefinitely on an unresponsive network, causing unbounded memory growth in the libsoup session as the 500 ms poll timer queued new requests each tick

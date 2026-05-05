@@ -104,13 +104,13 @@ Everything persists automatically to `~/.config/mtsync/settings.json`. No Apply 
 - **Start Up & Shut Down** — launch the daemon at login, start minimised to tray, shut down daemon when closing the window
 - **Notifications** — per-event notification toggles
 - **Transfers** — default bandwidth cap, checksum verification, parallel transfer count, retry limit
-- **rclone** — custom binary path for non-PATH installations
+- **rclone** — custom binary path to override the bundled rclone
 
 ---
 
 ## Native. Fast. Yours.
 
-Mt. Sync is built with C++23, GTK4, and libadwaita. It follows GNOME HIG conventions, respects your system theme (including dark mode), and integrates with your desktop notification service. No Electron. No runtime dependencies beyond the libraries it's built against. One binary, one daemon, done.
+Mt. Sync is built with C++23, GTK4, and libadwaita. It follows GNOME HIG conventions, respects your system theme (including dark mode), and integrates with your desktop notification service. No Electron. No runtime dependencies beyond the libraries it's built against. rclone is bundled inside every package — install Mt. Sync and everything you need is already there. One binary, one daemon, done.
 
 ---
 
