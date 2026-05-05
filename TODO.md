@@ -23,4 +23,4 @@
 - [x] VFS cache mode for mount jobs
 - [x] Compare dialog filter toggles (show rows by status — `←` `→` `=` `≠` `!`, all on by default)
 - [x] Global rclone flags (applied to every job at execution time via RC `_config`)
-- [x] Bundled rclone (downloaded at build time, installed to `lib/mtsync/rclone`, discovered at runtime via `/proc/self/exe`)
+- [ ] Internal rclone embedding

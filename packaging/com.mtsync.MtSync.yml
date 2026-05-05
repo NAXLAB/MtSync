@@ -39,8 +39,8 @@ modules:
       - install -Dm755 rclone /app/bin/rclone
     sources:
       - type: archive
-        url: https://github.com/rclone/rclone/releases/download/v1.74.0/rclone-v1.74.0-linux-amd64.zip
-        sha256: 61de0a78d8776fe3e080f8385ebe96d817f2ee6a6003fe36b2d9f3b49d3e36ea
+        url: https://github.com/rclone/rclone/releases/download/v1.68.2/rclone-v1.68.2-linux-amd64.zip
+        sha256: 0e6fa18051e67fc600d803a2dcb10ddedb092247fc6eee61be97f64ec080a13c
 
   # gtkmm-4.0 and its C++ dependency chain (not in the GNOME SDK)
   - name: libsigcplusplus
@@ -122,7 +122,6 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
-      - -DMTSYNC_BUNDLE_RCLONE=OFF
     post-install:
       - gtk-update-icon-cache -q -t -f /app/share/icons/hicolor
     sources:

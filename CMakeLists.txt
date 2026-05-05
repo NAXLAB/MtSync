@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(MtSync VERSION 0.9.2 LANGUAGES C CXX)
+project(MtSync VERSION 0.9.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,62 +85,6 @@ target_link_libraries(mtsync PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# ── Bundled rclone ─────────────────────────────────────────────────────────
-option(MTSYNC_BUNDLE_RCLONE
-    "Download and bundle the rclone binary (disable for distro packaging)" ON)
-
-if(MTSYNC_BUNDLE_RCLONE)
-    set(MTSYNC_RCLONE_VERSION "1.74.0")
-
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
-        set(_RCLONE_ARCH    "amd64")
-        set(_RCLONE_SHA256  "61de0a78d8776fe3e080f8385ebe96d817f2ee6a6003fe36b2d9f3b49d3e36ea")
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-        set(_RCLONE_ARCH    "arm64")
-        set(_RCLONE_SHA256  "c28148f72e82e16953a9f7eedbe610736968240318ff33872f90bfdd689cc72f")
-    else()
-        message(FATAL_ERROR
-            "MTSYNC_BUNDLE_RCLONE=ON but no rclone download defined for "
-            "${CMAKE_SYSTEM_PROCESSOR}. Use -DMTSYNC_BUNDLE_RCLONE=OFF to skip.")
-    endif()
-
-    set(_RCLONE_SLUG   "rclone-v${MTSYNC_RCLONE_VERSION}-linux-${_RCLONE_ARCH}")
-    set(_RCLONE_ZIP    "${CMAKE_BINARY_DIR}/rclone-bundled/${_RCLONE_SLUG}.zip")
-    set(RCLONE_BINARY  "${CMAKE_BINARY_DIR}/rclone-bundled/${_RCLONE_SLUG}/rclone")
-
-    if(NOT EXISTS "${RCLONE_BINARY}")
-        message(STATUS "Downloading bundled rclone ${MTSYNC_RCLONE_VERSION} (${_RCLONE_ARCH})")
-        file(DOWNLOAD
-            "https://github.com/rclone/rclone/releases/download/v${MTSYNC_RCLONE_VERSION}/${_RCLONE_SLUG}.zip"
-            "${_RCLONE_ZIP}"
-            EXPECTED_HASH SHA256=${_RCLONE_SHA256}
-            SHOW_PROGRESS
-            STATUS _RCLONE_DL_STATUS
-        )
-        list(GET _RCLONE_DL_STATUS 0 _RCLONE_DL_ERR)
-        if(_RCLONE_DL_ERR)
-            list(GET _RCLONE_DL_STATUS 1 _RCLONE_DL_MSG)
-            file(REMOVE "${_RCLONE_ZIP}")
-            message(FATAL_ERROR "rclone download failed: ${_RCLONE_DL_MSG}\n"
-                "Use -DMTSYNC_BUNDLE_RCLONE=OFF to skip bundling.")
-        endif()
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xf "${_RCLONE_SLUG}.zip"
-            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/rclone-bundled"
-        )
-    endif()
-
-    file(CHMOD "${RCLONE_BINARY}" PERMISSIONS
-        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-        GROUP_READ GROUP_EXECUTE
-        WORLD_READ WORLD_EXECUTE)
-
-    install(PROGRAMS "${RCLONE_BINARY}" DESTINATION "lib/mtsync")
-
-    target_compile_definitions(mtsync PRIVATE
-        MTSYNC_BUNDLED_RCLONE_RELPATH="lib/mtsync/rclone")
-endif()
-
 install(TARGETS mtsync DESTINATION bin)
 install(FILES
     "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.png"
@@ -188,22 +132,13 @@ if(_DPKG_CMD)
     endif()
 endif()
 
-if(MTSYNC_BUNDLE_RCLONE)
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "${_GTKMM_DEB_PKG} (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2")
-else()
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "${_GTKMM_DEB_PKG} (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2, rclone")
-endif()
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "${_GTKMM_DEB_PKG} (>= 4.6), libadwaita-1-0 (>= 1.1), libsoup-3.0-0, librsvg2-2, rclone")
 
 # RPM
 set(CPACK_RPM_PACKAGE_LICENSE  "GPL-2.0-only")
 set(CPACK_RPM_PACKAGE_GROUP    "Applications/Internet")
-if(MTSYNC_BUNDLE_RCLONE)
-    set(CPACK_RPM_PACKAGE_REQUIRES "gtkmm40, libadwaita, libsoup3")
-else()
-    set(CPACK_RPM_PACKAGE_REQUIRES "gtkmm40, libadwaita, libsoup3, rclone")
-endif()
+set(CPACK_RPM_PACKAGE_REQUIRES "gtkmm40, libadwaita, libsoup3, rclone")
 set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
     "/usr/share/applications"
     "/usr/share/icons"
@@ -211,7 +146,6 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
     "/usr/share/icons/hicolor/256x256"
     "/usr/share/icons/hicolor/256x256/apps"
     "/usr/share/icons/hicolor/scalable"
-    "/usr/share/icons/hicolor/scalable/apps"
-    "/usr/lib/mtsync")
+    "/usr/share/icons/hicolor/scalable/apps")
 
 include(CPack)

@@ -55,7 +55,6 @@ Mt. Sync/
 │   │   ├── rclone_cli.hpp/cpp          # CLI subprocess interface (Gio::Subprocess)
 │   │   ├── rclone_rc.hpp/cpp           # RC HTTP API interface (libsoup-3.0)
 │   │   ├── rclone_manager.hpp          # Facade owning CLI + RC (header-only)
-│   │   ├── rclone_path.hpp             # Header-only find_rclone_binary(): bundled path → PATH fallback
 │   │   └── cron_utils.hpp              # Header-only cron engine: parser, next-occurrence, description
 │   ├── views/
 │   │   ├── backends_view.hpp/cpp       # Remote list with AdwNavigationView for drill-down
@@ -131,18 +130,6 @@ still in-flight (`m_poll_in_flight` guard). A 60-second `m_mount_health_timer` p
 
 ## 4. rclone Interaction Layer
 
-### Binary discovery (`rclone_path.hpp`)
-`find_rclone_binary()` resolves the rclone executable in priority order:
-1. **Bundled path**: reads `/proc/self/exe`, walks two `parent_path()` calls to derive the install
-   prefix, appends `lib/mtsync/rclone`. Present in installed DEB/RPM/AppImage packages.
-2. **PATH fallback**: returns `"rclone"` — caller passes to `Glib::find_program_in_path()`.
-   Used by dev builds (uninstalled), Flatpak, and Snap (all put rclone on PATH themselves).
-
-The compile-time macro `MTSYNC_BUNDLED_RCLONE_RELPATH` (set by CMake when
-`MTSYNC_BUNDLE_RCLONE=ON`) guards the bundled-path branch; without it the function is a
-no-op returning `"rclone"`. Both `RcloneCli` and `RcloneRc::spawn_daemon` call
-`find_rclone_binary()` before their existing `Glib::find_program_in_path()` logic.
-
 ### CLI (`RcloneCli`) — for config management
 - `run_command()`: spawns `Gio::Subprocess` with `STDOUT_PIPE | STDERR_PIPE`, calls `communicate_utf8_async()`
 - `list_remotes()` → `rclone config dump` → parse JSON → `vector<RemoteInfo>`
@@ -205,21 +192,25 @@ no-op returning `"rclone"`. Both `RcloneCli` and `RcloneRc::spawn_daemon` call
 ## 6. CMake Configuration
 
 ```cmake
-# … standard project/find_package boilerplate …
+cmake_minimum_required(VERSION 3.25)
+project(Mt. Sync VERSION 0.3.27 LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
+pkg_check_modules(ADWAITA REQUIRED IMPORTED_TARGET libadwaita-1)
+pkg_check_modules(SOUP REQUIRED IMPORTED_TARGET libsoup-3.0)
+find_package(nlohmann_json 3.2 REQUIRED)
+
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 add_executable(mtsync ${SOURCES})
-target_link_libraries(mtsync PRIVATE …)
-
-# ── Bundled rclone ──────────────────────────────────────────────────────────
-option(MTSYNC_BUNDLE_RCLONE "Download and bundle rclone (disable for distro packaging)" ON)
-# When ON: downloads rclone zip at configure time (idempotent — skipped if already cached),
-# installs binary to ${CMAKE_INSTALL_PREFIX}/lib/mtsync/rclone, and defines
-# MTSYNC_BUNDLED_RCLONE_RELPATH="lib/mtsync/rclone" for find_rclone_binary().
-# When OFF: restores rclone as a DEB/RPM runtime dependency (for distro packaging).
-# Flatpak and Snap pass -DMTSYNC_BUNDLE_RCLONE=OFF and bundle rclone via their own mechanisms.
-
+target_include_directories(mtsync PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(mtsync PRIVATE
+    PkgConfig::GTKMM PkgConfig::ADWAITA PkgConfig::SOUP nlohmann_json::nlohmann_json)
 install(TARGETS mtsync DESTINATION bin)
-install(PROGRAMS ${RCLONE_BINARY} DESTINATION lib/mtsync)  # only when MTSYNC_BUNDLE_RCLONE=ON
 ```
 
 C++23 for `std::expected`, `std::format`, ranges. `CONFIGURE_DEPENDS` auto-detects new source files.

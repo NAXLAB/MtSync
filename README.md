@@ -68,10 +68,7 @@ desktop application backed by a persistent daemon.
 
 ## Dependencies
 
-Requires a C++23 compiler, CMake 3.25+, and the following libraries. rclone is bundled
-automatically at build time (downloaded from the official rclone release page and verified by
-SHA256); a system rclone installation is not required for packaged builds. Source builds fall back
-to `rclone` on `PATH`.
+Requires rclone, a C++23 compiler, CMake 3.25+, and the following libraries:
 
 ```bash
 sudo apt install \
@@ -113,15 +110,12 @@ sudo apt install ./mtsync_*_ubuntu*_x86_64.deb
 ```
 
 Packages are built for Ubuntu 24.04, 25.10, and 26.04. Install the one that matches your release.
-rclone is bundled — no separate rclone installation needed.
 
 ### RPM (Fedora)
 
 ```bash
 sudo dnf install ./mtsync_*_fedora*_x86_64.rpm
 ```
-
-rclone is bundled — no separate rclone installation needed.
 
 ### AppImage
 
@@ -130,7 +124,7 @@ chmod +x mtsync_*_x86_64.AppImage
 ./mtsync_*_x86_64.AppImage
 ```
 
-No installation required — the AppImage is self-contained and runs directly. rclone is bundled.
+No installation required — the AppImage is self-contained and runs directly.
 
 ### From source
 
@@ -140,10 +134,9 @@ gtk-update-icon-cache ~/.local/share/icons/hicolor
 update-desktop-database ~/.local/share/applications
 ```
 
-Installing places the binary in `~/.local/bin`, the bundled rclone in `~/.local/lib/mtsync/rclone`,
-the application icon (256×256 PNG and scalable SVG) with the hicolor theme, and the `.desktop` file
-so the icon appears in the launcher and taskbar. For source builds, `rclone` must be available on
-`PATH` (the bundled binary is only used once installed).
+Installing places the binary in `~/.local/bin`, registers the application icon (256×256 PNG and
+scalable SVG) with the hicolor theme, and installs the `.desktop` file so the icon appears in the
+launcher and taskbar.
 
 ### Flatpak
 
@@ -189,8 +182,7 @@ is listed rather than the empty snap-private data directory.
 ./build/mtsync --daemon # run as background daemon only
 ```
 
-Packaged builds (DEB, RPM, AppImage, Flatpak, Snap) include rclone — no separate installation
-needed. Source builds require `rclone` on `PATH`.
+Mt. Sync expects `rclone` to be available on `PATH`.
 
 ## Architecture
 

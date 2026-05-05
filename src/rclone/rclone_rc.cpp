@@ -17,7 +17,6 @@
  */
 
 #include "rclone_rc.hpp"
-#include "rclone_path.hpp"
 #include <glibmm.h>
 #include <format>
 #include <fcntl.h>
@@ -146,11 +145,9 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
 }
 
 void RcloneRc::spawn_daemon(AsyncCallback<std::monostate> callback) {
-    auto rclone_path = find_rclone_binary();
-    if (rclone_path == "rclone")
-        rclone_path = Glib::find_program_in_path("rclone");
+    auto rclone_path = Glib::find_program_in_path("rclone");
     if (rclone_path.empty()) {
-        callback(std::unexpected("rclone not found — reinstall MtSync"));
+        callback(std::unexpected("rclone not found in PATH"));
         return;
     }
     gchar* argv[] = {
