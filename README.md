@@ -112,7 +112,7 @@ the `name_version_distro_arch.ext` convention (e.g. `mtsync_0.8.1_ubuntu24.04_x8
 sudo apt install ./mtsync_*_ubuntu*_x86_64.deb
 ```
 
-Packages are built for Ubuntu 24.04 LTS and 26.04 LTS. Install the one that matches your release.
+Packages are built for Ubuntu 24.04, 25.10, and 26.04. Install the one that matches your release.
 rclone is bundled — no separate rclone installation needed.
 
 ### RPM (Fedora)
