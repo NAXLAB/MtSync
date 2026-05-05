@@ -11,6 +11,7 @@ jobs:
     name: Build DEB (Ubuntu ${{ matrix.ubuntu }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         ubuntu: ['24.04', '25.10', '26.04']
     container:
@@ -19,15 +20,25 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
-          apt-get install -y \
+          apt-get install -y --no-install-recommends \
             cmake g++ pkg-config \
             libgtkmm-4.0-dev \
             libadwaita-1-dev \
             libsoup-3.0-dev \
             libcairo2-dev \
             nlohmann-json3-dev
+          apt-get clean
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Cache bundled rclone
+        uses: actions/cache@v4
+        with:
+          path: build/rclone-bundled
+          key: rclone-1.74.0-${{ runner.arch }}
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
@@ -65,6 +76,12 @@ jobs:
             nlohmann-json-devel \
             rpm-build
 
+      - name: Cache bundled rclone
+        uses: actions/cache@v4
+        with:
+          path: build/rclone-bundled
+          key: rclone-1.74.0-${{ runner.arch }}
+
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 
@@ -91,7 +108,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             cmake g++ pkg-config \
             libgtkmm-4.0-dev \
             libadwaita-1-dev \
@@ -99,6 +116,14 @@ jobs:
             libcairo2-dev \
             nlohmann-json3-dev \
             libfuse2
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Cache bundled rclone
+        uses: actions/cache@v4
+        with:
+          path: build/rclone-bundled
+          key: rclone-1.74.0-${{ runner.arch }}
 
       - name: Configure and build
         run: |
