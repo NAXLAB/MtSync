@@ -19,14 +19,6 @@
 #include "daemon.hpp"
 #include "application.hpp"
 #include <iostream>
-#include <csignal>
-#include <cstdlib>
-
-static std::sig_atomic_t g_running = true;
-
-static void signal_handler(int) {
-    g_running = false;
-}
 
 int main(int argc, char* argv[]) {
     bool daemon_mode = false;
@@ -42,9 +34,6 @@ int main(int argc, char* argv[]) {
             return 0;
         }
     }
-
-    std::signal(SIGINT, signal_handler);
-    std::signal(SIGTERM, signal_handler);
 
     if (daemon_mode) {
         mtsync::MtSyncDaemon daemon;

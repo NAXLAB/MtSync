@@ -25,6 +25,7 @@
 #include <set>
 #include <sstream>
 #include <glibmm.h>
+#include <glib-unix.h>
 
 using json = nlohmann::json;
 
@@ -387,6 +388,19 @@ void MtSyncDaemon::run() {
         return;
     }
 
+    // Handle SIGTERM/SIGINT via GLib's signal sources so the callback is delivered
+    // on the main loop rather than interrupting a syscall. std::signal() + SA_RESTART
+    // (the Linux default) would silently restart g_main_context_iteration, making the
+    // daemon unresponsive to kill signals.
+    guint sigterm_src = g_unix_signal_add(SIGTERM, [](gpointer data) -> gboolean {
+        static_cast<MtSyncDaemon*>(data)->stop();
+        return G_SOURCE_REMOVE;
+    }, this);
+    guint sigint_src = g_unix_signal_add(SIGINT, [](gpointer data) -> gboolean {
+        static_cast<MtSyncDaemon*>(data)->stop();
+        return G_SOURCE_REMOVE;
+    }, this);
+
     g_message("Mt. Sync daemon started");
 
     while (m_running) {
@@ -394,6 +408,9 @@ void MtSyncDaemon::run() {
     }
 
     g_message("Mt. Sync daemon stopped");
+
+    g_source_remove(sigterm_src);
+    g_source_remove(sigint_src);
 }
 
 void MtSyncDaemon::load_jobs() {

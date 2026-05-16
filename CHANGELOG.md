@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2 — Safe Shutdown & Signal Handling
+
+- **SIGTERM/SIGINT now stop the daemon**: signal handling switched from `std::signal()` to `g_unix_signal_add()` — on Linux, `std::signal()` installs handlers with `SA_RESTART`, which causes the blocking `g_main_context_iteration` call to be transparently restarted, making the daemon unresponsive to `kill` and `systemctl stop`; the GLib-native approach delivers the signal as a main-loop callback that calls `stop()` cleanly
+- **Startup verification timer tracked and cancellable**: the 1500 ms rclone rcd startup probe timer now stores its GLib source ID and uses `g_timeout_add_full` with a `GDestroyNotify` so the heap-allocated callback data is freed whether the timer fires or is cancelled; a `shared_ptr<bool>` sentinel prevents the in-flight `rc_post` callback from touching a destroyed `RcloneRc`
+- **Child watch source ID stored and removed**: `g_child_watch_add` return value is now saved in `m_child_watch_id` and removed via `g_source_remove` in `stop_daemon()` before sending SIGTERM, preventing a dangling-`this` write after `RcloneRc` is destroyed
+- **Shutdown timeout reduced from 5 s to 1 s**: the SIGTERM→SIGKILL escalation polling loop in `stop_daemon()` now waits at most 1 second before escalating; SIGKILL guarantees fast process exit so there is no benefit to the previous 5-second maximum
+
 ## 0.9.1 — Network Fault Tolerance
 
 - **HTTP request timeout**: all rclone RC HTTP requests now have a 15-second timeout — previously requests could hang indefinitely on an unresponsive network, causing unbounded memory growth in the libsoup session as the 500 ms poll timer queued new requests each tick

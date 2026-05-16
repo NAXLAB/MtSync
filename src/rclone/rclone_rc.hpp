@@ -22,6 +22,7 @@
 #include <libsoup/soup.h>
 #include <nlohmann/json.hpp>
 #include <giomm.h>
+#include <memory>
 #include <string>
 
 namespace mtsync::rclone {
@@ -70,6 +71,9 @@ private:
     std::string m_config_path;
     SoupSession* m_session = nullptr;
     GPid m_daemon_pid = 0;
+    guint m_child_watch_id = 0;
+    guint m_verify_timer_id = 0;
+    std::shared_ptr<bool> m_verify_cancelled;
 
     void rc_post(const std::string& endpoint,
                  const nlohmann::json& body,
