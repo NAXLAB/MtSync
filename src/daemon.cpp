@@ -725,10 +725,12 @@ void MtSyncDaemon::on_run_job(size_t index) {
                 int64_t current_job_id = m_job_ids[index];
                 // Check job status; if still running, fetch stats in the same callback
                 m_manager.rc().job_status(current_job_id, [this, index, job_uuid, current_job_id](auto status) {
-                    if (index < m_poll_in_flight.size()) m_poll_in_flight[index] = false;
-                    // Guard against stale index (job deleted) or duplicate completion
+                    // Guard against stale index (job deleted) or duplicate completion before
+                    // clearing the in-flight flag — avoids clearing the flag for a different
+                    // job that shifted into this index after a deletion.
                     if (index >= m_jobs.size() || m_jobs[index].id != job_uuid) return;
                     if (index >= m_job_ids.size() || m_job_ids[index] < 0) return;
+                    if (index < m_poll_in_flight.size()) m_poll_in_flight[index] = false;
                     if (!status.has_value()) {
                         on_job_completed(index, false, "rclone rcd unreachable");
                         return;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.3 — Race Condition & Lifetime Fixes
+
+- **`ensure_daemon` use-after-free**: the `core/version` probe in `ensure_daemon` captured `this` in its `rc_post` callback with no cancellation path — `stop_daemon()` already guarded the startup-verification callback via `m_verify_cancelled` but left this earlier probe unguarded; added a parallel `m_ensure_cancelled` sentinel that `stop_daemon()` sets before releasing the libsoup session, preventing the callback from touching a destroyed `RcloneRc`
+- **Poll in-flight flag cleared for wrong job**: the `job_status` callback reset `m_poll_in_flight[index]` before the UUID/bounds guard — if a job deletion shifted a different job into that index, the flag was cleared for the new occupant, causing its next poll tick to fire a duplicate HTTP request; the clear is now ordered after the guard so it only executes when the index still refers to the originating job
+- **`std::vector<bool>` guard vectors**: `m_job_submitting` and `m_poll_in_flight` were `std::vector<bool>`, which packs bits and returns proxy objects instead of real references — changed to `std::vector<uint8_t>` to give elements stable addresses and avoid the proxy trap if a reference is ever held across a resize
+
 ## 0.9.2 — Safe Shutdown & Signal Handling
 
 - **SIGTERM/SIGINT now stop the daemon**: signal handling switched from `std::signal()` to `g_unix_signal_add()` — on Linux, `std::signal()` installs handlers with `SA_RESTART`, which causes the blocking `g_main_context_iteration` call to be transparently restarted, making the daemon unresponsive to `kill` and `systemctl stop`; the GLib-native approach delivers the signal as a main-loop callback that calls `stop()` cleanly

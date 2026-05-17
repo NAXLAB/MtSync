@@ -128,7 +128,12 @@ void RcloneRc::ensure_daemon(AsyncCallback<std::monostate> callback) {
     // m_daemon_pid == 0: probe first — a previous session's rclone rcd may still
     // be listening (e.g. app crashed, or stop_daemon() raced with restart).
     // Adopt it rather than spawning a new one that would fail to bind the port.
-    rc_post("core/version", json::object(), [this, callback = std::move(callback)](auto result) mutable {
+    // Sentinel prevents the callback from touching `this` after destruction.
+    // stop_daemon() sets *m_ensure_cancelled = true before the session is released.
+    m_ensure_cancelled = std::make_shared<bool>(false);
+    rc_post("core/version", json::object(),
+            [this, cancelled = m_ensure_cancelled, callback = std::move(callback)](auto result) mutable {
+        if (*cancelled) return;
         if (result.has_value()) {
             // An rclone rcd is already running — adopt it by setting up a child
             // watch so we get notified when it dies.  We don't know the real PID,
@@ -256,6 +261,10 @@ void RcloneRc::stop_daemon() {
     if (m_verify_cancelled) {
         *m_verify_cancelled = true;
         m_verify_cancelled.reset();
+    }
+    if (m_ensure_cancelled) {
+        *m_ensure_cancelled = true;
+        m_ensure_cancelled.reset();
     }
 
     // Remove the child watch before killing so the callback doesn't fire with

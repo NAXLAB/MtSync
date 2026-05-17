@@ -74,6 +74,7 @@ private:
     guint m_child_watch_id = 0;
     guint m_verify_timer_id = 0;
     std::shared_ptr<bool> m_verify_cancelled;
+    std::shared_ptr<bool> m_ensure_cancelled;
 
     void rc_post(const std::string& endpoint,
                  const nlohmann::json& body,

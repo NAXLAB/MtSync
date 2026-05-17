@@ -60,8 +60,8 @@ private:
     std::vector<sigc::connection> m_sched_timers;
     std::vector<sigc::connection> m_retry_timers;
     std::vector<int64_t> m_job_ids;
-    std::vector<bool>    m_job_submitting; // Guard: on_run_job called but rclone RC hasn't returned ID yet
-    std::vector<bool>    m_poll_in_flight; // Guard: poll HTTP request pending, skip next tick
+    std::vector<uint8_t> m_job_submitting; // Guard: on_run_job called but rclone RC hasn't returned ID yet
+    std::vector<uint8_t> m_poll_in_flight; // Guard: poll HTTP request pending, skip next tick
     std::vector<int>     m_retry_counts;
     std::vector<rclone::SyncStats> m_last_stats;
     int m_running_job_count = 0;
