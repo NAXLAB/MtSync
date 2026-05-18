@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.4 — Job Counter & Scheduler Fixes
+
+- **`m_running_job_count` leak on retries**: each retry attempt incremented the counter in `on_run_job` without a corresponding decrement from the previous failed run — `on_job_completed` returned early via the retry path before reaching the decrement, so after N retries the counter was inflated by N, keeping the tray animation spinning indefinitely even when no jobs were active; the decrement now fires immediately before the retry return so the counter is balanced and the retry re-increments when it actually starts
+- **`schedule_job` timer missing UUID guard**: the scheduled-run timer lambda captured only the job index with no UUID check — every other timer in the daemon (poll, retry) guards against index reuse after a job deletion; the schedule timer now captures `sched_uuid` and returns early if `m_jobs[index].id` no longer matches, consistent with the rest of the codebase
+
 ## 0.9.3 — Race Condition & Lifetime Fixes
 
 - **`ensure_daemon` use-after-free**: the `core/version` probe in `ensure_daemon` captured `this` in its `rc_post` callback with no cancellation path — `stop_daemon()` already guarded the startup-verification callback via `m_verify_cancelled` but left this earlier probe unguarded; added a parallel `m_ensure_cancelled` sentinel that `stop_daemon()` sets before releasing the libsoup session, preventing the callback from touching a destroyed `RcloneRc`

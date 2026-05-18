@@ -492,8 +492,11 @@ void MtSyncDaemon::schedule_job(size_t index) {
         m_sched_timers.resize(index + 1);
     }
 
+    std::string sched_uuid = job.id;
     m_sched_timers[index] = Glib::signal_timeout().connect(
-        [this, index]() -> bool {
+        [this, index, sched_uuid]() -> bool {
+            if (index >= m_jobs.size() || m_jobs[index].id != sched_uuid)
+                return false;
             on_run_job(index);
             return false;
         }, delay_ms);
@@ -819,6 +822,10 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
                     on_run_job(index);
                     return false;
                 }, delay_ms);
+            // Balance the increment from on_run_job; the retry re-increments when it starts.
+            m_running_job_count--;
+            if (m_running_job_count < 0) m_running_job_count = 0;
+            update_tray_animation();
             return;
         }
         m_retry_counts[index] = 0;
