@@ -78,6 +78,7 @@ private:
     void save_jobs();
     void rebuild_ui();
     void append_job_row(size_t index);
+    void remove_job_row(size_t index);
     void show_add_dialog();
     void show_edit_dialog(size_t index);
     void on_run_job(size_t index);

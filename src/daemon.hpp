@@ -49,21 +49,25 @@ private:
     void on_run_job(size_t index);
     void on_job_completed(size_t index, bool success, const std::string& error_msg = "");
 
+    struct JobState {
+        sigc::connection  poll_timer;
+        sigc::connection  sched_timer;
+        sigc::connection  retry_timer;
+        int64_t           job_id         = -1;
+        uint8_t           submitting     = 0; // on_run_job called but RC hasn't returned ID yet
+        uint8_t           poll_in_flight = 0; // poll HTTP request pending, skip next tick
+        int               retry_count    = 0;
+        rclone::SyncStats last_stats;
+    };
+
     rclone::RcloneManager m_manager;
-    std::vector<rclone::Job> m_jobs;
+    std::vector<rclone::Job>   m_jobs;
+    std::vector<JobState>      m_job_state;
     std::string m_config_path;
 
     std::unique_ptr<TrayIcon> m_tray;
     std::unique_ptr<ipc::IpcServer> m_ipc_server;
 
-    std::vector<sigc::connection> m_poll_timers;
-    std::vector<sigc::connection> m_sched_timers;
-    std::vector<sigc::connection> m_retry_timers;
-    std::vector<int64_t> m_job_ids;
-    std::vector<uint8_t> m_job_submitting; // Guard: on_run_job called but rclone RC hasn't returned ID yet
-    std::vector<uint8_t> m_poll_in_flight; // Guard: poll HTTP request pending, skip next tick
-    std::vector<int>     m_retry_counts;
-    std::vector<rclone::SyncStats> m_last_stats;
     int m_running_job_count = 0;
 
     sigc::connection m_mount_health_timer;

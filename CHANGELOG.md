@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.5 — Performance Improvements Sprint 1
+
+- **Parallel job-state vectors consolidated into a struct**: eight separate `std::vector`s (`m_poll_timers`, `m_sched_timers`, `m_retry_timers`, `m_job_ids`, `m_job_submitting`, `m_poll_in_flight`, `m_retry_counts`, `m_last_stats`) replaced by a single `std::vector<JobState>` — job deletion now performs one `O(n)` erase instead of eight, all per-job state is cache-locally contiguous, and independent resize calls scattered across the daemon are eliminated
+- **Redundant `get_stats` HTTP call on job completion removed**: `on_job_completed` previously fired a second `core/stats` HTTP round-trip to fetch final transfer counts despite the poll loop already caching them in `m_last_stats` (now `JobState::last_stats`) at most 500 ms earlier; completion now uses the cached value directly, eliminating one RC call per job lifecycle
+- **`job_updated` no longer rebuilds the entire job list**: the `job_updated` daemon broadcast previously called `rebuild_ui()` which disconnected all timers, removed every row widget, and recreated the full list; it now removes and recreates only the single affected row — `O(1)` widget operations instead of `O(n)`
+- **Activity log not re-read on job start**: `refresh_log()` was called on `job_started` in addition to `job_completed` and `job_stopped`; the log file does not change meaningfully mid-transfer so the disk read on start is removed — log view refreshes only on terminal job events
+
 ## 0.9.4 — Job Counter & Scheduler Fixes
 
 - **`m_running_job_count` leak on retries**: each retry attempt incremented the counter in `on_run_job` without a corresponding decrement from the previous failed run — `on_job_completed` returned early via the retry path before reaching the decrement, so after N retries the counter was inflated by N, keeping the tray animation spinning indefinitely even when no jobs were active; the decrement now fires immediately before the retry return so the counter is balanced and the retry re-increments when it actually starts

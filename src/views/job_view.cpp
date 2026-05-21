@@ -376,6 +376,16 @@ void JobView::rebuild_ui() {
     update_group_visibility();
 }
 
+void JobView::remove_job_row(size_t index) {
+    if (index >= m_ui_rows.size()) return;
+    auto& ui = m_ui_rows[index];
+    ui.poll_timer.disconnect();
+    if (ui.group)
+        adw_preferences_group_remove(
+            ADW_PREFERENCES_GROUP(ui.group->gobj()),
+            ui.row->gobj());
+}
+
 void JobView::append_job_row(size_t index) {
     if (index >= m_jobs.size()) return;
     auto& job = m_jobs[index];
@@ -543,7 +553,11 @@ void JobView::append_job_row(size_t index) {
     auto* grp = group_for_type(job.type);
     ui.group = grp;
     adw::preferences_group_add(grp, row);
-    m_ui_rows.push_back(std::move(ui));
+    if (index < m_ui_rows.size()) {
+        m_ui_rows[index] = std::move(ui);
+    } else {
+        m_ui_rows.push_back(std::move(ui));
+    }
     update_group_visibility();
 }
 
@@ -786,7 +800,11 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
         auto index = payload.value("index", static_cast<size_t>(0));
         if (index < m_jobs.size() && payload.contains("job")) {
             m_jobs[index] = payload["job"].get<rclone::Job>();
-            rebuild_ui();
+            // Remove old row, rebuild just this one — avoids O(n) full teardown.
+            // The updated row re-appends to the end of its type group.
+            remove_job_row(index);
+            m_ui_rows[index] = JobUI{};
+            append_job_row(index);
         }
     } else if (type == "job_deleted") {
         auto index = payload.value("index", static_cast<size_t>(0));
@@ -809,7 +827,6 @@ void JobView::on_daemon_message(const nlohmann::json& msg) {
             m_ui_rows[index].status_label->set_visible(true);
             m_ui_rows[index].status_label->set_text("Starting...");
         }
-        refresh_log();
     } else if (type == "job_progress") {
         auto index = payload.value("index", static_cast<size_t>(0));
         if (index >= m_ui_rows.size()) return;
