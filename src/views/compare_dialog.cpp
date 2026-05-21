@@ -483,8 +483,15 @@ void CompareDialog::build_column_view() {
         if (!obj || !lbl) return;
         auto status_ustr = obj->property_status.get_value();
         char s = status_ustr.empty() ? '=' : static_cast<char>(status_ustr[0]);
-        for (auto* cls : k_status_classes)
-            lbl->remove_css_class(cls);
+        const char* new_cls = (s != '/') ? status_css_class(s) : nullptr;
+        const char* old_cls = static_cast<const char*>(
+            g_object_get_data(G_OBJECT(lbl->gobj()), "status-css"));
+        if (old_cls != new_cls) {
+            if (old_cls) lbl->remove_css_class(old_cls);
+            if (new_cls) lbl->add_css_class(new_cls);
+            g_object_set_data(G_OBJECT(lbl->gobj()), "status-css",
+                              const_cast<char*>(new_cls));
+        }
         if (s == '/') { lbl->set_text(""); return; }
         const char* sym;
         switch (s) {
@@ -495,7 +502,6 @@ void CompareDialog::build_column_view() {
             default:  sym = "="; break;
         }
         lbl->set_text(sym);
-        lbl->add_css_class(status_css_class(s));
     });
     auto status_col = Gtk::ColumnViewColumn::create("", status_factory);
     status_col->set_fixed_width(28);
@@ -538,6 +544,7 @@ void CompareDialog::start_load(rclone::RcloneManager& manager) {
             return;
         }
         merge_results(state->src_entries, state->dst_entries, state->check_entries);
+        rebuild_filter_cache();
         show_page(0);
     };
 
@@ -639,11 +646,8 @@ void CompareDialog::merge_results(const std::vector<rclone::FileEntry>& src_file
 
 // ── Pagination ────────────────────────────────────────────────────────────
 
-void CompareDialog::show_page(int page) {
-    m_current_page = page;
-    m_page_store->remove_all();
-
-    // Collect rows that pass the status filter (dir headers pass unconditionally)
+void CompareDialog::rebuild_filter_cache() {
+    // Filter pass: keep headers (s == '/') and rows that pass the status filter
     std::vector<Glib::RefPtr<CompareRowObject>> visible;
     visible.reserve(m_all_rows.size());
     for (auto& row : m_all_rows) {
@@ -653,9 +657,9 @@ void CompareDialog::show_page(int page) {
         visible.push_back(row);
     }
 
-    // Strip orphan directory headers (headers with no file children before the next header)
-    std::vector<Glib::RefPtr<CompareRowObject>> final_rows;
-    final_rows.reserve(visible.size());
+    // Strip orphan directory headers (headers with no file child before the next header)
+    m_filtered_rows.clear();
+    m_filtered_rows.reserve(visible.size());
     for (size_t i = 0; i < visible.size(); ++i) {
         auto st = visible[i]->property_status.get_value();
         char s = st.empty() ? '=' : static_cast<char>(st[0]);
@@ -664,30 +668,38 @@ void CompareDialog::show_page(int page) {
                 auto ns = visible[i + 1]->property_status.get_value();
                 return (ns.empty() ? '=' : static_cast<char>(ns[0])) != '/';
             }();
-            if (has_file) final_rows.push_back(visible[i]);
+            if (has_file) m_filtered_rows.push_back(visible[i]);
         } else {
-            final_rows.push_back(visible[i]);
+            m_filtered_rows.push_back(visible[i]);
         }
     }
 
+    m_filtered_file_count = 0;
+    for (auto& row : m_filtered_rows) {
+        auto st = row->property_status.get_value();
+        char s = st.empty() ? '=' : static_cast<char>(st[0]);
+        if (s != '/') ++m_filtered_file_count;
+    }
+    m_total_pages = m_filtered_file_count == 0 ? 1
+                  : (m_filtered_file_count + PAGE_SIZE - 1) / PAGE_SIZE;
+}
+
+void CompareDialog::show_page(int page) {
+    m_current_page = page;
+    m_page_store->remove_all();
+
     int start = page * PAGE_SIZE;
-    int end   = std::min(start + PAGE_SIZE, static_cast<int>(final_rows.size()));
+    int end   = std::min(start + PAGE_SIZE, static_cast<int>(m_filtered_rows.size()));
     for (int i = start; i < end; ++i)
-        m_page_store->append(final_rows[i]);
+        m_page_store->append(m_filtered_rows[i]);
     update_pagination_controls();
     m_stack->set_visible_child("results");
     update_action_buttons();
 }
 
 void CompareDialog::update_pagination_controls() {
-    int visible = 0;
-    for (auto& row : m_all_rows) {
-        auto st = row->property_status.get_value();
-        char s = st.empty() ? '=' : static_cast<char>(st[0]);
-        if (s != '/' && is_status_filtered(s)) ++visible;
-    }
     m_page_label->set_text(std::format(
-        "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, visible));
+        "Page {} of {}  ({} files)", m_current_page + 1, m_total_pages, m_filtered_file_count));
     m_prev_btn->set_sensitive(m_current_page > 0);
     m_next_btn->set_sensitive(m_current_page < m_total_pages - 1);
 }
@@ -706,13 +718,7 @@ bool CompareDialog::is_status_filtered(char status) const {
 }
 
 void CompareDialog::apply_filters() {
-    int visible = 0;
-    for (auto& row : m_all_rows) {
-        auto st = row->property_status.get_value();
-        char s = st.empty() ? '=' : static_cast<char>(st[0]);
-        if (s != '/' && is_status_filtered(s)) ++visible;
-    }
-    m_total_pages = visible == 0 ? 1 : (visible + PAGE_SIZE - 1) / PAGE_SIZE;
+    rebuild_filter_cache();
     show_page(0);
 }
 

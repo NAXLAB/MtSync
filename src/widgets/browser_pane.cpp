@@ -293,24 +293,27 @@ void BrowserPane::build_column_view() {
         box->append(*icon);
         box->append(*label);
         item->set_child(*box);
+        g_object_set_data(G_OBJECT(item->gobj()), "bp-icon",  icon);
+        g_object_set_data(G_OBJECT(item->gobj()), "bp-label", label);
     });
     name_factory->signal_bind().connect([](const Glib::RefPtr<Gtk::ListItem>& item) {
         auto obj = std::dynamic_pointer_cast<FileObject>(item->get_item());
         if (!obj) return;
-        auto* box   = dynamic_cast<Gtk::Box*>(item->get_child());
-        if (!box) return;
-        auto* icon  = dynamic_cast<Gtk::Image*>(box->get_first_child());
-        auto* label = dynamic_cast<Gtk::Label*>(icon ? icon->get_next_sibling() : nullptr);
+        auto* icon  = static_cast<Gtk::Image*>(g_object_get_data(G_OBJECT(item->gobj()), "bp-icon"));
+        auto* label = static_cast<Gtk::Label*>(g_object_get_data(G_OBJECT(item->gobj()), "bp-label"));
         if (icon) {
             std::string mime = std::string(obj->property_mime_type.get_value());
             bool is_dir = obj->property_is_dir.get_value();
             icon->set_from_icon_name(mime_to_icon(mime, is_dir));
-            for (const char* cls : {"icon-folder","icon-image","icon-video","icon-audio",
-                                    "icon-archive","icon-document","icon-spreadsheet",
-                                    "icon-presentation","icon-code","icon-font",
-                                    "icon-executable","icon-text"})
-                icon->remove_css_class(cls);
-            icon->add_css_class(mime_to_css_class(mime, is_dir));
+            const char* new_cls = mime_to_css_class(mime, is_dir);
+            const char* old_cls = static_cast<const char*>(
+                g_object_get_data(G_OBJECT(icon->gobj()), "bp-css"));
+            if (old_cls != new_cls) {
+                if (old_cls) icon->remove_css_class(old_cls);
+                icon->add_css_class(new_cls);
+                g_object_set_data(G_OBJECT(icon->gobj()), "bp-css",
+                                  const_cast<char*>(new_cls));
+            }
         }
         if (label) label->set_text(obj->property_name.get_value());
     });

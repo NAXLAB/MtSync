@@ -149,10 +149,17 @@ inline GDateTime* next_occurrence(const rclone::Job& job, GDateTime* from) {
     int minute = g_date_time_get_minute(from);
     detail::add_minute(year, month, day, hour, minute);
 
+    // Cache day_of_week; recompute only when the date changes (saves ~1440x calls/day)
+    int wday      = detail::day_of_week(year, month, day);
+    int prev_day  = day, prev_month = month, prev_year = year;
+
     // Search up to 4 years (~2.1M iterations of cheap integer arithmetic)
     constexpr int MAX_ITER = 366 * 24 * 60 * 4;
     for (int i = 0; i < MAX_ITER; ++i) {
-        int wday = detail::day_of_week(year, month, day); // 0=Sun
+        if (day != prev_day || month != prev_month || year != prev_year) {
+            wday = detail::day_of_week(year, month, day);
+            prev_day = day; prev_month = month; prev_year = year;
+        }
 
         if (in(month, months) && in(day, days) && in(wday, wdays) &&
             in(hour, hours)   && in(minute, minutes)) {

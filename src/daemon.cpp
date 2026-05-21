@@ -324,6 +324,10 @@ MtSyncDaemon::MtSyncDaemon() {
     // so users/file managers don't access dead FUSE mount points.
     m_mount_health_timer = Glib::signal_timeout().connect([this]() -> bool {
         if (!m_running) return false;
+        bool has_active_mount = false;
+        for (auto& j : m_jobs)
+            if (j.type == rclone::JobType::Mount && j.active) { has_active_mount = true; break; }
+        if (!has_active_mount) return true;
         m_manager.rc().list_mounts([this](auto result) {
             if (!m_running) return;
             std::set<std::string> live_mounts;

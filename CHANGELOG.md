@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.6 — Performance Improvements Sprint 2
+
+- **HTTP session timeout reduced from 15 s to 5 s**: all rclone RC requests now time out after 5 seconds — the previous 15-second limit meant a hung localhost rclone could stall 10 concurrent poll callbacks for 15 s each before the async queue drained; 5 s is sufficient for a local loopback call
+- **Mount health timer skips HTTP call when no mounts are active**: the 60-second `list_mounts` liveness check now returns early if no jobs of type Mount are currently active, avoiding a pointless HTTP round-trip every minute during normal sync-only use
+- **Cron `day_of_week` computed once per day**: the next-occurrence search previously called `day_of_week()` on every iteration of the up-to-2.1 M step minute loop — the result is now cached and recomputed only when the date changes, reducing calls by up to 1440× per day
+- **Compare dialog pagination: O(3n) → O(n) per filter change**: `show_page`, `update_pagination_controls`, and `apply_filters` each scanned `m_all_rows` independently; the filter+strip pass is now computed once in `rebuild_filter_cache()` into a `m_filtered_rows` cache that all three callers read, eliminating two redundant full-list traversals per filter toggle or page navigation
+- **Compare dialog status column: CSS class swap guarded**: the status-column bind callback previously removed all five CSS classes unconditionally on every scroll event; it now stores the current class via `g_object_set_data` and only removes the old class and adds the new one when they differ
+- **Browser pane name column: dynamic casts replaced and CSS swap guarded**: the name-column bind callback previously traversed the widget tree with two `dynamic_cast` calls and removed 12 CSS classes unconditionally on every scroll event; widget pointers are now stored in the setup callback via `g_object_set_data` and retrieved in O(1) in the bind callback, and the icon CSS class is only swapped when it changes
+
 ## 0.9.5 — Performance Improvements Sprint 1
 
 - **Parallel job-state vectors consolidated into a struct**: eight separate `std::vector`s (`m_poll_timers`, `m_sched_timers`, `m_retry_timers`, `m_job_ids`, `m_job_submitting`, `m_poll_in_flight`, `m_retry_counts`, `m_last_stats`) replaced by a single `std::vector<JobState>` — job deletion now performs one `O(n)` erase instead of eight, all per-job state is cache-locally contiguous, and independent resize calls scattered across the daemon are eliminated

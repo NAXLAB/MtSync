@@ -33,7 +33,7 @@ static constexpr int STOP_TIMEOUT_MS = 5000;
 RcloneRc::RcloneRc(std::string addr, int port)
     : m_base_url(std::format("http://{}:{}", addr, port)) {
     m_session = soup_session_new();
-    g_object_set(m_session, "timeout", 15u, nullptr);
+    g_object_set(m_session, "timeout", 5u, nullptr);
 
     // Mirror RcloneCli's config path logic so rclone rcd also bypasses Flatpak's
     // $XDG_CONFIG_HOME redirect and reads the real user config.

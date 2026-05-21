@@ -42,6 +42,9 @@ private:
 
     // Full merged dataset — populated after all three async ops complete
     std::vector<Glib::RefPtr<CompareRowObject>> m_all_rows;
+    // Filtered+stripped view of m_all_rows; rebuilt by rebuild_filter_cache()
+    std::vector<Glib::RefPtr<CompareRowObject>> m_filtered_rows;
+    int m_filtered_file_count = 0;
 
     static constexpr int PAGE_SIZE = 50;
     int m_current_page = 0;
@@ -88,6 +91,7 @@ private:
     void merge_results(const std::vector<rclone::FileEntry>& src_files,
                        const std::vector<rclone::FileEntry>& dst_files,
                        const std::vector<rclone::CheckEntry>& checks);
+    void rebuild_filter_cache();
     void show_page(int page);
     void update_pagination_controls();
     void update_action_buttons();
