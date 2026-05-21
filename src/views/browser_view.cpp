@@ -73,7 +73,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // Copy button
     auto* copy_btn = make_icon_btn("edit-copy-symbolic", "Copy");
     copy_btn->add_css_class("action-green");
-    copy_btn->set_tooltip_text("Copy from source to destination");
+    copy_btn->set_tooltip_text("Copy files from the source pane to the destination pane, creating a new rclone Copy job");
     copy_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Copy);
     });
@@ -81,7 +81,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // Move button
     auto* move_btn = make_icon_btn("document-send-symbolic", "Move");
     move_btn->add_css_class("action-green");
-    move_btn->set_tooltip_text("Move from source to destination");
+    move_btn->set_tooltip_text("Move files from the source pane to the destination and delete them from the source, creating a new rclone Move job");
     move_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Move);
     });
@@ -89,7 +89,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // Sync button
     auto* sync_btn = make_icon_btn("emblem-synchronizing-symbolic", "Sync");
     sync_btn->add_css_class("action-green");
-    sync_btn->set_tooltip_text("Sync source to destination");
+    sync_btn->set_tooltip_text("Synchronise the source directory with the destination, making it an exact mirror; files deleted from the source are also removed from the destination");
     sync_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Sync);
     });
@@ -97,14 +97,14 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     // Mount button
     auto* mount_btn = make_icon_btn("drive-harddisk-symbolic", "Mount");
     mount_btn->add_css_class("action-green");
-    mount_btn->set_tooltip_text("Mount source at destination");
+    mount_btn->set_tooltip_text("Mount the source remote as a local filesystem at the destination path using rclone mount");
     mount_btn->signal_clicked().connect([this]() {
         show_job_dialog(rclone::JobType::Mount);
     });
 
     // Swap button - reverses source/destination
     auto* swap_btn = Gtk::make_managed<Gtk::Button>("Swap ↔");
-    swap_btn->set_tooltip_text("Swap source and destination");
+    swap_btn->set_tooltip_text("Swap the left (source) and right (destination) panes so they exchange roles");
     swap_btn->signal_clicked().connect([this]() {
         swap_source_destination();
     });
@@ -131,12 +131,12 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     delete_box->append(*delete_label);
     delete_btn->set_child(*delete_box);
     delete_btn->add_css_class("destructive-action");
-    delete_btn->set_tooltip_text("Delete selection in active pane");
+    delete_btn->set_tooltip_text("Permanently delete the selected files or folders in the active pane — this action cannot be undone");
     delete_btn->signal_clicked().connect(sigc::mem_fun(*this, &BrowserView::on_delete_confirm));
 
     // Compare button
     auto* compare_btn = make_icon_btn("folder-visiting-symbolic", "Compare");
-    compare_btn->set_tooltip_text("Compare left pane (source) with right pane (destination)");
+    compare_btn->set_tooltip_text("Open a side-by-side comparison of the source and destination directories, highlighting files that are unique to one side, identical, or differ in content");
     compare_btn->signal_clicked().connect(sigc::mem_fun(*this, &BrowserView::on_compare));
 
     // New Folder — MenuButton with a Popover containing a text entry
@@ -154,7 +154,7 @@ BrowserView::BrowserView(rclone::RcloneManager& manager)
     mkdir_label_box->append(*mkdir_icon);
     mkdir_label_box->append(*mkdir_label);
     mkdir_btn->set_child(*mkdir_label_box);
-    mkdir_btn->set_tooltip_text("Create a new folder in the active pane");
+    mkdir_btn->set_tooltip_text("Create a new folder at the current location in the active pane");
 
     pop_box->set_margin(12);
     folder_entry->set_placeholder_text("Folder name");

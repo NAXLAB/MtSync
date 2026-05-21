@@ -171,6 +171,7 @@ BackendsView::BackendsView(rclone::RcloneManager& manager)
     auto* add_btn = Gtk::make_managed<Gtk::Button>();
     add_btn->set_icon_name("list-add-symbolic");
     add_btn->add_css_class("flat");
+    add_btn->set_tooltip_text("Add a new remote storage location such as Google Drive, S3, or SFTP");
     add_btn->signal_clicked().connect(sigc::mem_fun(*this, &BackendsView::show_add_remote));
     adw::preferences_group_set_header_suffix(m_prefs_group, add_btn);
 
@@ -262,6 +263,7 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         rr.edit_btn->set_icon_name("document-edit-symbolic");
         rr.edit_btn->set_valign(Gtk::Align::CENTER);
         rr.edit_btn->add_css_class("flat");
+        rr.edit_btn->set_tooltip_text("Edit the connection settings for this remote storage location");
 
         auto remote_copy = remote;
         rr.edit_btn->signal_clicked().connect([this, remote_copy]() {
@@ -274,6 +276,7 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         rr.del_btn->set_valign(Gtk::Align::CENTER);
         rr.del_btn->add_css_class("flat");
         rr.del_btn->add_css_class("destructive-action");
+        rr.del_btn->set_tooltip_text("Permanently remove this remote storage location from rclone's configuration");
 
         std::string name = remote.name;
         rr.del_btn->signal_clicked().connect([this, name]() {

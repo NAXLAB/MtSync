@@ -201,6 +201,7 @@ void BackendEditView::setup_ui() {
 
     m_authorize_btn.add_css_class("suggested-action");
     m_authorize_btn.set_valign(Gtk::Align::CENTER);
+    m_authorize_btn.set_tooltip_text("Open a browser window to sign in and grant rclone access to this storage provider via OAuth");
     m_authorize_btn.signal_clicked().connect(
         sigc::mem_fun(*this, &BackendEditView::on_authorize));
     adw::action_row_add_suffix(oauth_row, &m_authorize_btn);
@@ -239,10 +240,12 @@ void BackendEditView::setup_ui() {
 
     auto* save_btn = Gtk::make_managed<Gtk::Button>(m_editing ? "Update" : "Save");
     save_btn->add_css_class("suggested-action");
+    save_btn->set_tooltip_text("Save the remote configuration and return to the remotes list");
     save_btn->signal_clicked().connect(sigc::mem_fun(*this, &BackendEditView::on_save));
     btn_box->append(*save_btn);
 
     auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
+    cancel_btn->set_tooltip_text("Discard all unsaved changes and return to the remotes list");
     cancel_btn->signal_clicked().connect([this]() {
         if (m_on_done) m_on_done();
     });

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.8 — Button Tooltips
+
+- **Verbose tooltips on all buttons**: every interactive button in the GUI now has a descriptive tooltip — 23 buttons that previously had none (job run/stop/edit/delete/expand, add job, add remote, edit/delete remote, authorize OAuth, save/cancel in all dialogs, cron field clear, compare pagination, log file open) have been annotated, and 20 existing short tooltips (Back, Up, Refresh, Copy, Move, Sync, Mount, Swap, Delete, Compare, New Folder, and all Compare dialog filter/action buttons) have been rewritten as full sentences describing what the button does and any destructive consequences
+
 ## 0.9.7 — Performance Improvements Sprint 3
 
 - **Release builds use `-O3 -flto`**: `CMakeLists.txt` now enables `-O3` and link-time optimisation for `Release` builds via `target_compile_options` / `target_link_options` guards — previously Release builds relied on CMake's default `-O2` with no LTO

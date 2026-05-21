@@ -165,12 +165,12 @@ void CompareDialog::setup_ui() {
     m_delete_btn->set_icon_name("edit-delete-symbolic");
     m_delete_btn->add_css_class("destructive-action");
     m_delete_btn->set_sensitive(false);
-    m_delete_btn->set_tooltip_text("Delete selected from source");
+    m_delete_btn->set_tooltip_text("Permanently delete the selected files from the source directory — this cannot be undone");
     m_delete_btn->signal_clicked().connect([this]() { on_delete_clicked(); });
 
     m_copy_btn = Gtk::make_managed<Gtk::Button>("Copy →");
     m_copy_btn->set_sensitive(false);
-    m_copy_btn->set_tooltip_text("Copy selected from source to destination");
+    m_copy_btn->set_tooltip_text("Copy the selected source-only files into the destination directory");
     m_copy_btn->signal_clicked().connect([this]() { on_copy_clicked(); });
 
     action_bar->append(*m_delete_btn);
@@ -187,31 +187,31 @@ void CompareDialog::setup_ui() {
 
     m_filter_left_btn = Gtk::make_managed<Gtk::ToggleButton>("←");
     m_filter_left_btn->add_css_class("flat");
-    m_filter_left_btn->set_tooltip_text("Show files only in source");
+    m_filter_left_btn->set_tooltip_text("Toggle visibility of files that exist only in the source (left pane) and are absent from the destination");
     m_filter_left_btn->set_active(true);
     m_filter_left_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_right_btn = Gtk::make_managed<Gtk::ToggleButton>("→");
     m_filter_right_btn->add_css_class("flat");
-    m_filter_right_btn->set_tooltip_text("Show files only in destination");
+    m_filter_right_btn->set_tooltip_text("Toggle visibility of files that exist only in the destination (right pane) and are absent from the source");
     m_filter_right_btn->set_active(true);
     m_filter_right_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_equal_btn = Gtk::make_managed<Gtk::ToggleButton>("=");
     m_filter_equal_btn->add_css_class("flat");
-    m_filter_equal_btn->set_tooltip_text("Show identical files");
+    m_filter_equal_btn->set_tooltip_text("Toggle visibility of files that are identical in both source and destination");
     m_filter_equal_btn->set_active(true);
     m_filter_equal_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_diff_btn = Gtk::make_managed<Gtk::ToggleButton>("≠");
     m_filter_diff_btn->add_css_class("flat");
-    m_filter_diff_btn->set_tooltip_text("Show files that differ");
+    m_filter_diff_btn->set_tooltip_text("Toggle visibility of files present in both directories whose content or size differs");
     m_filter_diff_btn->set_active(true);
     m_filter_diff_btn->signal_toggled().connect([this]() { apply_filters(); });
 
     m_filter_error_btn = Gtk::make_managed<Gtk::ToggleButton>("!");
     m_filter_error_btn->add_css_class("flat");
-    m_filter_error_btn->set_tooltip_text("Show files with errors");
+    m_filter_error_btn->set_tooltip_text("Toggle visibility of files that could not be compared due to a read or permission error");
     m_filter_error_btn->set_active(true);
     m_filter_error_btn->signal_toggled().connect([this]() { apply_filters(); });
 
@@ -230,14 +230,14 @@ void CompareDialog::setup_ui() {
     // Right group — destination-side operations
     m_dst_copy_btn = Gtk::make_managed<Gtk::Button>("← Copy");
     m_dst_copy_btn->set_sensitive(false);
-    m_dst_copy_btn->set_tooltip_text("Copy selected from destination to source");
+    m_dst_copy_btn->set_tooltip_text("Copy the selected destination-only files back into the source directory");
     m_dst_copy_btn->signal_clicked().connect([this]() { on_dst_copy_clicked(); });
 
     m_dst_delete_btn = Gtk::make_managed<Gtk::Button>();
     m_dst_delete_btn->set_icon_name("edit-delete-symbolic");
     m_dst_delete_btn->add_css_class("destructive-action");
     m_dst_delete_btn->set_sensitive(false);
-    m_dst_delete_btn->set_tooltip_text("Delete selected from destination");
+    m_dst_delete_btn->set_tooltip_text("Permanently delete the selected files from the destination directory — this cannot be undone");
     m_dst_delete_btn->signal_clicked().connect([this]() { on_dst_delete_clicked(); });
 
     action_bar->append(*m_dst_copy_btn);
@@ -269,6 +269,7 @@ void CompareDialog::setup_ui() {
     auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
     cancel_btn->set_halign(Gtk::Align::CENTER);
     cancel_btn->set_margin_top(12);
+    cancel_btn->set_tooltip_text("Cancel the comparison scan and close this dialog");
     cancel_btn->signal_clicked().connect([this]() {
         if (m_load_state) {
             m_load_state->cancelled = true;
@@ -301,6 +302,7 @@ void CompareDialog::setup_ui() {
     m_prev_btn->set_icon_name("go-previous-symbolic");
     m_prev_btn->add_css_class("flat");
     m_prev_btn->set_sensitive(false);
+    m_prev_btn->set_tooltip_text("Show the previous page of comparison results");
     m_prev_btn->signal_clicked().connect([this]() { show_page(m_current_page - 1); });
 
     m_page_label = Gtk::make_managed<Gtk::Label>();
@@ -312,6 +314,7 @@ void CompareDialog::setup_ui() {
     m_next_btn->set_icon_name("go-next-symbolic");
     m_next_btn->add_css_class("flat");
     m_next_btn->set_sensitive(false);
+    m_next_btn->set_tooltip_text("Show the next page of comparison results");
     m_next_btn->signal_clicked().connect([this]() { show_page(m_current_page + 1); });
 
     footer->append(*m_prev_btn);

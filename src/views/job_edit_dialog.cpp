@@ -280,6 +280,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
         auto* btn = Gtk::make_managed<Gtk::Button>();
         btn->set_icon_name("edit-clear-symbolic");
         btn->add_css_class("flat");
+        btn->set_tooltip_text("Reset this cron field to wildcard (*), which matches every minute, hour, or day");
         btn->signal_clicked().connect([row]() { adw::entry_row_set_text(row, "*"); });
         adw_entry_row_add_suffix(ADW_ENTRY_ROW(row->gobj()), GTK_WIDGET(btn->gobj()));
         return row;
@@ -495,15 +496,18 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // ── Buttons (outside tab stack) ───────────────────────────────────────
     m_action_btn = Gtk::make_managed<Gtk::Button>(sched_on ? "Schedule" : "Run Now");
     m_action_btn->add_css_class("destructive-action");
+    m_action_btn->set_tooltip_text("Run or schedule this job immediately with the current settings");
     m_action_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_commit));
 
     m_save_btn = Gtk::make_managed<Gtk::Button>("Save");
     m_save_btn->add_css_class("suggested-action");
     m_save_btn->set_visible(!sched_on);
+    m_save_btn->set_tooltip_text("Save this job's configuration without running or scheduling it now");
     m_save_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobEditDialog::on_save));
 
     auto* cancel_btn = Gtk::make_managed<Gtk::Button>("Cancel");
     cancel_btn->add_css_class("success");
+    cancel_btn->set_tooltip_text("Discard any unsaved changes and close this dialog");
     cancel_btn->signal_clicked().connect([this]() { close(); });
 
     auto* btn_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 12);

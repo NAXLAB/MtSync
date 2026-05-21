@@ -95,6 +95,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
     add_btn->set_icon_name("list-add-symbolic");
     add_btn->add_css_class("flat");
     add_btn->add_css_class("circular");
+    add_btn->set_tooltip_text("Add a new sync, copy, move, or mount job");
     add_btn->signal_clicked().connect(sigc::mem_fun(*this, &JobView::show_add_dialog));
     adw::preferences_group_set_header_suffix(header_group, add_btn);
     groups_box->append(*header_group);
@@ -237,6 +238,7 @@ JobView::JobView(DaemonProxy* daemon_proxy)
         btn->add_css_class("flat");
         btn->set_visible(false);
         btn->set_valign(Gtk::Align::CENTER);
+        btn->set_tooltip_text("Open the activity log file for this job in the default application");
         // Single permanent handler; path stored as GObject data to survive cell recycling
         btn->signal_clicked().connect([btn]() {
             const char* p = static_cast<const char*>(
@@ -426,6 +428,7 @@ void JobView::append_job_row(size_t index) {
     ui.run_btn->set_valign(Gtk::Align::CENTER);
     ui.run_btn->add_css_class("flat");
     ui.run_btn->add_css_class("success");
+    ui.run_btn->set_tooltip_text("Run this job immediately");
     ui.run_btn->signal_clicked().connect([this, i]() { on_run_job(i); });
 
     ui.stop_btn = std::make_unique<Gtk::Button>();
@@ -434,12 +437,14 @@ void JobView::append_job_row(size_t index) {
     ui.stop_btn->add_css_class("flat");
     ui.stop_btn->add_css_class("destructive-action");
     ui.stop_btn->set_visible(false);
+    ui.stop_btn->set_tooltip_text("Stop this job while it is running");
     ui.stop_btn->signal_clicked().connect([this, i]() { on_stop_job(i); });
 
     ui.edit_btn = std::make_unique<Gtk::Button>();
     ui.edit_btn->set_icon_name("document-edit-symbolic");
     ui.edit_btn->set_valign(Gtk::Align::CENTER);
     ui.edit_btn->add_css_class("flat");
+    ui.edit_btn->set_tooltip_text("Edit this job's configuration, schedule, and advanced settings");
     ui.edit_btn->signal_clicked().connect([this, i]() { show_edit_dialog(i); });
 
     ui.del_btn = std::make_unique<Gtk::Button>();
@@ -447,6 +452,7 @@ void JobView::append_job_row(size_t index) {
     ui.del_btn->set_valign(Gtk::Align::CENTER);
     ui.del_btn->add_css_class("flat");
     ui.del_btn->add_css_class("destructive-action");
+    ui.del_btn->set_tooltip_text("Permanently delete this job from the list");
     ui.del_btn->signal_clicked().connect([this, i]() { on_delete_job(i); });
 
     // Disclosure toggle button (chevron), placed after delete button
@@ -454,6 +460,7 @@ void JobView::append_job_row(size_t index) {
     expand_btn->set_icon_name("pan-end-symbolic");
     expand_btn->set_valign(Gtk::Align::CENTER);
     expand_btn->add_css_class("flat");
+    expand_btn->set_tooltip_text("Show or hide this job's details, including source path, destination path, and UUID");
 
     btn_box->append(*ui.run_btn);
     btn_box->append(*ui.stop_btn);

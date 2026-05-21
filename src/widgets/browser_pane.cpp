@@ -234,14 +234,14 @@ void BrowserPane::setup_header() {
 
 
     m_back_btn.set_icon_name("go-previous-symbolic");
-    m_back_btn.set_tooltip_text("Go Back");
+    m_back_btn.set_tooltip_text("Navigate back to the previous directory in history");
     m_back_btn.add_css_class("flat");
     m_back_btn.add_css_class("circular");
     m_back_btn.signal_clicked().connect([this]() { go_back(); });
     nav_bar->append(m_back_btn);
 
     m_up_btn.set_icon_name("go-up-symbolic");
-    m_up_btn.set_tooltip_text("Go Up");
+    m_up_btn.set_tooltip_text("Navigate up to the parent directory");
     m_up_btn.add_css_class("flat");
     m_up_btn.add_css_class("circular");
     m_up_btn.signal_clicked().connect([this]() { go_up(); });
@@ -257,7 +257,7 @@ void BrowserPane::setup_header() {
     nav_bar->append(*m_breadcrumb_scroll);
 
     m_refresh_btn.set_icon_name("view-refresh-symbolic");
-    m_refresh_btn.set_tooltip_text("Refresh");
+    m_refresh_btn.set_tooltip_text("Reload the current directory listing from the remote");
     m_refresh_btn.add_css_class("flat");
     m_refresh_btn.signal_clicked().connect([this]() {
         signal_focused.emit();
