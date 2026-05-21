@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(MtSync VERSION 0.9.6 LANGUAGES C CXX)
+project(MtSync VERSION 0.9.7 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -84,6 +84,11 @@ target_link_libraries(mtsync PRIVATE
     PkgConfig::CAIRO
     nlohmann_json::nlohmann_json
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(mtsync PRIVATE -O3 -flto)
+    target_link_options(mtsync PRIVATE -flto)
+endif()
 
 install(TARGETS mtsync DESTINATION bin)
 install(FILES

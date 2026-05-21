@@ -1,3 +1,4 @@
+# Ignore build artifacts 
 build/
 .cache/
 compile_commands.json
@@ -5,6 +6,9 @@ compile_commands.json
 *.d
 Saddle.code-workspace
 cmake-build*/
+# Ignore personal notes
 notes.md
+# Ignore AI Tooling Data
 .claude/
 .qwen/
+.antigravitycli/

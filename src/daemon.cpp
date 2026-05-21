@@ -22,7 +22,7 @@
 #include "settings.hpp"
 #include <format>
 #include <iostream>
-#include <set>
+#include <unordered_set>
 #include <sstream>
 #include <glibmm.h>
 #include <glib-unix.h>
@@ -330,9 +330,9 @@ MtSyncDaemon::MtSyncDaemon() {
         if (!has_active_mount) return true;
         m_manager.rc().list_mounts([this](auto result) {
             if (!m_running) return;
-            std::set<std::string> live_mounts;
+            std::unordered_set<std::string> live_mounts;
             if (result.has_value()) {
-                live_mounts = std::set<std::string>(
+                live_mounts = std::unordered_set<std::string>(
                     result.value().begin(), result.value().end());
             }
             bool changed = false;

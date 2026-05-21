@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.7 — Performance Improvements Sprint 3
+
+- **Release builds use `-O3 -flto`**: `CMakeLists.txt` now enables `-O3` and link-time optimisation for `Release` builds via `target_compile_options` / `target_link_options` guards — previously Release builds relied on CMake's default `-O2` with no LTO
+- **Shutdown `waitpid` poll granularity reduced from 50 ms to 5 ms**: the SIGTERM → SIGKILL escalation loop in `stop_daemon()` previously slept 50 ms between each `waitpid(WNOHANG)` check, adding up to 50 ms of unnecessary latency after the process has already exited; the interval is now 5 ms so a cooperative rclone exit is detected within one tick rather than up to ten
+- **Mount-point membership check: `std::set` → `std::unordered_set`**: the `live_mounts` set constructed on each 60-second mount health-check tick now uses `std::unordered_set<std::string>` — `.count()` lookups drop from O(log n) to O(1) average; `#include <set>` replaced with `<unordered_set>`
+
 ## 0.9.6 — Performance Improvements Sprint 2
 
 - **HTTP session timeout reduced from 15 s to 5 s**: all rclone RC requests now time out after 5 seconds — the previous 15-second limit meant a hung localhost rclone could stall 10 concurrent poll callbacks for 15 s each before the async queue drained; 5 s is sufficient for a local loopback call

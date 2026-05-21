@@ -280,13 +280,13 @@ void RcloneRc::stop_daemon() {
 
         kill(pid, SIGTERM);
 
-        // Poll for up to 1 second; SIGKILL is the reliable fallback and exits fast.
-        for (int i = 0; i < 20; ++i) {
+        // Poll up to 1 s at 5 ms intervals; exits promptly when process dies quickly.
+        for (int i = 0; i < 200; ++i) {
             if (waitpid(pid, nullptr, WNOHANG) != 0) {
                 g_spawn_close_pid(pid);
                 return;
             }
-            g_usleep(50000);
+            g_usleep(5000);
         }
 
         g_warning("rclone rcd (pid %d) did not exit after 1s, sending SIGKILL", (int)pid);
