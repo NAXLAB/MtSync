@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.9 — Toggle Tooltips
+
+- **Verbose tooltips on all toggle switches**: all 12 `AdwSwitchRow` toggles in the Settings tab and Job Edit dialog now have descriptive tooltips — Settings toggles (On Job Start, On Completion, On Completion with Errors/Warnings, Start daemon on login, Start minimized to tray, Shutdown daemon when closing, Verify checksums) and Job Edit toggles (Dry Run, Bi-directional sync, Enable Checksum, Mount at Start-up, Enable Schedule) each explain what the toggle does and any relevant consequences of changing it
+
 ## 0.9.8 — Button Tooltips
 
 - **Verbose tooltips on all buttons**: every interactive button in the GUI now has a descriptive tooltip — 23 buttons that previously had none (job run/stop/edit/delete/expand, add job, add remote, edit/delete remote, authorize OAuth, save/cancel in all dialogs, cron field clear, compare pagination, log file open) have been annotated, and 20 existing short tooltips (Back, Up, Refresh, Copy, Move, Sync, Mount, Swap, Delete, Compare, New Folder, and all Compare dialog filter/action buttons) have been rewritten as full sentences describing what the button does and any destructive consequences

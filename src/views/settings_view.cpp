@@ -83,16 +83,19 @@ void SettingsView::setup_ui() {
 
     m_notify_start_row = adw::switch_row();
     adw::preferences_row_set_title(m_notify_start_row, "On Job Start");
+    m_notify_start_row->set_tooltip_text("Show a desktop notification whenever a sync, copy, move, or mount job begins running");
     adw::switch_row_set_active(m_notify_start_row, m_settings.notify_on_start);
     adw::preferences_group_add(notif_group, m_notify_start_row);
 
     m_notify_completion_row = adw::switch_row();
     adw::preferences_row_set_title(m_notify_completion_row, "On Completion");
+    m_notify_completion_row->set_tooltip_text("Show a desktop notification when a job finishes successfully");
     adw::switch_row_set_active(m_notify_completion_row, m_settings.notify_on_completion);
     adw::preferences_group_add(notif_group, m_notify_completion_row);
 
     m_notify_errors_row = adw::switch_row();
     adw::preferences_row_set_title(m_notify_errors_row, "On Completion with Errors/Warnings");
+    m_notify_errors_row->set_tooltip_text("Show a desktop notification when a job finishes but encountered errors or warnings during the transfer");
     adw::switch_row_set_active(m_notify_errors_row, m_settings.notify_on_errors);
     adw::preferences_group_add(notif_group, m_notify_errors_row);
 
@@ -103,16 +106,19 @@ void SettingsView::setup_ui() {
 
     m_autostart_row = adw::switch_row();
     adw::preferences_row_set_title(m_autostart_row, "Start daemon on login");
+    m_autostart_row->set_tooltip_text("Automatically start the Mt. Sync background daemon when you log in, so scheduled jobs run even when the app window is closed");
     adw::switch_row_set_active(m_autostart_row, m_settings.start_daemon_on_login);
     adw::preferences_group_add(general_group, m_autostart_row);
 
     m_minimized_row = adw::switch_row();
     adw::preferences_row_set_title(m_minimized_row, "Start minimized to tray");
+    m_minimized_row->set_tooltip_text("Launch Mt. Sync with the window hidden; the app appears only as a system tray icon until you open it");
     adw::switch_row_set_active(m_minimized_row, m_settings.start_minimized);
     adw::preferences_group_add(general_group, m_minimized_row);
 
     m_tray_row = adw::switch_row();
     adw::preferences_row_set_title(m_tray_row, "Shutdown daemon when closing application");
+    m_tray_row->set_tooltip_text("Stop the background daemon and all running jobs when the app window is closed; when off, the daemon keeps running and scheduled jobs continue in the background");
     adw::switch_row_set_active(m_tray_row, m_settings.shutdown_daemon_on_close);
     adw::preferences_group_add(general_group, m_tray_row);
 
@@ -129,6 +135,7 @@ void SettingsView::setup_ui() {
 
     m_checksums_row = adw::switch_row();
     adw::preferences_row_set_title(m_checksums_row, "Verify checksums");
+    m_checksums_row->set_tooltip_text("Verify file integrity using checksums during transfers — slower but guarantees bit-perfect copies");
     adw::switch_row_set_active(m_checksums_row, m_settings.verify_checksums);
     adw::preferences_group_add(transfers_group, m_checksums_row);
 

@@ -172,6 +172,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Dry Run
     m_dry_run_switch = adw::switch_row();
     adw::preferences_row_set_title(m_dry_run_switch, "Dry Run");
+    m_dry_run_switch->set_tooltip_text("Simulate the transfer without moving or modifying any files — useful for previewing what would change before committing");
     adw::switch_row_set_active(m_dry_run_switch, m_editing ? m_editing->dry_run : true);
     m_dry_run_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_dry_run_switch);
@@ -179,6 +180,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Bi-directional sync (Sync only)
     m_bisync_switch = adw::switch_row();
     adw::preferences_row_set_title(m_bisync_switch, "Bi-directional sync");
+    m_bisync_switch->set_tooltip_text("Synchronise changes in both directions so that new or modified files on either side are propagated to the other; uses rclone bisync");
     m_bisync_switch->set_visible(initial_type == rclone::JobType::Sync);
     if (m_editing) adw::switch_row_set_active(m_bisync_switch, m_editing->bisync);
     adw::preferences_group_add(group, m_bisync_switch);
@@ -186,6 +188,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Enable Checksum
     m_enable_checksum_switch = adw::switch_row();
     adw::preferences_row_set_title(m_enable_checksum_switch, "Enable Checksum");
+    m_enable_checksum_switch->set_tooltip_text("Verify each transferred file's checksum against the source — slower but guarantees bit-perfect copies");
     if (m_editing) adw::switch_row_set_active(m_enable_checksum_switch, !m_editing->ignore_checksum);
     m_enable_checksum_switch->set_visible(initial_type != rclone::JobType::Mount);
     adw::preferences_group_add(group, m_enable_checksum_switch);
@@ -193,6 +196,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
     // Mount at Start-up (Mount only)
     m_mount_startup_switch = adw::switch_row();
     adw::preferences_row_set_title(m_mount_startup_switch, "Mount at Start-up");
+    m_mount_startup_switch->set_tooltip_text("Automatically mount this remote when the Mt. Sync daemon starts, so the mount point is available on every login without manual intervention");
     m_mount_startup_switch->set_visible(initial_type == rclone::JobType::Mount);
     if (m_editing) adw::switch_row_set_active(m_mount_startup_switch, m_editing->mount_at_startup);
     adw::preferences_group_add(group, m_mount_startup_switch);
@@ -236,6 +240,7 @@ void JobEditDialog::setup_ui(rclone::JobType initial_type,
 
     m_schedule_switch = adw::switch_row();
     adw::preferences_row_set_title(m_schedule_switch, "Enable Schedule");
+    m_schedule_switch->set_tooltip_text("Run this job automatically on the cron schedule defined below instead of only when started manually");
     bool sched_on = m_editing && m_editing->schedule_enabled;
     adw::switch_row_set_active(m_schedule_switch, sched_on);
     adw::preferences_group_add(sched_enable_group, m_schedule_switch);
