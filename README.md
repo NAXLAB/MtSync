@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gavindi/Mt. Sync/main/assets/icons/application/Mt. Sync%20App%20Icon%201.svg" alt="Mt. Sync Logo" width="128">
+  <img src="https://raw.githubusercontent.com/gavindi/MtSync/refs/heads/master/assets/icons/application/MtSync%20App%20Icon%201.png?token=GHSAT0AAAAAADQNBAFQ2EIUE7WYXE6FWLLM2QUURYQ" alt="Mt. Sync Logo" width="128">
 </p>
 
 # Mt. Sync
