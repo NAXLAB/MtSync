@@ -19,14 +19,79 @@
 #include "views/about_view.hpp"
 #include "widgets/adw_wrapper.hpp"
 #include <adwaita.h>
+#include <cstring>
 
 namespace mtsync {
+
+namespace {
+
+struct PngReadClosure {
+    const guint8* data;
+    gsize size;
+    gsize offset;
+};
+
+cairo_status_t png_read_func(void* closure, unsigned char* data, unsigned int length) {
+    auto* c = static_cast<PngReadClosure*>(closure);
+    if (c->offset + length > c->size)
+        length = c->size - c->offset;
+    std::memcpy(data, c->data + c->offset, length);
+    c->offset += length;
+    return CAIRO_STATUS_SUCCESS;
+}
+
+} // namespace
 
 AboutView::AboutView(rclone::RcloneManager& manager, DaemonProxy* daemon_proxy)
     : Gtk::Box(Gtk::Orientation::VERTICAL)
     , m_manager(manager)
     , m_daemon_proxy(daemon_proxy) {
+    load_spritesheet();
     setup_ui();
+}
+
+AboutView::~AboutView() {
+    stop_logo_animation();
+    if (m_spritesheet) {
+        cairo_surface_destroy(m_spritesheet);
+        m_spritesheet = nullptr;
+    }
+}
+
+void AboutView::load_spritesheet() {
+    GError* error = nullptr;
+    GBytes* bytes = g_resources_lookup_data(
+        "/io/github/mtsync/icons/about-spritesheet.png",
+        G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+    if (!bytes) {
+        g_warning("AboutView: failed to load spritesheet: %s", error ? error->message : "unknown");
+        if (error) g_error_free(error);
+        return;
+    }
+    gsize size;
+    const guint8* data = reinterpret_cast<const guint8*>(g_bytes_get_data(bytes, &size));
+    PngReadClosure closure = { data, size, 0 };
+    m_spritesheet = cairo_image_surface_create_from_png_stream(png_read_func, &closure);
+    g_bytes_unref(bytes);
+    if (!m_spritesheet || cairo_surface_status(m_spritesheet) != CAIRO_STATUS_SUCCESS) {
+        g_warning("AboutView: failed to decode spritesheet PNG");
+        if (m_spritesheet) { cairo_surface_destroy(m_spritesheet); m_spritesheet = nullptr; }
+    }
+}
+
+void AboutView::start_logo_animation() {
+    if (m_anim_timer.connected()) return;
+    m_anim_frame = 0;
+    m_anim_timer = Glib::signal_timeout().connect([this]() -> bool {
+        m_anim_frame = (m_anim_frame + 1) % 16;
+        if (m_logo_area) m_logo_area->queue_draw();
+        return true;
+    }, 80);
+}
+
+void AboutView::stop_logo_animation() {
+    m_anim_timer.disconnect();
+    m_anim_frame = 0;
 }
 
 void AboutView::setup_ui() {
@@ -48,21 +113,35 @@ void AboutView::setup_ui() {
     auto* vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 18);
     adw_clamp_set_child(ADW_CLAMP(clamp->gobj()), GTK_WIDGET(vbox->gobj()));
 
-    // ── Status page ───────────────────────────────────────────────────────────
-    auto* status = adw::status_page();
-    adw::status_page_set_title(status, "Mt. Sync");
-    adw::status_page_set_description(status, "<b>Mount or sync network storage in comfort</b>");
+    // ── Animated logo header ──────────────────────────────────────────────────
+    auto* header = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 12);
+    header->set_halign(Gtk::Align::CENTER);
+    header->set_margin_top(24);
+    header->set_margin_bottom(12);
 
-    GBytes* probe = g_resources_lookup_data("/io/github/mtsync/icons/application.png",
-                                             G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
-    if (probe) {
-        g_bytes_unref(probe);
-        auto texture = Gdk::Texture::create_from_resource("/io/github/mtsync/icons/application.png");
-        adw_status_page_set_paintable(ADW_STATUS_PAGE(status->gobj()), GDK_PAINTABLE(texture->gobj()));
-    } else {
-        adw::status_page_set_icon_name(status, "help-about-symbolic");
-    }
-    vbox->append(*status);
+    m_logo_area = Gtk::make_managed<Gtk::DrawingArea>();
+    m_logo_area->set_content_width(256);
+    m_logo_area->set_content_height(256);
+    m_logo_area->set_halign(Gtk::Align::CENTER);
+    m_logo_area->set_draw_func([this](const Cairo::RefPtr<Cairo::Context>& cr, int, int) {
+        if (!m_spritesheet) return;
+        cairo_set_source_surface(cr->cobj(), m_spritesheet, -(m_anim_frame * 256), 0);
+        cr->rectangle(0, 0, 256, 256);
+        cr->fill();
+    });
+    header->append(*m_logo_area);
+
+    auto* title_label = Gtk::make_managed<Gtk::Label>("Mt. Sync");
+    title_label->add_css_class("title-1");
+    title_label->set_halign(Gtk::Align::CENTER);
+    header->append(*title_label);
+
+    auto* desc_label = Gtk::make_managed<Gtk::Label>("Mount or sync network storage in comfort");
+    desc_label->add_css_class("dim-label");
+    desc_label->set_halign(Gtk::Align::CENTER);
+    header->append(*desc_label);
+
+    vbox->append(*header);
 
     // ── Info rows ─────────────────────────────────────────────────────────────
     auto* info_group = adw::preferences_group();
@@ -70,7 +149,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.9.9");
+    adw::action_row_set_subtitle(version_row, "0.9.10");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();
@@ -140,19 +219,22 @@ void AboutView::setup_ui() {
     quote_label->set_css_classes({"dim-label"});
     vbox->append(*quote_label);
 
-    // ── Refresh on map ────────────────────────────────────────────────────────
+    // ── Refresh on map / stop on unmap ───────────────────────────────────────
     signal_map().connect([this]() {
-        // Status: refresh every visit
+        start_logo_animation();
+
         bool connected = m_daemon_proxy && m_daemon_proxy->is_connected();
         m_status_label->set_text(connected ? "Connected" : "Disconnected");
 
-        // Version: fetch once only
         if (m_rclone_version_label->get_text() == "Loading...") {
             m_manager.cli().get_version([this](auto result) {
                 m_rclone_version_label->set_text(
                     result.has_value() ? result.value() : "unavailable");
             });
         }
+    });
+    signal_unmap().connect([this]() {
+        stop_logo_animation();
     });
 }
 

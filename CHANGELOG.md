@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.10 — Animated About Logo
+
+- **Animated logo on About tab**: the static application icon is replaced with the 16-frame Mt. Sync smoke animation — frames are loaded from a 4096×256 horizontal spritesheet embedded in GLib resources and rendered via a `Gtk::DrawingArea` using Cairo; the animation runs at 80 ms per frame (matching the original APNG timing) and starts/stops automatically when the About tab is shown or hidden
+
 ## 0.9.9 — Toggle Tooltips
 
 - **Verbose tooltips on all toggle switches**: all 12 `AdwSwitchRow` toggles in the Settings tab and Job Edit dialog now have descriptive tooltips — Settings toggles (On Job Start, On Completion, On Completion with Errors/Warnings, Start daemon on login, Start minimized to tray, Shutdown daemon when closing, Verify checksums) and Job Edit toggles (Dry Run, Bi-directional sync, Enable Checksum, Mount at Start-up, Enable Schedule) each explain what the toggle does and any relevant consequences of changing it

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(MtSync VERSION 0.9.9 LANGUAGES C CXX)
+project(MtSync VERSION 0.9.10 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,6 +64,7 @@ add_custom_command(
         "${CMAKE_SOURCE_DIR}/assets/icons/application/MtSync App Icon 1.png"
         "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync App Indicator Icon 1.png"
         "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync_smoke_spritesheet_16frames_47px.png"
+        "${CMAKE_SOURCE_DIR}/assets/icons/ui/MtSync_smoke_spritesheet_16frames_256px.png"
         ${PROVIDER_ICONS}
     COMMENT "Compiling GLib resources"
 )

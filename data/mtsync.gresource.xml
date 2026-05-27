@@ -4,6 +4,7 @@
     <file alias="icons/application.png">MtSync App Icon 1.png</file>
     <file alias="icons/idle.png">MtSync App Indicator Icon 1.png</file>
     <file alias="icons/spritesheet.png">MtSync_smoke_spritesheet_16frames_47px.png</file>
+    <file alias="icons/about-spritesheet.png">MtSync_smoke_spritesheet_16frames_256px.png</file>
   </gresource>
   <gresource prefix="/io/github/mtsync/provider-icons">
     <file preprocess="xml-stripblanks">drive.svg</file>
