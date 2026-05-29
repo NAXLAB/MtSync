@@ -136,7 +136,7 @@ void AboutView::setup_ui() {
     title_label->set_halign(Gtk::Align::CENTER);
     header->append(*title_label);
 
-    auto* desc_label = Gtk::make_managed<Gtk::Label>("Mount or sync network storage in comfort");
+    auto* desc_label = Gtk::make_managed<Gtk::Label>("Mount or sync network storage anywhere");
     desc_label->add_css_class("dim-label");
     desc_label->set_halign(Gtk::Align::CENTER);
     header->append(*desc_label);
@@ -149,7 +149,7 @@ void AboutView::setup_ui() {
 
     auto* version_row = adw::action_row();
     adw::preferences_row_set_title(version_row, "Version");
-    adw::action_row_set_subtitle(version_row, "0.9.11");
+    adw::action_row_set_subtitle(version_row, "0.9.12");
     adw::preferences_group_add(info_group, version_row);
 
     auto* license_row = adw::action_row();

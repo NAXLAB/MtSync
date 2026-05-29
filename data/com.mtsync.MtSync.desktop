@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Mt. Sync
-Comment=Mount or sync cloud storage in comfort
+Comment=Mount or sync cloud storage anywhere
 Exec=mtsync
 Icon=com.mtsync.MtSync
 Type=Application

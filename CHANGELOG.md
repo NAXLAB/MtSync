@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.12 - Change of tagline
+
+ - **Changed tagline**: Changed the tagline from "Mount or sync network storage in comfort" to "Mount or sync network storage anywhere"
+
 ## 0.9.11 — Race Condition & Safety Fixes
 
 - **Null deref on daemon shutdown with in-flight jobs**: `done_cb` now returns immediately when `m_running` is false — previously, stopping the daemon while a sync/copy/move submission was in-flight caused libsoup to fire the completion callback after `m_tray` and `m_ipc_server` had already been reset to nullptr, crashing the daemon
