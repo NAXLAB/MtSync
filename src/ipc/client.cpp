@@ -74,7 +74,8 @@ bool IpcClient::connect() {
     }
 
     int flags = fcntl(m_fd, F_GETFL, 0);
-    fcntl(m_fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags >= 0) fcntl(m_fd, F_SETFL, flags | O_NONBLOCK);
+    else g_warning("fcntl F_GETFL failed on client socket: %s", g_strerror(errno));
 
     m_watch_id = g_unix_fd_add(m_fd, static_cast<GIOCondition>(G_IO_IN | G_IO_HUP | G_IO_ERR),
         [](gint, GIOCondition condition, gpointer data) -> gboolean {

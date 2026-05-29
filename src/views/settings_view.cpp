@@ -34,6 +34,21 @@ SettingsView::SettingsView(Settings& settings)
     setup_ui();
 }
 
+SettingsView::~SettingsView() {
+    g_signal_handler_disconnect(m_autostart_row->gobj(),        m_sig_autostart);
+    g_signal_handler_disconnect(m_minimized_row->gobj(),        m_sig_minimized);
+    g_signal_handler_disconnect(m_tray_row->gobj(),             m_sig_tray);
+    g_signal_handler_disconnect(m_bandwidth_row->gobj(),        m_sig_bandwidth);
+    g_signal_handler_disconnect(m_checksums_row->gobj(),        m_sig_checksums);
+    g_signal_handler_disconnect(m_transfers_row->gobj(),        m_sig_transfers);
+    g_signal_handler_disconnect(m_retries_row->gobj(),          m_sig_retries);
+    g_signal_handler_disconnect(m_rclone_path_row->gobj(),      m_sig_rclone_path);
+    g_signal_handler_disconnect(m_global_flags_row->gobj(),     m_sig_global_flags);
+    g_signal_handler_disconnect(m_notify_start_row->gobj(),     m_sig_notify_start);
+    g_signal_handler_disconnect(m_notify_completion_row->gobj(),m_sig_notify_completion);
+    g_signal_handler_disconnect(m_notify_errors_row->gobj(),    m_sig_notify_errors);
+}
+
 void SettingsView::save() {
     save_settings(m_settings);
 }
@@ -186,7 +201,7 @@ void SettingsView::setup_ui() {
 
     // ── Signal wiring (after all member pointers are stored) ──────────────────
 
-    g_signal_connect(m_autostart_row->gobj(), "notify::active",
+    m_sig_autostart = g_signal_connect(m_autostart_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.start_daemon_on_login =
@@ -195,7 +210,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_minimized_row->gobj(), "notify::active",
+    m_sig_minimized = g_signal_connect(m_minimized_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.start_minimized =
@@ -203,7 +218,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_tray_row->gobj(), "notify::active",
+    m_sig_tray = g_signal_connect(m_tray_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.shutdown_daemon_on_close =
@@ -211,7 +226,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_bandwidth_row->gobj(), "changed",
+    m_sig_bandwidth = g_signal_connect(m_bandwidth_row->gobj(), "changed",
         G_CALLBACK(+[](GtkEditable*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.default_bandwidth =
@@ -219,7 +234,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_checksums_row->gobj(), "notify::active",
+    m_sig_checksums = g_signal_connect(m_checksums_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.verify_checksums =
@@ -227,7 +242,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_transfers_row->gobj(), "changed",
+    m_sig_transfers = g_signal_connect(m_transfers_row->gobj(), "changed",
         G_CALLBACK(+[](GtkEditable*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             try {
@@ -237,7 +252,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_retries_row->gobj(), "changed",
+    m_sig_retries = g_signal_connect(m_retries_row->gobj(), "changed",
         G_CALLBACK(+[](GtkEditable*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             try {
@@ -247,7 +262,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_rclone_path_row->gobj(), "changed",
+    m_sig_rclone_path = g_signal_connect(m_rclone_path_row->gobj(), "changed",
         G_CALLBACK(+[](GtkEditable*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.rclone_path =
@@ -255,7 +270,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_global_flags_row->gobj(), "changed",
+    m_sig_global_flags = g_signal_connect(m_global_flags_row->gobj(), "changed",
         G_CALLBACK(+[](GtkEditable*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.global_rclone_flags =
@@ -263,7 +278,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_notify_start_row->gobj(), "notify::active",
+    m_sig_notify_start = g_signal_connect(m_notify_start_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.notify_on_start =
@@ -271,7 +286,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_notify_completion_row->gobj(), "notify::active",
+    m_sig_notify_completion = g_signal_connect(m_notify_completion_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.notify_on_completion =
@@ -279,7 +294,7 @@ void SettingsView::setup_ui() {
             self->save();
         }), this);
 
-    g_signal_connect(m_notify_errors_row->gobj(), "notify::active",
+    m_sig_notify_errors = g_signal_connect(m_notify_errors_row->gobj(), "notify::active",
         G_CALLBACK(+[](GObject*, GParamSpec*, gpointer data) {
             auto* self = static_cast<SettingsView*>(data);
             self->m_settings.notify_on_errors =

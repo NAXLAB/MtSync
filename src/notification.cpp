@@ -26,7 +26,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
     auto exe = Glib::find_program_in_path("notify-send");
     if (!exe.empty()) {
         try {
-            Glib::spawn_sync(
+            Glib::spawn_async(
                 {},
                 {exe, "-a", "Mt. Sync", "-i", "drive", title, body}
             );
@@ -37,7 +37,7 @@ bool try_notify_send(const std::string& title, const std::string& body) {
     exe = Glib::find_program_in_path("kdialog");
     if (!exe.empty()) {
         try {
-            Glib::spawn_sync(
+            Glib::spawn_async(
                 {},
                 {exe, "--passivepopup", body, "5", "--title", title}
             );

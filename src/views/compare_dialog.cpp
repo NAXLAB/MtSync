@@ -132,9 +132,20 @@ CompareDialog::CompareDialog(const std::string& src,
     set_modal(true);
     set_destroy_with_parent(true);
     install_compare_css();
+    m_alive = std::make_shared<bool>(true);
     m_page_store = Gio::ListStore<CompareRowObject>::create();
     setup_ui();
     start_load(manager);
+
+    signal_close_request().connect([this]() -> bool {
+        *m_alive = false;
+        if (m_load_state) {
+            m_load_state->cancelled = true;
+            for (auto& proc : m_load_state->procs)
+                if (proc) proc->force_exit();
+        }
+        return false;
+    }, false);
 }
 
 // ── UI setup ─────────────────────────────────────────────────────────────
@@ -758,7 +769,8 @@ void CompareDialog::on_delete_clicked() {
     if (paths.empty() || !m_manager) return;
     m_stack->set_visible_child("loading");
     m_manager->cli().delete_files(m_src, paths,
-        [this](auto result) {
+        [this, weak_alive = std::weak_ptr<bool>(m_alive)](auto result) {
+            if (auto a = weak_alive.lock(); !a || !*a) return;
             if (!result)
                 g_warning("Compare delete failed: %s", result.error().c_str());
             start_load(*m_manager);
@@ -770,7 +782,8 @@ void CompareDialog::on_copy_clicked() {
     if (paths.empty() || !m_manager) return;
     m_stack->set_visible_child("loading");
     m_manager->cli().copy_files(m_src, m_dst, paths,
-        [this](auto result) {
+        [this, weak_alive = std::weak_ptr<bool>(m_alive)](auto result) {
+            if (auto a = weak_alive.lock(); !a || !*a) return;
             if (!result)
                 g_warning("Compare copy failed: %s", result.error().c_str());
             start_load(*m_manager);
@@ -782,7 +795,8 @@ void CompareDialog::on_dst_copy_clicked() {
     if (paths.empty() || !m_manager) return;
     m_stack->set_visible_child("loading");
     m_manager->cli().copy_files(m_dst, m_src, paths,
-        [this](auto result) {
+        [this, weak_alive = std::weak_ptr<bool>(m_alive)](auto result) {
+            if (auto a = weak_alive.lock(); !a || !*a) return;
             if (!result)
                 g_warning("Compare dst-copy failed: %s", result.error().c_str());
             start_load(*m_manager);
@@ -794,7 +808,8 @@ void CompareDialog::on_dst_delete_clicked() {
     if (paths.empty() || !m_manager) return;
     m_stack->set_visible_child("loading");
     m_manager->cli().delete_files(m_dst, paths,
-        [this](auto result) {
+        [this, weak_alive = std::weak_ptr<bool>(m_alive)](auto result) {
+            if (auto a = weak_alive.lock(); !a || !*a) return;
             if (!result)
                 g_warning("Compare dst-delete failed: %s", result.error().c_str());
             start_load(*m_manager);

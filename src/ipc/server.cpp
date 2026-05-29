@@ -120,7 +120,8 @@ bool IpcServer::start() {
     }
 
     int flags = fcntl(m_server_fd, F_GETFL, 0);
-    fcntl(m_server_fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags >= 0) fcntl(m_server_fd, F_SETFL, flags | O_NONBLOCK);
+    else g_warning("fcntl F_GETFL failed on server socket: %s", g_strerror(errno));
 
     GIOChannel* channel = g_io_channel_unix_new(m_server_fd);
     m_server_watch_id = g_io_add_watch(channel, GIOCondition(G_IO_IN | G_IO_HUP | G_IO_ERR),
@@ -203,7 +204,8 @@ void IpcServer::accept_client() {
     }
 
     int flags = fcntl(client_fd, F_GETFL, 0);
-    fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags >= 0) fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+    else g_warning("fcntl F_GETFL failed on accepted client socket: %s", g_strerror(errno));
 
     ClientData data;
     data.watch_id = g_unix_fd_add(client_fd, static_cast<GIOCondition>(G_IO_IN | G_IO_HUP | G_IO_ERR),

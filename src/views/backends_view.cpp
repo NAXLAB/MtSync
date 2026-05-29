@@ -212,6 +212,8 @@ void BackendsView::refresh() {
 }
 
 void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
+    m_populate_token = std::make_shared<bool>(true);
+
     for (auto& r : m_rows) {
         adw_preferences_group_remove(
             ADW_PREFERENCES_GROUP(m_prefs_group->gobj()),
@@ -294,17 +296,20 @@ void BackendsView::populate(const std::vector<rclone::RemoteInfo>& remotes) {
         auto* cap_label = m_rows.back().capacity_label;
         auto* cap_bar = m_rows.back().capacity_bar;
         std::string fs_name = remote.name + ":";
-        m_manager.rc().get_about(fs_name, [cap_label, cap_bar](auto result) {
+        m_manager.rc().get_about(fs_name, [cap_label, cap_bar,
+                                           weak_token = std::weak_ptr<bool>(m_populate_token)](auto result) {
             if (result.has_value()) {
                 auto text = format_capacity(result.value());
                 auto percent = compute_usage_percent(result.value());
                 if (!text.empty()) {
-                    Glib::signal_idle().connect_once([cap_label, text]() {
+                    Glib::signal_idle().connect_once([cap_label, text, weak_token]() {
+                        if (auto t = weak_token.lock(); !t || !*t) return;
                         cap_label->set_text(text);
                     });
                 }
                 if (percent.has_value()) {
-                    Glib::signal_idle().connect_once([cap_bar, pct = *percent]() {
+                    Glib::signal_idle().connect_once([cap_bar, pct = *percent, weak_token]() {
+                        if (auto t = weak_token.lock(); !t || !*t) return;
                         cap_bar->set_fraction(pct / 100.0);
                         cap_bar->set_visible(true);
                     });

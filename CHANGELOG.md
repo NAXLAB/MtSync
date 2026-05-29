@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.11 — Race Condition & Safety Fixes
+
+- **Null deref on daemon shutdown with in-flight jobs**: `done_cb` now returns immediately when `m_running` is false — previously, stopping the daemon while a sync/copy/move submission was in-flight caused libsoup to fire the completion callback after `m_tray` and `m_ipc_server` had already been reset to nullptr, crashing the daemon
+- **Use-after-free in CompareDialog on WM close**: an `m_alive` shared-ptr sentinel is set to false in a `signal_close_request` handler; action-button async callbacks (`delete_files`, `copy_files`) capture a `weak_ptr` and bail out if the dialog was destroyed before the operation completed — previously only the cancel button set the cancellation flag, leaving WM-close unguarded
+- **Use-after-free in BackendsView idle callbacks**: `populate()` now creates a new `m_populate_token` on each call, invalidating all `weak_ptr` copies held by in-flight `get_about` callbacks and their posted idle closures — previously a theme change or second `refresh()` call could destroy widget rows while a prior round's idle callbacks still held raw `Gtk::Label*`/`Gtk::ProgressBar*` pointers
+- **Timer leak in `schedule_job` and retry path**: `sched_timer.disconnect()` is now called before overwriting the connection in `schedule_job()`; `retry_timer.disconnect()` likewise before the retry assignment in `on_job_completed()` — previously the old GLib timeout source survived until its next fire, potentially triggering an unintended duplicate job start
+- **Integer overflow (UB) in retry backoff**: the left-shift `2000u << (retry_count - 1)` is now clamped to a maximum shift of 4 before the shift executes — previously a user-configured retry count ≥ 33 caused a shift of ≥ 32 on an unsigned 32-bit value, which is undefined behaviour in C++
+- **`notify-send` / `kdialog` blocking the GLib main loop**: both `Glib::spawn_sync` calls in `notification.cpp` replaced with `Glib::spawn_async` — the previous blocking spawn suspended all IPC message processing, timer callbacks, and HTTP response callbacks for the duration of the notification helper process
+- **Unchecked `fcntl` return values**: `F_GETFL` return value is now tested before `F_SETFL` in `ipc/client.cpp` and both call-sites in `ipc/server.cpp` — a failure returned -1 which, OR-ed with `O_NONBLOCK`, set arbitrary flags on the file descriptor and could leave the socket in blocking mode
+- **`g_signal_connect` with no disconnect in SettingsView**: added `~SettingsView()` destructor that calls `g_signal_handler_disconnect` on all 12 stored handler IDs; IDs are now captured from the `g_signal_connect` return values at setup time, matching the pattern already used in `BackendsView`
+
 ## 0.9.10 — Animated About Logo
 
 - **Animated logo on About tab**: the static application icon is replaced with the 16-frame Mt. Sync smoke animation — frames are loaded from a 4096×256 horizontal spritesheet embedded in GLib resources and rendered via a `Gtk::DrawingArea` using Cairo; the animation runs at 80 ms per frame (matching the original APNG timing) and starts/stops automatically when the About tab is shown or hidden

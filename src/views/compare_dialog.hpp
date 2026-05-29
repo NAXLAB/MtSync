@@ -85,6 +85,9 @@ private:
 
     std::shared_ptr<LoadState> m_load_state;
 
+    // Alive sentinel: set to false on close so in-flight async callbacks skip `this`
+    std::shared_ptr<bool> m_alive;
+
     void setup_ui();
     void build_column_view();
     void start_load(rclone::RcloneManager& manager);

@@ -486,6 +486,7 @@ void MtSyncDaemon::schedule_job(size_t index) {
 
     if (index >= m_job_state.size()) m_job_state.resize(index + 1);
 
+    m_job_state[index].sched_timer.disconnect();
     std::string sched_uuid = job.id;
     m_job_state[index].sched_timer = Glib::signal_timeout().connect(
         [this, index, sched_uuid]() -> bool {
@@ -670,6 +671,7 @@ void MtSyncDaemon::on_run_job(size_t index) {
         inject_flags(settings.global_rclone_flags);
 
     auto done_cb = [this, index, job_uuid](auto result) {
+        if (!m_running) return;
         if (index < m_job_state.size()) m_job_state[index].submitting = false;
         if (!result.has_value()) {
             // Job never received an RC job ID — on_job_completed() would return early
@@ -791,13 +793,13 @@ void MtSyncDaemon::on_job_completed(size_t index, bool success, const std::strin
             : settings.retries;
         if (m_job_state[index].retry_count < max_retries) {
             m_job_state[index].retry_count++;
-            unsigned int delay_ms = std::min(
-                static_cast<unsigned int>(2000u << (m_job_state[index].retry_count - 1)),
-                60000u);
+            int shift = std::min(m_job_state[index].retry_count - 1, 4);
+            unsigned int delay_ms = std::min(2000u << shift, 60000u);
             append_log(std::format("RETRYING  {} [{}] attempt {}/{} in {}s",
                 m_jobs[index].id, type_str(m_jobs[index].type),
                 m_job_state[index].retry_count, max_retries, delay_ms / 1000));
             std::string retry_uuid = m_jobs[index].id;
+            m_job_state[index].retry_timer.disconnect();
             m_job_state[index].retry_timer = Glib::signal_timeout().connect(
                 [this, index, retry_uuid]() -> bool {
                     if (index >= m_jobs.size() || m_jobs[index].id != retry_uuid)

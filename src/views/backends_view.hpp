@@ -63,6 +63,9 @@ private:
 
     gulong m_dark_signal_id = 0;
 
+    // Invalidated each time populate() runs; async get_about callbacks hold a weak_ptr
+    std::shared_ptr<bool> m_populate_token;
+
     void populate(const std::vector<rclone::RemoteInfo>& remotes);
     void on_delete_remote(const std::string& name);
     void show_add_remote();
