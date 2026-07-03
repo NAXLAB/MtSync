@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.13 — Tray "Open" Fix
+
+- **Tray "Open" required two clicks when "Start minimized" was enabled**: the GUI process spawned by the tray honoured the `start_minimized` setting and started hidden, so the first click launched an invisible window and only the second click (routed via IPC `show_window` to the now-connected client) presented it — the daemon now spawns the GUI with a new `--show` flag that overrides `start_minimized` on first activation, so an explicit tray click always shows the window immediately; `start_minimized` still applies to plain `mtsync` launches such as login autostart
+- **Daemon/GUI mutual spawning prefers `/proc/self/exe` over PATH lookup**: both the daemon launching a GUI and the GUI launching a daemon previously resolved `mtsync` via `Glib::find_program_in_path` first, so a development build would silently launch a stale system-installed binary; the running executable's own path is now preferred, with PATH lookup as fallback
+
 ## 0.9.12 - Change of tagline
 
  - **Changed tagline**: Changed the tagline from "Mount or sync network storage in comfort" to "Mount or sync network storage anywhere"

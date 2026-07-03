@@ -22,14 +22,18 @@
 
 int main(int argc, char* argv[]) {
     bool daemon_mode = false;
+    bool force_show  = false;
 
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--daemon" || arg == "-d") {
             daemon_mode = true;
+        } else if (arg == "--show") {
+            force_show = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << "Usage: mtsync [OPTIONS]\n"
                       << "  --daemon, -d    Run as background daemon\n"
+                      << "  --show          Show the window even if 'start minimized' is enabled\n"
                       << "  --help, -h      Show this help\n";
             return 0;
         }
@@ -41,7 +45,9 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // Run as GUI application
+    // Run as GUI application; pass only argv[0] so GApplication
+    // doesn't reject options it doesn't know about
     auto app = mtsync::MtSyncApplication::create();
-    return app->run(argc, argv);
+    app->set_force_show(force_show);
+    return app->run(1, argv);
 }

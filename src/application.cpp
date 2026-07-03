@@ -44,9 +44,10 @@ void MtSyncApplication::ensure_daemon_running() {
     if (!m_daemon_proxy->connect()) {
         g_message("Daemon not running, starting it...");
         
-        auto exe_path = Glib::find_program_in_path("mtsync");
-        if (exe_path.empty()) {
-            exe_path = "/proc/self/exe";
+        // Prefer our own binary so a dev build doesn't launch the installed one
+        std::string exe_path = "/proc/self/exe";
+        if (!Glib::file_test(exe_path, Glib::FileTest::EXISTS)) {
+            exe_path = Glib::find_program_in_path("mtsync");
         }
 
         try {
@@ -91,7 +92,7 @@ void MtSyncApplication::on_activate() {
                 });
         }
     }
-    if (!first_create || !m_settings.start_minimized)
+    if (m_force_show || !first_create || !m_settings.start_minimized)
         m_window->present();
 }
 

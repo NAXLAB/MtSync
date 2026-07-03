@@ -36,6 +36,10 @@ public:
     DaemonProxy& daemon_proxy() { return *m_daemon_proxy; }
     bool is_daemon_connected() const { return m_daemon_proxy && m_daemon_proxy->is_connected(); }
 
+    // Present the window on first activation even if start_minimized is set
+    // (used when the user explicitly asked for the window, e.g. tray "Open")
+    void set_force_show(bool force) { m_force_show = force; }
+
 protected:
     MtSyncApplication();
     void on_activate() override;
@@ -47,6 +51,7 @@ private:
     rclone::RcloneManager m_rclone_manager;
     std::unique_ptr<DaemonProxy> m_daemon_proxy;
     Settings m_settings;
+    bool m_force_show = false;
 };
 
 } // namespace mtsync
